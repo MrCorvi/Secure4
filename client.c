@@ -3,7 +3,6 @@
 
 int main(){
 
-    printf("Ciao mondo");
-
+    printf("Ciao mondo!");
 
 }
