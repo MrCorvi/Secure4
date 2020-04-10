@@ -115,6 +115,18 @@ int check4Line(int *winPlayer){
     return FALSE;
 }
 
+int checkEndGame(){
+    for(int i=0; i<MAP_WIDTH; i++){
+        if(map[i][0] == VOID){ 
+            return TRUE;
+        }
+    }
+    printf("\033[1;33m"); 
+    printf("PARITY\n");
+    printf("\033[0m");
+    return FALSE;
+}
+
 int update(){
     int command;
     int check;
@@ -187,7 +199,8 @@ int update(){
     }
     if(hostCommand == 9)
         return FALSE;
-    return TRUE;
+
+    return checkEndGame();
 }
 
 
