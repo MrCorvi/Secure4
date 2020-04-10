@@ -47,7 +47,7 @@ int get_cmd(){
     // N.B. strncmp() compare only an initial subset
     // I have to be sure input is not shorter
 
-	if (strlen(cmd_s)<5){
+	if(strlen(cmd_s)<5){
     	return CMD_UNKNOWN ;
 	}
 
@@ -148,7 +148,7 @@ int main(int argc, char* argv[]){
                 break;
             case CMD_MATCH:
                 printf("placeholder sfida a ip %s\n", dest_ip);
-                //forza4Engine();
+                forza4Engine();
                 break;
             case CMD_LOGOUT:
                 printf("placeholder logout\n");

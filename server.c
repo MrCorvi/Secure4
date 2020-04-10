@@ -66,8 +66,6 @@ int main(int argc, char* argv[]){
 	struct sockaddr_in cl_addr;
 	struct message m;	
 
-	char sv_dir[128];
-
 	// argument check
 	if(argc < 2){
 		printf("Not enough arguments. Try Again\n");

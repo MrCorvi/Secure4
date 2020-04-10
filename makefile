@@ -2,16 +2,16 @@ CC=gcc
 CFLAGS = -Wall
 
 
-server: server.o 
+server: server.o receive.o send.o
 	$(CC) $(CFLAGS) $^ -o server 
 	rm *.o
 
-server.o: server.c
+server.o: server.c 
 	$(CC) $(CFLAGS) -c server.c -o $@
 
 
 
-client: client.o forza4Engine.o
+client: client.o forza4Engine.o receive.o send.o
 	$(CC) $(CFLAGS) $^ -o client 
 	rm *.o
 	
