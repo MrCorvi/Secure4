@@ -1,0 +1,21 @@
+
+FILE CSV DEGLI ONLINE
+
+ID | actual_IP (visibile da cl_address)
+2    127.0.0.2
+3    127.0.0.3
+5    127.0.0.5
+
+C ---- LIST|ID ------------------------> S
+C <--- ACK| N. Online(4) | 2 3 5 7 ----- S
+
+Il client stamperà
+Online IDs
+2
+3
+5
+7
+
+
+C ---- LOGIN | MyId --------> S
+C <--- ACK ------------------ S
