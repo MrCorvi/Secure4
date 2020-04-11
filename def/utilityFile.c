@@ -1,4 +1,5 @@
-
+#include<stdint.h> 
+#include<sys/types.h>
 #include"../header/utilityFile.h"
 
 // not used but useful to understand
@@ -41,7 +42,6 @@ void get_ID_column(char* filename, uint16_t *dim, uint16_t *IDs){
 
     getline(&line, &len, fp);
 
-    //printf("wdjndkdwnkdnkdwn\n");
     while ((read = getline(&line, &len, fp)) != -1) {
         //printf("%s\n\n", line);
         IDs[i] = (uint16_t)atoi(strtok(line, token));
@@ -58,7 +58,7 @@ void get_ID_column(char* filename, uint16_t *dim, uint16_t *IDs){
 void append_row(char* filename, char* line){
 
     FILE* file1 = fopen(filename, "a");
-    fprintf(file1, "\n%s", line);
+    fprintf(file1, "%s\n", line);
     fclose(file1);
 }
 
@@ -94,7 +94,7 @@ void remove_row(char* filename, int row){
         if(line_count != row)
             fprintf(file2, "%s", line_buf);
  
-        /* Get the next line */
+        // Get the next line 
         line_size = getline(&line_buf, &line_buf_size, file1);   
         line_count++;
     }
