@@ -9,6 +9,7 @@ int serialize_message(void* buffer, struct message *aux){
 
 	int pos=0, len;
 	uint16_t opcode = (uint16_t) aux->opcode;
+	uint16_t temp;
 
 	memcpy(buffer+pos, &opcode , 2);
 	pos += 2;
@@ -16,16 +17,27 @@ int serialize_message(void* buffer, struct message *aux){
 	switch(opcode){
 
 		case LOGIN_OPCODE:
-            memcpy(buffer+pos, &aux->my_ip, sizeof(aux->my_ip));	
-			pos+=sizeof(aux->my_ip);
+            memcpy(buffer+pos, &aux->my_id, sizeof(aux->my_id));	
+			pos+=sizeof(aux->my_id);
 			break;
 		case ACK_OPCODE:
-			memcpy(buffer+pos, &aux->my_ip, sizeof(aux->my_ip));
-			pos+=sizeof(aux->my_ip);
+			memcpy(buffer+pos, &aux->my_id, sizeof(aux->my_id));
+			pos+=sizeof(aux->my_id);
 			break;
 		case LIST_OPCODE:
-			memcpy(buffer+pos, &aux->my_ip, sizeof(aux->id));
+			memcpy(buffer+pos, &aux->my_id, sizeof(aux->id));
 			pos+=sizeof(aux->id);
+			break;
+		case ACK_LIST:
+			memcpy(buffer+pos, &aux->nOnlinePlayers, sizeof(aux->nOnlinePlayers));
+			pos+=sizeof(aux->nOnlinePlayers);
+
+			for (int i = 0; i < aux->nOnlinePlayers; i++){
+				temp = aux->onlinePlayers[i];
+				memcpy(buffer+pos, &temp, sizeof(temp));
+				pos+= sizeof(temp);
+				//printf("- %d \n", temp);
+			}
 			break;
 		default:
 			break;

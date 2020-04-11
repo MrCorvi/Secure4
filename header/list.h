@@ -9,5 +9,6 @@
 #include "../header/receive.h"
 
 void pack_list_message(struct message* aux);
+//struct message pack_list_ack();
 
 void listRequest(struct message m, struct sockaddr_in sv_addr, int sd);

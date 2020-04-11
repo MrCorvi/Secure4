@@ -40,7 +40,9 @@ int get_cmd(){
 
 	char cmd_s[128];
 	
+    printf("\033[0;32m");
 	printf(">  ");
+	printf("\033[0m"); 
     if(	fgets(cmd_s, 128, stdin)==NULL){
         printf("Error fgets da gestire. Per ora terminazione forzata\n");
         exit(1);
@@ -86,7 +88,7 @@ int get_cmd(){
 void pack_login_message(struct message* aux){
 
 	aux->opcode = LOGIN_OPCODE;
-    aux->my_ip = cl_address.sin_addr.s_addr;
+    aux->my_id = cl_address.sin_addr.s_addr;
 }
 
 int main(int argc, char* argv[]){
@@ -135,7 +137,10 @@ int main(int argc, char* argv[]){
         printf("Login Opcode Error\n");
         exit(1);
     }
-    printf("Welcome to Forza4 : Enjoy with your friends! ");
+    printf("\033[1;32m");
+	printf("Welcome to Forza4");
+	printf("\033[0m"); 
+    printf(": Enjoy with your friends! ");
     print_help();
     while(1){
         int cmd = get_cmd();
@@ -156,28 +161,7 @@ int main(int argc, char* argv[]){
                 
                 //printf("placeholder list\n");
                 pack_list_message(&listRequestMessage);
-                //printf("%d\n", listRequestMessage.opcode);
                 listRequest(listRequestMessage, sv_addr, sd);
-
-<<<<<<< HEAD
-                /*
-=======
-                	//creazione indirizzo server
-                    memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
-                    sv_addr.sin_family= AF_INET;
-                    sv_addr.sin_port = htons(sv_port);
-                    inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
-
->>>>>>> origin/loginAndLogout
-                send_message(&m, &sv_addr, sd);
-                struct message ack_login_m;
-                printf("Waiting ACK...\n");
-                recv_message(sd, &ack_login_m, (struct sockaddr*)&sv_addr);
-                printf("ACK received... Login Completed\n");
-                if(ack_login_m.opcode != ACK_OPCODE){
-                    printf("Login Opcode Error\n");
-                    exit(1);
-                }*/
                 break;
             case CMD_MATCH:
                 printf("placeholder sfida a ip %s\n", dest_ip);

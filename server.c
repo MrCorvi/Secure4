@@ -14,6 +14,7 @@
 #include"header/send.h"
 #include"header/receive.h"
 #include"header/list.h"
+#include"header/utilityFile.h"
 
 #define BUFLEN 1024
 
@@ -34,9 +35,12 @@ int socket_creation(){
 	int ret = bind(sd, (struct sockaddr*)&my_addr, sizeof(my_addr));
 	if(ret!=0){
   		printf("Errore Binding: %s\n", strerror(errno));		
-		exit(1);			
+		exit(1);
 	}
-	printf("BIND SERVER CHILD %d to the port %d: %d\n", num_bind, ntohs(my_addr.sin_port), ret);
+	printf("\033[1;32m");
+	printf("BIND SERVER ");
+	printf("\033[0m"); 
+	printf("CHILD %d to the port %d: %d\n", num_bind, ntohs(my_addr.sin_port), ret);
 	return sd;
 }
 
@@ -44,8 +48,26 @@ struct message pack_ack(){
 
     struct message aux;
     aux.opcode = ACK_OPCODE;
-    aux.my_ip = my_addr.sin_addr.s_addr;
+    aux.my_id = my_addr.sin_addr.s_addr;
     return aux;
+}
+
+struct message pack_list_ack(){
+    struct message aux;
+	uint16_t len;
+    aux.opcode = ACK_LIST;
+	get_ID_column("loggedUser.csv", &len, aux.onlinePlayers);
+	aux.nOnlinePlayers = len;
+    /*for (int i = 0; i < aux.nOnlinePlayers; i++){
+		printf("- %d \n", aux.onlinePlayers[i]);
+	}*/
+	
+	/*
+	aux.nOnlinePlayers = 3;
+	aux.onlinePlayers[0] = 100;
+    aux.onlinePlayers[1] = 150;
+	aux.onlinePlayers[2] = 200;*/
+	return aux;
 }
 
 int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
@@ -60,8 +82,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
             send_message(&m, cl_addr, sd);
             break;
 		case LIST_OPCODE:
-            printf("List request from ID: \n", aux->id);
-            struct message ackList = pack_ack();
+            printf("List request from ID %d\n", aux->id);
+            struct message ackList = pack_list_ack();
             send_message(&ackList, cl_addr, sd);
             break;
 		default:
@@ -98,7 +120,10 @@ int main(int argc, char* argv[]){
 			perror("Binding Error\n");			
 			exit(1);			
 	}
-	printf("BIND SERVER PADRE alla porta %d: %d\n",ntohs(my_addr.sin_port), ret);
+	printf("\033[1;32m");
+	printf("BIND SERVER ");
+	printf("\033[0m"); 
+	printf("PADRE alla porta %d: %d\n",ntohs(my_addr.sin_port), ret);
 	while(1){		
 
 		pid_t pid;
