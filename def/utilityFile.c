@@ -28,6 +28,33 @@ const char* get_field(char* tmp, int col){
     return NULL;
 }
 
+void get_ID_column(char* filename, uint16_t *dim, uint16_t *IDs){
+    FILE * fp;
+    char * line = NULL, *id, *token=",";
+    size_t len = 0;
+    int read;
+    uint16_t i=0;
+
+    fp = fopen(filename, "r");
+    if (fp == NULL)
+        exit(EXIT_FAILURE);
+
+    getline(&line, &len, fp);
+
+    //printf("wdjndkdwnkdnkdwn\n");
+    while ((read = getline(&line, &len, fp)) != -1) {
+        //printf("%s\n\n", line);
+        IDs[i] = (uint16_t)atoi(strtok(line, token));
+        //printf("%d\n", IDs[i]);
+        i++;
+    }
+    *dim = i;
+
+    fclose(fp);
+    if (line)
+        free(line);
+}
+
 void append_row(char* filename, char* line){
 
     FILE* file1 = fopen(filename, "a");

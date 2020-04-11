@@ -40,7 +40,9 @@ int get_cmd(){
 
 	char cmd_s[128];
 	
+    printf("\033[0;32m");
 	printf(">  ");
+	printf("\033[0m"); 
     if(	fgets(cmd_s, 128, stdin)==NULL){
         printf("Error fgets da gestire. Per ora terminazione forzata\n");
         exit(1);
@@ -142,7 +144,10 @@ int main(int argc, char* argv[]){
         printf("Login Opcode Error\n");
         exit(1);
     }
-    printf("Welcome to Forza4 : Enjoy with your friends! ");
+    printf("\033[1;32m");
+	printf("Welcome to Forza4");
+	printf("\033[0m"); 
+    printf(": Enjoy with your friends! ");
     print_help();
     while(1){
         int cmd = get_cmd();
@@ -155,28 +160,15 @@ int main(int argc, char* argv[]){
                 print_help();
                 break;
             case CMD_LIST:
-                /*
-                //printf("placeholder list\n");
-                pack_list_message(&listRequestMessage);
-                //printf("%d\n", listRequestMessage.opcode);
-                listRequest(listRequestMessage, sv_addr, sd);
-                */
 
-                //creazione indirizzo server
                 memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
                 sv_addr.sin_family= AF_INET;
                 sv_addr.sin_port = htons(sv_port);
                 inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
-
-                send_message(&m, &sv_addr, sd);
-                struct message ack_login_m;
-                printf("Waiting ACK....\n");
-                recv_message(sd, &ack_login_m, (struct sockaddr*)&sv_addr);
-                printf("ACK received... Login Completed\n");
-                if(ack_login_m.opcode != ACK_OPCODE){
-                    printf("Login Opcode Error\n");
-                    exit(1);
-                }
+                
+                //printf("placeholder list\n");
+                pack_list_message(&listRequestMessage, cl_id);
+                listRequest(listRequestMessage, sv_addr, sd);
                 break;
             case CMD_MATCH:
                 printf("placeholder sfida a ip %s\n", dest_ip);

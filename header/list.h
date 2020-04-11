@@ -8,6 +8,7 @@
 #include "../header/send.h"
 #include "../header/receive.h"
 
-void pack_list_message(struct message* aux);
+void pack_list_message(struct message* aux, uint32_t id);
+//struct message pack_list_ack();
 
 void listRequest(struct message m, struct sockaddr_in sv_addr, int sd);

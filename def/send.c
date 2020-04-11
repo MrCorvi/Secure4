@@ -9,6 +9,7 @@ int serialize_message(void* buffer, struct message *aux){
 
 	int pos=0, len;
 	uint16_t opcode = (uint16_t) aux->opcode;
+	uint16_t temp;
 
 	memcpy(buffer+pos, &opcode , 2);
 	pos += 2;
@@ -31,6 +32,17 @@ int serialize_message(void* buffer, struct message *aux){
 			memcpy(buffer+pos, &aux->my_id, sizeof(aux->my_id));
 			pos+=sizeof(aux->my_id);
 			break;
+		case ACK_LIST:
+			memcpy(buffer+pos, &aux->nOnlinePlayers, sizeof(aux->nOnlinePlayers));
+			pos+=sizeof(aux->nOnlinePlayers);
+
+			for (int i = 0; i < aux->nOnlinePlayers; i++){
+				temp = aux->onlinePlayers[i];
+				memcpy(buffer+pos, &temp, sizeof(temp));
+				pos+= sizeof(temp);
+				printf("- %d \n", aux->onlinePlayers[i]);
+			}
+			break;
 		default:
 			break;
 	}
@@ -48,7 +60,7 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket){
 	// packet creation
 	int len = serialize_message(buf, m);
 
-	printf("sending %d\n", m->opcode);
+	//printf("sending %d\n", m->opcode);
 	ret = sendto(socket, buf, len , 0, (struct sockaddr*)dest_addr, sizeof(struct sockaddr_in));	
 	if(ret<0){
 		printf("sendto ERROR");
