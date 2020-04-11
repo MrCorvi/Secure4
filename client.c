@@ -88,9 +88,6 @@ int get_cmd(){
 void pack_login_message(struct message* aux){
 
 	aux->opcode = LOGIN_OPCODE;
-<<<<<<< HEAD
-    aux->my_id = cl_address.sin_addr.s_addr;
-=======
     aux->my_id = cl_id;
 }
 
@@ -98,7 +95,6 @@ void pack_logout_message(struct message* aux){
 
 	aux->opcode = LOGOUT_OPCODE;
     aux->my_id = cl_id;
->>>>>>> origin/master
 }
 
 int main(int argc, char* argv[]){
