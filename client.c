@@ -167,7 +167,7 @@ int main(int argc, char* argv[]){
                 inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
                 
                 //printf("placeholder list\n");
-                pack_list_message(&listRequestMessage);
+                pack_list_message(&listRequestMessage, cl_id);
                 listRequest(listRequestMessage, sv_addr, sd);
                 break;
             case CMD_MATCH:

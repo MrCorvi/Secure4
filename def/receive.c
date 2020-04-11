@@ -23,7 +23,7 @@ int deserialize_message(char* buffer, struct message *aux){
 			pos += sizeof(aux->my_id);
 			break;
 		case LIST_OPCODE:
-			memcpy(&aux->id, buffer+pos, sizeof(aux->id));
+			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
 			pos += sizeof(aux->my_id);
 			break;
 		case ACK_LIST:

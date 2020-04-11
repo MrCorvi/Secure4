@@ -41,6 +41,7 @@ void get_ID_column(char* filename, uint16_t *dim, uint16_t *IDs){
 
     getline(&line, &len, fp);
 
+    //printf("wdjndkdwnkdnkdwn\n");
     while ((read = getline(&line, &len, fp)) != -1) {
         //printf("%s\n\n", line);
         IDs[i] = (uint16_t)atoi(strtok(line, token));
@@ -62,7 +63,7 @@ void append_row(char* filename, char* line){
 }
 
 // header is row 1
-int remove_row(char* filename, int row){
+void remove_row(char* filename, int row){
 
     if(row==1) return; // try to remove header
 

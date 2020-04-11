@@ -40,7 +40,7 @@ int serialize_message(void* buffer, struct message *aux){
 				temp = aux->onlinePlayers[i];
 				memcpy(buffer+pos, &temp, sizeof(temp));
 				pos+= sizeof(temp);
-				//printf("- %d \n", temp);
+				printf("- %d \n", aux->onlinePlayers[i]);
 			}
 			break;
 		default:

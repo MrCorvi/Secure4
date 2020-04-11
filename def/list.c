@@ -1,13 +1,12 @@
 #include "../header/list.h"
 
-void pack_list_message(struct message* aux){
-    uint32_t id;
+void pack_list_message(struct message* aux, uint32_t id){
 
 	aux->opcode = LIST_OPCODE;
     //For now, the id is given by an input !!!!!!!!!!!!!!!!!
-    printf("Input your ID: ");
-    scanf("%d", &id);
-    aux->my_id = 23;
+    //printf("Input your ID: ");
+    //scanf("%d", &id);
+    aux->my_id = id;
 }
 
 struct message pack_list_ack(){

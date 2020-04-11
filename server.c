@@ -11,17 +11,10 @@
 	#define MESSAGE_H
 	#include "header/message.h"
 #endif
-<<<<<<< HEAD
-#include"header/send.h"
-#include"header/receive.h"
-#include"header/list.h"
-#include"header/utilityFile.h"
-=======
 #include "header/send.h"
 #include "header/receive.h"
 #include "header/list.h"
 #include "header/utilityFile.h"
->>>>>>> origin/master
 
 #define BUFLEN 1024
 
@@ -104,13 +97,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
             send_message(&m, cl_addr, sd);
             break;
 		case LIST_OPCODE:
-<<<<<<< HEAD
-            printf("List request from ID %d\n", aux->id);
-            struct message ackList = pack_list_ack();
-=======
             printf("List request from ID: %d\n", aux->my_id);
-            struct message ackList = pack_ack(aux->my_id);
->>>>>>> origin/master
+            struct message ackList = pack_list_ack(aux->my_id);
             send_message(&ackList, cl_addr, sd);
             break;
 		case LOGOUT_OPCODE:
