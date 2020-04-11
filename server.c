@@ -7,12 +7,18 @@
 #include<string.h>
 #include<stdlib.h>
 #include<errno.h>
-#include"header/message.h"
-#include"header/send.h"
-#include"header/receive.h"
+#ifndef MESSAGE_H
+	#define MESSAGE_H
+	#include "header/message.h"
+#endif
+#include "header/send.h"
+#include "header/receive.h"
+#include "header/list.h"
+#include "header/utilityFile.h"
 
 #define BUFLEN 1024
 
+char* filename = "loggedUser.csv";
 struct sockaddr_in my_addr;
 int num_bind =0;
 int sv_port;
@@ -36,11 +42,11 @@ int socket_creation(){
 	return sd;
 }
 
-struct message pack_ack(){
+struct message pack_ack(uint32_t id){
 
     struct message aux;
     aux.opcode = ACK_OPCODE;
-    aux.my_ip = my_addr.sin_addr.s_addr;
+    aux.my_id = id;
     return aux;
 }
 
@@ -48,13 +54,47 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 
     uint16_t opcode = (uint16_t) aux->opcode;   
     printf("opcode: %d\n", opcode);
+	int ret;
+
     switch(opcode){
 
         case LOGIN_OPCODE:
-            printf("Placeholder controllo IP...\n");
-            struct message m = pack_ack();
+            printf("Placeholder controllo ID.....\n");
+			
+			int ret = get_row_by_id(filename, aux->my_id);
+			printf("row : %d", ret);
+			if(ret!=-1){
+				printf("ERRORE GIA' LOGGATO, da gestire con Err pack");
+				// per ora inserisce comunque per agevolare testing
+			}
+			char buffer[1024];
+			long cl_ip = cl_addr->sin_addr.s_addr;
+			int cl_port = cl_addr->sin_port;
+			sprintf(buffer,"%d,%ld,%d", aux->my_id, cl_ip, cl_port);
+			append_row(filename, buffer);
+            struct message m = pack_ack(aux->my_id);
             send_message(&m, cl_addr, sd);
             break;
+		case LIST_OPCODE:
+            printf("List request from ID: %d\n", aux->my_id);
+            struct message ackList = pack_ack(aux->my_id);
+            send_message(&ackList, cl_addr, sd);
+            break;
+		case LOGOUT_OPCODE:
+			//look at .csv if correct id
+			ret = get_row_by_id(filename,aux->my_id);
+			//if not pack err
+			if(ret==-1){
+				printf("ID non presente!\n");
+				return -1;
+			}
+			printf("rimuovo riga %d \n", ret);
+			remove_row(filename, ret);
+			printf("Riga rimossa!\n");
+			struct message ackLogout = pack_ack(aux->my_id);
+            send_message(&ackLogout, cl_addr, sd);
+		default:
+			break;
     }
 
 	return 1;
@@ -106,9 +146,12 @@ int main(int argc, char* argv[]){
 		if(pid==0){ // child process
 			
 			//sleep(5);	
-			int sd_child = socket_creation();		
-            ret = handle_request( &m, &cl_addr, sd_child);
+			int sd_child = socket_creation();	
+		
+           	ret = handle_request( &m, &cl_addr, sd_child);
+			printf("End Message handling\n");
             close(sd_child);
+			exit(0);
 		}
 
 		//sleep(7);

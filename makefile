@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS = -Wall
 
 
-server: server.o receive.o send.o
+server: server.o receive.o send.o utilityFile.o
 	$(CC) $(CFLAGS) $^ -o server 
 	rm *.o
 
@@ -11,7 +11,7 @@ server.o: server.c
 
 
 
-client: client.o forza4Engine.o receive.o send.o
+client: client.o forza4Engine.o receive.o send.o list.o
 	$(CC) $(CFLAGS) $^ -o client 
 	rm *.o
 	
