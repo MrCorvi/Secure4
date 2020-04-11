@@ -36,7 +36,10 @@ int deserialize_message(char* buffer, struct message *aux){
 				pos+= sizeof(uint16_t);
 			}
 			printf("\n");
-			
+			break;
+		case LOGOUT_OPCODE:
+			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
+			pos += sizeof(aux->my_id);
 			break;
 		default:
 			break;

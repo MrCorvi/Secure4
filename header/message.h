@@ -15,10 +15,9 @@
 struct message{
 	uint16_t opcode;
     uint32_t my_id;
-    uint32_t dest_ip; // NULL if opcode != MATCH. In that case 
-                      // Server thread just forward MATCH message
-                      // and dest_client reply (ACK or DENY)
-    uint32_t id;
     uint16_t onlinePlayers[MAX_USERS];
     uint16_t nOnlinePlayers;
+    uint32_t dest_id; // NULL if opcode != MATCH. In that case 
+                      // Server thread just forward MATCH message
+                      // and dest_client reply (ACK or DENY)
 };

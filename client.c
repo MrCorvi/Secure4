@@ -24,7 +24,7 @@
 char *dest_ip;
 struct sockaddr_in cl_address, sv_addr;
 char* sv_ip;
-int sv_port;
+int sv_port, cl_id;
 
 void print_help(){
 
@@ -88,7 +88,17 @@ int get_cmd(){
 void pack_login_message(struct message* aux){
 
 	aux->opcode = LOGIN_OPCODE;
+<<<<<<< HEAD
     aux->my_id = cl_address.sin_addr.s_addr;
+=======
+    aux->my_id = cl_id;
+}
+
+void pack_logout_message(struct message* aux){
+
+	aux->opcode = LOGOUT_OPCODE;
+    aux->my_id = cl_id;
+>>>>>>> origin/master
 }
 
 int main(int argc, char* argv[]){
@@ -97,7 +107,7 @@ int main(int argc, char* argv[]){
 	int sd;
 
 	// argument check
-	if(argc < 3){
+	if(argc < 4){
 		printf("Not enough arguments. Try Again\n");
 		printf("./client server_ip server_port\n");
 		exit(0);
@@ -105,6 +115,7 @@ int main(int argc, char* argv[]){
 
 	sv_ip = argv[1];
 	sv_port = atoi(argv[2]); 
+    cl_id = atoi(argv[3]);
 
     // socket creation
 	sd = socket(AF_INET, SOCK_DGRAM,0);	
@@ -168,7 +179,24 @@ int main(int argc, char* argv[]){
                 forza4Engine();
                 break;
             case CMD_LOGOUT:
-                printf("placeholder logout\n");
+                pack_logout_message(&m);
+
+                //DA MODULARIZZARE
+                //creazione indirizzo server
+                memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
+                sv_addr.sin_family= AF_INET;
+                sv_addr.sin_port = htons(sv_port);
+                inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
+
+                send_message(&m, &sv_addr, sd);
+                struct message ack_logout_m;
+                printf("Waiting Logout ACK....\n");
+                recv_message(sd, &ack_logout_m, (struct sockaddr*)&sv_addr);
+                printf("Logout ACK received... Login Completed\n");
+                if(ack_logout_m.opcode != ACK_OPCODE){
+                    printf("Logout Opcode Error\n");
+                    exit(1);
+                }
                 exit(0);
         }   
     }
