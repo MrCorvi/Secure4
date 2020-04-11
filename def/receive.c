@@ -14,16 +14,20 @@ int deserialize_message(char* buffer, struct message *aux){
 	switch(opcodex){
 
         case LOGIN_OPCODE:
-            memcpy(&aux->my_ip, buffer+pos, sizeof(aux->my_ip));
-            pos += sizeof(aux->my_ip);
+            memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
+            pos += sizeof(aux->my_id);
             break;
 		case ACK_OPCODE:
-			memcpy(&aux->my_ip, buffer+pos, sizeof(aux->my_ip));
-			pos += sizeof(aux->my_ip);
+			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
+			pos += sizeof(aux->my_id);
 			break;
 		case LIST_OPCODE:
-			memcpy(&aux->id, buffer+pos, sizeof(aux->id));
-			pos += sizeof(aux->my_ip);
+			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
+			pos += sizeof(aux->my_id);
+			break;
+		case LOGOUT_OPCODE:
+			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
+			pos += sizeof(aux->my_id);
 			break;
 		default:
 			break;

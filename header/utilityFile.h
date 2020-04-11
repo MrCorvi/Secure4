@@ -7,3 +7,4 @@ void read_all_file(char* filename );
 void print_column(char* filename , int col);
 void append_row(char* filename , char* line );
 void remove_row(char* filename, int row);
+int get_row_by_id(char* filename, int id);

@@ -8,7 +8,7 @@ void pack_list_message(struct message* aux){
     printf("Input your ID: ");
     scanf("%d", &id);
     printf("\n");
-    aux->id = id;
+    aux->my_id = id;
 }
 
 void listRequest(struct message m, struct sockaddr_in sv_addr, int sd){

@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS = -Wall
 
 
-server: server.o receive.o send.o
+server: server.o receive.o send.o utilityFile.o
 	$(CC) $(CFLAGS) $^ -o server 
 	rm *.o
 

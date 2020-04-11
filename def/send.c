@@ -16,16 +16,20 @@ int serialize_message(void* buffer, struct message *aux){
 	switch(opcode){
 
 		case LOGIN_OPCODE:
-            memcpy(buffer+pos, &aux->my_ip, sizeof(aux->my_ip));	
-			pos+=sizeof(aux->my_ip);
+            memcpy(buffer+pos, &aux->my_id, sizeof(aux->my_id));	
+			pos+=sizeof(aux->my_id);
 			break;
 		case ACK_OPCODE:
-			memcpy(buffer+pos, &aux->my_ip, sizeof(aux->my_ip));
-			pos+=sizeof(aux->my_ip);
+			memcpy(buffer+pos, &aux->my_id, sizeof(aux->my_id));
+			pos+=sizeof(aux->my_id);
 			break;
 		case LIST_OPCODE:
-			memcpy(buffer+pos, &aux->my_ip, sizeof(aux->id));
-			pos+=sizeof(aux->id);
+			memcpy(buffer+pos, &aux->my_id, sizeof(aux->my_id));
+			pos+=sizeof(aux->my_id);
+			break;
+		case LOGOUT_OPCODE:
+			memcpy(buffer+pos, &aux->my_id, sizeof(aux->my_id));
+			pos+=sizeof(aux->my_id);
 			break;
 		default:
 			break;

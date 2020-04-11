@@ -1,5 +1,5 @@
 
-#include"../header/utilityFIle.h"
+#include"../header/utilityFile.h"
 
 // not used but useful to understand
 void print_all_fields(char* tmp){
@@ -38,12 +38,12 @@ void append_row(char* filename, char* line){
 // header is row 1
 void remove_row(char* filename, int row){
 
-    if(row==1) return -1; // try to remove header
+    if(row==1) return; // try to remove header
 
     char *line_buf = NULL;
     size_t line_buf_size = 0;
     int line_count = 0 ;
-    size_t line_size;
+    ssize_t line_size;
 
     /* Open the file for reading */
     FILE* file1 = fopen(filename, "r");
@@ -51,12 +51,12 @@ void remove_row(char* filename, int row){
     if (!file1)
     {
         fprintf(stderr, "Error opening file '%s'\n", filename);
-        return 1;
+        return;
     }
     if (!file2)
     {
         fprintf(stderr, "Error opening aux file\n");
-        return 1;
+        return;
     }
 
     /* Get the first line of the file (header) with a POSIX function*/
@@ -76,7 +76,7 @@ void remove_row(char* filename, int row){
     line_buf = NULL;
     fclose(file1);
 
-    system("mv aux.csv activeuser.csv");
+    system("mv aux.csv loggedUser.csv");
 }
 
 void read_all_file(char* filename){
@@ -110,6 +110,29 @@ void print_column(char* filename, int col){
     }
     fclose(file1);
 
+}
+
+int get_row_by_id(char* filename, int id){
+
+    FILE* file1 = fopen(filename,"r");
+    char buffer[1024];
+    char snum[5];
+    int count=0;
+
+    sprintf(snum, "%d", id);
+
+    while(fgets(buffer, 1024, file1)){
+        char* p = strchr(buffer, '\n');
+        char* tmp = strdup(buffer);
+        
+        if(strcmp(get_field(tmp,1),snum)==0)
+            return count+1;
+        free(tmp);
+        count++;
+    }
+    fclose(file1);
+
+    return -1;
 }
 /*
 int main(){
