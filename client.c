@@ -159,7 +159,16 @@ int main(int argc, char* argv[]){
                 //printf("%d\n", listRequestMessage.opcode);
                 listRequest(listRequestMessage, sv_addr, sd);
 
+<<<<<<< HEAD
                 /*
+=======
+                	//creazione indirizzo server
+                    memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
+                    sv_addr.sin_family= AF_INET;
+                    sv_addr.sin_port = htons(sv_port);
+                    inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
+
+>>>>>>> origin/loginAndLogout
                 send_message(&m, &sv_addr, sd);
                 struct message ack_login_m;
                 printf("Waiting ACK...\n");
