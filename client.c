@@ -148,13 +148,18 @@ int main(int argc, char* argv[]){
                 print_help();
                 break;
             case CMD_LIST:
-                /*
+
+                memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
+                sv_addr.sin_family= AF_INET;
+                sv_addr.sin_port = htons(sv_port);
+                inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
+                
                 //printf("placeholder list\n");
                 pack_list_message(&listRequestMessage);
                 //printf("%d\n", listRequestMessage.opcode);
                 listRequest(listRequestMessage, sv_addr, sd);
-                */
 
+                /*
                 send_message(&m, &sv_addr, sd);
                 struct message ack_login_m;
                 printf("Waiting ACK...\n");
@@ -163,7 +168,7 @@ int main(int argc, char* argv[]){
                 if(ack_login_m.opcode != ACK_OPCODE){
                     printf("Login Opcode Error\n");
                     exit(1);
-                }
+                }*/
                 break;
             case CMD_MATCH:
                 printf("placeholder sfida a ip %s\n", dest_ip);

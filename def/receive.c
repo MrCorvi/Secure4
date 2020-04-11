@@ -38,9 +38,9 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 	socklen_t addrlen = sizeof(struct sockaddr_in);
 
 
-	printf("Waiting new message\n");
+	//printf("Waiting new message\n");
   	ret = recvfrom(socket, buffer, buffersize, 0, (struct sockaddr*)mitt_addr, &addrlen);
-	printf("New message!!!\n");
+	//printf("New message!!!\n");
 	
 	if(ret<0){
 		printf("ERRORE recvfrom\n");

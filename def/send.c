@@ -44,7 +44,7 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket){
 	// packet creation
 	int len = serialize_message(buf, m);
 
-	printf("sending %d\n", m->opcode);
+	//printf("sending %d\n", m->opcode);
 	ret = sendto(socket, buf, len , 0, (struct sockaddr*)dest_addr, sizeof(struct sockaddr_in));	
 	if(ret<0){
 		printf("sendto ERROR");
