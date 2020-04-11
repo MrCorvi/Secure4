@@ -8,8 +8,8 @@
 #include<stdlib.h>
 #include<errno.h>
 #ifndef MESSAGE_H
-    #define MESSAGE_H
-    #include "header/message.h"
+	#define MESSAGE_H
+	#include "header/message.h"
 #endif
 #include"header/send.h"
 #include"header/receive.h"
@@ -117,10 +117,12 @@ int main(int argc, char* argv[]){
 		if(pid==0){ // child process
 			
 			//sleep(5);	
-			int sd_child = socket_creation();		
-            ret = handle_request( &m, &cl_addr, sd_child);
+			int sd_child = socket_creation();	
+		
+           	ret = handle_request( &m, &cl_addr, sd_child);
 			printf("End Message handling\n");
             close(sd_child);
+			exit(0);
 		}
 
 		//sleep(7);

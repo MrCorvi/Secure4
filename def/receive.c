@@ -1,6 +1,6 @@
 
 
-#include "../header//receive.h"
+#include "../header/receive.h"
 
 int deserialize_message(char* buffer, struct message *aux){
 
@@ -38,7 +38,7 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 	socklen_t addrlen = sizeof(struct sockaddr_in);
 
 
-	printf("Waiting new message\n");
+	printf("Waiting new message at socket %d\n", socket);
   	ret = recvfrom(socket, buffer, buffersize, 0, (struct sockaddr*)mitt_addr, &addrlen);
 	printf("New message!!!\n");
 	
