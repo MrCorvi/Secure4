@@ -1,13 +1,5 @@
 
-#include<sys/types.h>
-#include<sys/socket.h>
-#include<netinet/in.h>
-#include<arpa/inet.h>
-#include<stdio.h>
-#include<unistd.h>
-#include<string.h>
-#include<stdlib.h>
-#include"../header/message.h"
+#include "../header/send.h"
 
 #define MAX_LEN 128
 
@@ -31,7 +23,12 @@ int serialize_message(void* buffer, struct message *aux){
 			memcpy(buffer+pos, &aux->my_ip, sizeof(aux->my_ip));
 			pos+=sizeof(aux->my_ip);
 			break;
-
+		case LIST_OPCODE:
+			memcpy(buffer+pos, &aux->my_ip, sizeof(aux->id));
+			pos+=sizeof(aux->id);
+			break;
+		default:
+			break;
 	}
 
 	return pos;
@@ -47,6 +44,7 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket){
 	// packet creation
 	int len = serialize_message(buf, m);
 
+	printf("sending %d\n", m->opcode);
 	ret = sendto(socket, buf, len , 0, (struct sockaddr*)dest_addr, sizeof(struct sockaddr_in));	
 	if(ret<0){
 		printf("sendto ERROR");

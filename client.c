@@ -7,9 +7,13 @@
 #include<stdio.h>
 #include<string.h>
 #include "header/forza4Engine.h"
-#include "header/message.h"
+#ifndef MESSAGE_H
+    #define MESSAGE_H
+    #include"header/message.h"
+#endif
 #include "header/send.h"
 #include "header/receive.h"
+#include "header/list.h"
 
 #define CMD_UNKNOWN 0
 #define CMD_HELP 1
@@ -87,7 +91,7 @@ void pack_login_message(struct message* aux){
 
 int main(int argc, char* argv[]){
 
-    struct message m;
+    struct message m, listRequestMessage;
 	int sd;
 
 	// argument check
@@ -144,7 +148,22 @@ int main(int argc, char* argv[]){
                 print_help();
                 break;
             case CMD_LIST:
-                printf("placeholder list\n");
+                /*
+                //printf("placeholder list\n");
+                pack_list_message(&listRequestMessage);
+                //printf("%d\n", listRequestMessage.opcode);
+                listRequest(listRequestMessage, sv_addr, sd);
+                */
+
+                send_message(&m, &sv_addr, sd);
+                struct message ack_login_m;
+                printf("Waiting ACK...\n");
+                recv_message(sd, &ack_login_m, (struct sockaddr*)&sv_addr);
+                printf("ACK received... Login Completed\n");
+                if(ack_login_m.opcode != ACK_OPCODE){
+                    printf("Login Opcode Error\n");
+                    exit(1);
+                }
                 break;
             case CMD_MATCH:
                 printf("placeholder sfida a ip %s\n", dest_ip);

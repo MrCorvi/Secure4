@@ -15,4 +15,5 @@ struct message{
     uint32_t dest_ip; // NULL if opcode != MATCH. In that case 
                       // Server thread just forward MATCH message
                       // and dest_client reply (ACK or DENY)
+    uint32_t id;
 };

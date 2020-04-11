@@ -1,15 +1,6 @@
 
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <pthread.h>
-#include"../header/message.h"
 
-#define MAX_BUFFER_SIZE 128
+#include "../header//receive.h"
 
 int deserialize_message(char* buffer, struct message *aux){
 
@@ -30,6 +21,10 @@ int deserialize_message(char* buffer, struct message *aux){
 			memcpy(&aux->my_ip, buffer+pos, sizeof(aux->my_ip));
 			pos += sizeof(aux->my_ip);
 			break;
+		case LIST_OPCODE:
+			memcpy(&aux->id, buffer+pos, sizeof(aux->id));
+			pos += sizeof(aux->my_ip);
+			break;
 		default:
 			break;
 	}
@@ -42,7 +37,11 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
   	int buffersize = MAX_BUFFER_SIZE;
 	socklen_t addrlen = sizeof(struct sockaddr_in);
 
+
+	printf("Waiting new message\n");
   	ret = recvfrom(socket, buffer, buffersize, 0, (struct sockaddr*)mitt_addr, &addrlen);
+	printf("New message!!!\n");
+	
 	if(ret<0){
 		printf("ERRORE recvfrom\n");
 		exit(1);		

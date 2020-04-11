@@ -7,9 +7,13 @@
 #include<string.h>
 #include<stdlib.h>
 #include<errno.h>
-#include"header/message.h"
+#ifndef MESSAGE_H
+    #define MESSAGE_H
+    #include "header/message.h"
+#endif
 #include"header/send.h"
 #include"header/receive.h"
+#include"header/list.h"
 
 #define BUFLEN 1024
 
@@ -55,6 +59,13 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
             struct message m = pack_ack();
             send_message(&m, cl_addr, sd);
             break;
+		case LIST_OPCODE:
+            printf("List request from ID: \n", aux->id);
+            struct message ackList = pack_ack();
+            send_message(&ackList, cl_addr, sd);
+            break;
+		default:
+			break;
     }
 
 	return 1;
@@ -108,6 +119,7 @@ int main(int argc, char* argv[]){
 			//sleep(5);	
 			int sd_child = socket_creation();		
             ret = handle_request( &m, &cl_addr, sd_child);
+			printf("End Message handling\n");
             close(sd_child);
 		}
 
