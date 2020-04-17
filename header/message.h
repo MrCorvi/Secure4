@@ -9,6 +9,8 @@
 #define LOGOUT_OPCODE 6
 #define ERR_OPCODE 7
 #define ACK_LIST 8
+#define ACCEPT_OPCODE 9
+#define REPLY_OPCODE 10
 
 #define MAX_USERS 2000
 
@@ -20,4 +22,9 @@ struct message{
     uint32_t dest_id; // NULL if opcode != MATCH. In that case 
                       // Server thread just forward MATCH message
                       // and dest_client reply (ACK or DENY)
+    uint32_t dest_ip;
+    uint16_t my_listen_port;
+    uint16_t dest_port;
+    uint16_t column; 
+    uint16_t flag; // 1 accept 0 deny
 };

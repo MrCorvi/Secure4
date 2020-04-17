@@ -19,7 +19,7 @@
 #define BUFLEN 1024
 
 char* filename = "loggedUser.csv";
-struct sockaddr_in my_addr;
+struct sockaddr_in my_addr, listen_addr;
 int num_bind =0;
 int sv_port;
 
@@ -73,9 +73,16 @@ struct message pack_list_ack(){
 
 int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 
+	struct message* aux2;
+	struct sockaddr_in dest_cl_address, sv_addr;
     uint16_t opcode = (uint16_t) aux->opcode;   
-    printf("opcode: %d\n", opcode);
+	char *dest_ip;
+	uint16_t dest_port;   
 	int ret;
+	char str[INET_ADDRSTRLEN];
+	int sd_listen = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
+
+	printf("opcode: %d\n", opcode);
 
     switch(opcode){
 
@@ -89,9 +96,9 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				// per ora inserisce comunque per agevolare testing
 			}
 			char buffer[1024];
-			long cl_ip = cl_addr->sin_addr.s_addr;
-			int cl_port = cl_addr->sin_port;
-			sprintf(buffer,"%d,%ld,%d", aux->my_id, cl_ip, cl_port);
+			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);
+			int cl_port = aux->my_listen_port;
+			sprintf(buffer,"%d,%s,%d", aux->my_id, str, cl_port);
 			append_row(filename, buffer);
             struct message m = pack_ack(aux->my_id);
             send_message(&m, cl_addr, sd);
@@ -101,6 +108,31 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
             struct message ackList = pack_list_ack(aux->my_id);
             send_message(&ackList, cl_addr, sd);
             break;
+		case MATCH_OPCODE:
+			printf("%d <--> %d \n", aux->dest_id, ntohs(aux->dest_id));
+			dest_ip = get_column_by_id(filename, ntohs(aux->dest_id), 2);
+			dest_port = atoi(get_column_by_id(filename, ntohs(aux->dest_id), 3));
+			printf("DEST IP: %s\n", dest_ip);
+			printf("DEST PORT; %u\n", dest_port);
+            
+			sd_listen = socket(AF_INET, SOCK_DGRAM, 0);
+
+			//addres creation
+			memset(&listen_addr,0, sizeof(listen_addr)); //pulizia
+			listen_addr.sin_family= AF_INET;
+			listen_addr.sin_addr.s_addr = INADDR_ANY;
+			listen_addr.sin_port = htons(dest_port);
+
+            send_message(aux, &listen_addr, sd_listen);
+			printf("attendo reply\n");
+			int req = recv_message(sd_listen, &aux, (struct sockaddr*)&listen_addr); //3000 receive port and then pass message to others
+			if(req!=1){
+				printf("Errore (andra' implementato ERR_OPCODE)\n");
+				close(sd_listen);
+				exit(1);
+			}
+			send_message(&aux, cl_addr, sd);
+			break;
 		case LOGOUT_OPCODE:
 			//look at .csv if correct id
 			ret = get_row_by_id(filename,aux->my_id);
@@ -155,7 +187,7 @@ int main(int argc, char* argv[]){
 	while(1){		
 
 		pid_t pid;
-		int req = recv_message(sd, &m, (struct sockaddr*)&cl_addr); 
+		int req = recv_message(sd, &m, (struct sockaddr*)&cl_addr); //3000 receive port and then pass message to others
 		if(req!=1){
             printf("Errore (andra' implementato ERR_OPCODE)\n");
 			close(sd);

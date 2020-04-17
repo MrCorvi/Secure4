@@ -17,6 +17,8 @@ int deserialize_message(char* buffer, struct message *aux){
         case LOGIN_OPCODE:
             memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
             pos += sizeof(aux->my_id);
+			memcpy(&aux->my_listen_port, buffer+pos, sizeof(aux->my_listen_port));
+            pos += sizeof(aux->my_listen_port);
             break;
 		case ACK_OPCODE:
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
@@ -40,6 +42,21 @@ int deserialize_message(char* buffer, struct message *aux){
 		case LOGOUT_OPCODE:
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
 			pos += sizeof(aux->my_id);
+			break;
+		case MATCH_OPCODE:
+			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
+			pos += sizeof(aux->my_id);
+			memcpy(&aux->dest_id, buffer+pos, sizeof(aux->dest_id));
+			pos += sizeof(aux->dest_id);
+			break;
+		case REPLY_OPCODE:
+			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
+			pos += sizeof(aux->my_id);
+			memcpy(&aux->dest_id, buffer+pos, sizeof(aux->dest_id));
+			pos += sizeof(aux->dest_id);
+			memcpy(&aux->flag, buffer+pos, sizeof(aux->flag));
+			pos += sizeof(aux->flag);
+			//printf("AUX FLAG ricevuto: %u <--> %d\n ", aux->flag, aux->flag );
 			break;
 		default:
 			break;

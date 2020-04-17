@@ -21,17 +21,17 @@
 #define CMD_MATCH 3
 #define CMD_LOGOUT 4
 
-char *dest_ip;
-struct sockaddr_in cl_address, sv_addr;
+uint16_t dest_id;
+struct sockaddr_in cl_address, cl_listen_addr, sv_addr;
 char* sv_ip;
-int sv_port, cl_id;
+int sv_port, cl_id, cl_listen_port;
 
 void print_help(){
 
 	printf("Commands are the following:\n");
 	printf("!help --> show all available commands\n");
-    printf("!list --> get IPs of all online clients\n");
-    printf("!match dest_ip -> request a challenge to the client corresponding to dest_ip\n");
+    printf("!list --> get IDs of all online clients\n");
+    printf("!match dest_id -> request a challenge to the client corresponding to dest_id\n");
 	printf("!logout --> logout by the server and stop the program\n");
 
 }
@@ -70,7 +70,7 @@ int get_cmd(){
         // read from cmd_s and "fill" variables
         // return filled variables
         // without m is a segmentation error
-		int filled = sscanf(cmd_s, "%*s %ms", &dest_ip );		
+		int filled = sscanf(cmd_s, "%*s %u", &dest_id );	
 		if(filled!=1)
 			return CMD_UNKNOWN;
 		else
@@ -89,12 +89,30 @@ void pack_login_message(struct message* aux){
 
 	aux->opcode = LOGIN_OPCODE;
     aux->my_id = cl_id;
+    aux->my_listen_port = cl_listen_port;
 }
 
 void pack_logout_message(struct message* aux){
 
 	aux->opcode = LOGOUT_OPCODE;
     aux->my_id = cl_id;
+}
+
+void pack_reply_message(struct message* aux, uint16_t flag, uint16_t dest_id_aux){
+
+    aux->opcode = REPLY_OPCODE;
+    aux->my_id = cl_id;
+    aux->dest_id = dest_id_aux;
+    aux->flag = flag;
+}
+
+void pack_match_message(struct message* aux){
+
+    aux->opcode = MATCH_OPCODE;
+    aux->my_id = cl_id;
+    aux->dest_id = htons(dest_id);
+    printf("Dest id pack match: %u, %u", dest_id, aux->dest_id);
+
 }
 
 int main(int argc, char* argv[]){
@@ -105,13 +123,16 @@ int main(int argc, char* argv[]){
 	// argument check
 	if(argc < 4){
 		printf("Not enough arguments. Try Again\n");
-		printf("./client server_ip server_port\n");
+		printf("./client server_ip your_id server_port\n");
 		exit(0);
 	}
 
 	sv_ip = argv[1];
 	sv_port = atoi(argv[2]); 
     cl_id = atoi(argv[3]);
+    cl_listen_port = (argc==5)? atoi(argv[4]): sv_port+100;
+
+    pid_t pid;
 
     // socket creation
 	sd = socket(AF_INET, SOCK_DGRAM,0);	
@@ -125,9 +146,10 @@ int main(int argc, char* argv[]){
 	cl_address.sin_family = AF_INET;
 	//hostlong from host byte order to network byte order
 	cl_address.sin_addr.s_addr = htonl(INADDR_ANY); 
-
+    cl_address.sin_port = htons(sv_port);
     pack_login_message(&m);
-  
+    printf("PORTA: %d\n", cl_listen_port);
+
     //server address creation
 	memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
 	sv_addr.sin_family= AF_INET;
@@ -149,52 +171,134 @@ int main(int argc, char* argv[]){
 	printf("\033[0m"); 
     printf(": Enjoy with your friends! ");
     print_help();
-    while(1){
-        int cmd = get_cmd();
 
-        switch(cmd){
-            case CMD_UNKNOWN:
-                printf("UNKNOWN COMMAND. Type !help to know the possibile ones\n");
-                break;
-            case CMD_HELP:
-                print_help();
-                break;
-            case CMD_LIST:
+    pid = fork();
+	if(pid==-1){
+		printf("Fork Error\n");
+		exit(1);		
+	}	
+	if(pid==0){ // child process
 
-                memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
-                sv_addr.sin_family= AF_INET;
-                sv_addr.sin_port = htons(sv_port);
-                inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
+        while(1){
+            struct message match_m;
+            struct sockaddr_in sv_addr_listen;
+            char cmd_s[128];
+
+            //addres creation
+            memset(&cl_listen_addr,0, sizeof(cl_listen_addr)); //pulizia
+            cl_listen_addr.sin_family= AF_INET;
+            cl_listen_addr.sin_addr.s_addr = INADDR_ANY;
+            cl_listen_addr.sin_port = htons(cl_listen_port);
+
+            int sd = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
+            int ret = bind(sd, (struct sockaddr*)&cl_listen_addr, sizeof(cl_listen_addr));
+            if(ret!=0){
+			    perror("Binding Error\n");			
+			    exit(1);			
+	        }
+            recv_message(sd, &match_m, (struct sockaddr*)&sv_addr_listen);
+            if(match_m.opcode == ACCEPT_OPCODE){
+                printf("Sfida accettata (child thread)\n");
+            }
+            else if(match_m.opcode == MATCH_OPCODE){
                 
-                //printf("placeholder list\n");
-                pack_list_message(&listRequestMessage, cl_id);
-                listRequest(listRequestMessage, sv_addr, sd);
-                break;
-            case CMD_MATCH:
-                printf("placeholder sfida a ip %s\n", dest_ip);
-                forza4Engine();
-                break;
-            case CMD_LOGOUT:
-                pack_logout_message(&m);
+                struct message reply_m;
 
-                //DA MODULARIZZARE
-                //creazione indirizzo server
-                memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
-                sv_addr.sin_family= AF_INET;
-                sv_addr.sin_port = htons(sv_port);
-                inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
-
-                send_message(&m, &sv_addr, sd);
-                struct message ack_logout_m;
-                printf("Waiting Logout ACK....\n");
-                recv_message(sd, &ack_logout_m, (struct sockaddr*)&sv_addr);
-                printf("Logout ACK received... Login Completed\n");
-                if(ack_logout_m.opcode != ACK_OPCODE){
-                    printf("Logout Opcode Error\n");
+                printf("Sei stato sfidato da: %d. Accetti? [y/n]", match_m.my_id);
+                printf("\033[0;32m");
+                printf(">  ");
+                printf("\033[0m"); 
+                if(	fgets(cmd_s, 128, stdin)==NULL){
+                    printf("Error fgets da gestire. Per ora terminazione forzata\n");
                     exit(1);
+                } 
+                printf("CMD_S %s\n", cmd_s);
+                if(strncmp(cmd_s,"y",1)==0){
+                    printf("Hai accettato\n");
+                    pack_reply_message(&reply_m, 1, match_m.my_id);
                 }
-                exit(0);
-        }   
+                else{
+                    printf("Hai rifiutato\n");
+                    pack_reply_message(&reply_m, 0, match_m.my_id);
+                }
+                send_message(&reply_m, &sv_addr_listen, sd);
+                close(sd);
+            }
+            else 
+                printf("Errore OPCODE da gestire\n");
+        }
+	}
+    else{
+        while(1){
+            int cmd = get_cmd();
+
+            switch(cmd){
+                case CMD_UNKNOWN:
+                    printf("UNKNOWN COMMAND. Type !help to know the possibile ones\n");
+                    break;
+                case CMD_HELP:
+                    print_help();
+                    break;
+                case CMD_LIST:
+
+                    memset(&sv_addr,0, sizeof(sv_addr)); //pu
+                    sv_addr.sin_family= AF_INET;
+                    sv_addr.sin_port = htons(sv_port);
+                    inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
+                    
+                    //printf("placeholder list\n");
+                    pack_list_message(&listRequestMessage, cl_id);
+                    listRequest(listRequestMessage, sv_addr, sd);
+                    break;
+                case CMD_MATCH:
+                    memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
+                    sv_addr.sin_family= AF_INET;
+                    sv_addr.sin_port = htons(sv_port);
+                    inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
+
+                    pack_match_message(&m);
+
+                    send_message(&m, &sv_addr, sd);
+                    struct message ack_match_m;
+                    printf("Waiting Match ACK....\n");
+                    recv_message(sd, &ack_match_m, (struct sockaddr*)&sv_addr);
+                    int esito = (ack_match_m.flag==1)?ACCEPT_OPCODE:DENY_OPCODE;
+                    printf("ACK Match received... Esito\n");
+                    if(esito== DENY_OPCODE){
+                        printf("Partita rifiutata (main thread)\n");
+                    }
+                    else if(esito == ACCEPT_OPCODE){
+                        printf("Partita accettata (main thread)\n");
+                    }
+                    else{
+                        printf("OPCODE Error da gestire\n");
+                    }
+                    
+                    //forza4Engine();
+                    break;
+                case CMD_LOGOUT:
+
+                    //DA MODULARIZZARE
+                    //creazione indirizzo server
+                    memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
+                    sv_addr.sin_family= AF_INET;
+                    sv_addr.sin_port = htons(sv_port);
+                    inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
+
+                    pack_logout_message(&m);
+
+                    send_message(&m, &sv_addr, sd);
+                    struct message ack_logout_m;
+                    printf("Waiting Logout ACK....\n");
+                    recv_message(sd, &ack_logout_m, (struct sockaddr*)&sv_addr);
+                    printf("Logout ACK received... Login Completed\n");
+                    if(ack_logout_m.opcode != ACK_OPCODE){
+                        printf("Logout Opcode Error: %d\n", ack_logout_m.opcode);
+                        exit(1);
+                    }
+                    exit(0);
+            }   
+        }
     }
     return 1;
 }

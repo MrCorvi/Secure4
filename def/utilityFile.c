@@ -161,6 +161,27 @@ int get_row_by_id(char* filename, int id){
 
     return -1;
 }
+
+const char* get_column_by_id(char* filename, int id,int col){
+
+    FILE* file1 = fopen(filename,"r");
+    char buffer[1024];
+    char snum[5];
+
+    sprintf(snum, "%d", id);
+    printf("SNUM: %s ID:%d\n", snum, id);
+
+    while(fgets(buffer, 1024, file1)){
+        char* tmp = strdup(buffer);
+        if(strcmp(get_field(tmp,1),snum)==0){
+            return get_field(buffer,col);
+        }
+        free(tmp);
+    }
+    fclose(file1);
+
+    return NULL;
+}
 /*
 int main(){
 
