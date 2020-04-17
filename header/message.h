@@ -9,8 +9,12 @@
 #define LOGOUT_OPCODE 6
 #define ERR_OPCODE 7
 #define ACK_LIST 8
+#define MATCH_MOVE_OPCODE 9
 
 #define MAX_USERS 2000
+
+#define TRUE 1
+#define FALSE 0
 
 struct message{
 	uint16_t opcode;
@@ -20,4 +24,5 @@ struct message{
     uint32_t dest_id; // NULL if opcode != MATCH. In that case 
                       // Server thread just forward MATCH message
                       // and dest_client reply (ACK or DENY)
+    uint8_t addColumn;//Used in game to specifie, in game, the Column where to add the disk
 };

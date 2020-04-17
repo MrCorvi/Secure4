@@ -43,6 +43,12 @@ int serialize_message(void* buffer, struct message *aux){
 				printf("- %d \n", aux->onlinePlayers[i]);
 			}
 			break;
+		case MATCH_MOVE_OPCODE:
+			memcpy(buffer+pos, &aux->my_id, sizeof(aux->my_id));
+			pos+=sizeof(aux->my_id);
+			memcpy(buffer+pos, &aux->addColumn, sizeof(aux->addColumn));
+			pos+=sizeof(aux->addColumn);
+			break;
 		default:
 			break;
 	}

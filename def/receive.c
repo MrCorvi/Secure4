@@ -41,6 +41,14 @@ int deserialize_message(char* buffer, struct message *aux){
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
 			pos += sizeof(aux->my_id);
 			break;
+
+		case MATCH_MOVE_OPCODE:
+			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
+			pos += sizeof(aux->my_id);
+			memcpy(&aux->addColumn, buffer+pos, sizeof(aux->addColumn));
+			pos += sizeof(aux->addColumn);
+			break;
+
 		default:
 			break;
 	}
