@@ -186,12 +186,13 @@ int main(int argc, char* argv[]){
     printf("This client secondary port: %d\n", secondary_port);
 
     // secondary socket creation
-    int secondSd = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
+    int secondSd ;
+    /*int secondSd = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
     int ret = bind(secondSd, (struct sockaddr*)&opponent_addr, sizeof(opponent_addr));
     if(ret!=0){
         perror("Binding Error\n");			
         exit(1);			
-    }
+    }*/
 
 	// Client address creation
 	memset(&cl_address,0, sizeof(cl_address)); // cleaning
@@ -242,12 +243,15 @@ int main(int argc, char* argv[]){
             cl_listen_addr.sin_addr.s_addr = INADDR_ANY;
             cl_listen_addr.sin_port = htons(cl_listen_port);
 
-            int sd = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
+            //int sd = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
             //int ret = bind(sd, (struct sockaddr*)&cl_listen_addr, sizeof(cl_listen_addr));
+            secondSd = socket(AF_INET, SOCK_DGRAM, 0);
+            int ret = bind(secondSd, (struct sockaddr*)&cl_listen_addr, sizeof(cl_listen_addr));
             if(ret!=0){
-			    perror("Binding Error\n");			
+			    perror("Binding Error!!!\n");			
 			    exit(1);			
 	        }
+
             recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen);
 
             if(match_m.opcode == ACCEPT_OPCODE){

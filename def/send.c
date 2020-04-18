@@ -68,7 +68,7 @@ int serialize_message(void* buffer, struct message *aux){
 			pos+=sizeof(aux->dest_id);
 			memcpy(buffer+pos, &aux->flag, sizeof(aux->flag));
 			pos+=sizeof(aux->flag);
-			//printf("AUX FLAG INVIATO: %u <--> %d\n ", aux->flag, aux->flag );
+			printf("AUX FLAG INVIATO: %u <--> %d\n ", aux->flag, aux->flag );
 			break;
 		default:
 			break;

@@ -142,12 +142,13 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				exit(1);
 			}
 
-			aux->dest_ip = (uint32_t)listen_addr.sin_addr.s_addr;
-			aux->dest_port = dest_port;
+			//aux->dest_ip = (uint32_t)listen_addr.sin_addr.s_addr;
+			//aux->dest_port = dest_port;
 			
-			printf("source port: %d", ntohl(cl_addr->sin_port));
-			struct sockaddr_in resp_addr = setupOtherAddress("127.0.0.1", ntohl(cl_addr->sin_port));
-			send_message(&aux, &resp_addr, sd);
+			//printf("source port: %d", ntohl(cl_addr->sin_port));
+			//struct sockaddr_in resp_addr = setupOtherAddress("127.0.0.1", ntohl(cl_addr->sin_port));
+			//send_message(&aux, &resp_addr, sd);
+			send_message(&aux, &cl_addr, sd);
 			break;
 			
 		case LOGOUT_OPCODE:
