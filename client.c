@@ -292,7 +292,7 @@ int main(int argc, char* argv[]){
                     forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), sd, secondSd, FALSE);
                 }
 
-                close(sd);
+                close(secondSd);
             }
             else 
                 printf("Errore OPCODE da gestire\n");

@@ -148,7 +148,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			//printf("source port: %d", ntohl(cl_addr->sin_port));
 			//struct sockaddr_in resp_addr = setupOtherAddress("127.0.0.1", ntohl(cl_addr->sin_port));
 			//send_message(&aux, &resp_addr, sd);
-			send_message(&aux, &cl_addr, sd);
+			send_message(&aux, cl_addr, sd);
 			break;
 			
 		case LOGOUT_OPCODE:
