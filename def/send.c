@@ -19,6 +19,8 @@ int serialize_message(void* buffer, struct message *aux){
 		case LOGIN_OPCODE:
             memcpy(buffer+pos, &aux->my_id, sizeof(aux->my_id));	
 			pos+=sizeof(aux->my_id);
+			memcpy(buffer+pos, &aux->my_listen_port, sizeof(aux->my_listen_port));
+            pos += sizeof(aux->my_listen_port);
 			break;
 		case ACK_OPCODE:
 			memcpy(buffer+pos, &aux->my_id, sizeof(aux->my_id));
@@ -48,6 +50,21 @@ int serialize_message(void* buffer, struct message *aux){
 			pos+=sizeof(aux->my_id);
 			memcpy(buffer+pos, &aux->addColumn, sizeof(aux->addColumn));
 			pos+=sizeof(aux->addColumn);
+			break;
+		case MATCH_OPCODE:
+			memcpy(buffer+pos, &aux->my_id, sizeof(aux->my_id));
+			pos+=sizeof(aux->my_id);
+			memcpy(buffer+pos, &aux->dest_id, sizeof(aux->dest_id));
+			pos+=sizeof(aux->dest_id);
+			break;
+		case REPLY_OPCODE:
+			memcpy(buffer+pos, &aux->my_id, sizeof(aux->my_id));
+			pos+=sizeof(aux->my_id);
+			memcpy(buffer+pos, &aux->dest_id, sizeof(aux->dest_id));
+			pos+=sizeof(aux->dest_id);
+			memcpy(buffer+pos, &aux->flag, sizeof(aux->flag));
+			pos+=sizeof(aux->flag);
+			//printf("AUX FLAG INVIATO: %u <--> %d\n ", aux->flag, aux->flag );
 			break;
 		default:
 			break;
