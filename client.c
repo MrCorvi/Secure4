@@ -82,7 +82,7 @@ int get_cmd(){
         // read from cmd_s and "fill" variables
         // return filled variables
         // without m is a segmentation error
-		int filled = sscanf(cmd_s, "%*s %u", &dest_id );	
+		int filled = sscanf(cmd_s, "%*s %u\n", (unsigned int *)&dest_id );	
 		if(filled!=1)
 			return CMD_UNKNOWN;
 		else
@@ -165,6 +165,7 @@ int main(int argc, char* argv[]){
     secondary_port = atoi(argv[4]);
     
     cl_listen_port = (argc==5)? atoi(argv[4]): sv_port+100;
+    cl_listen_port = secondary_port;
 
     pid_t pid;
 
@@ -272,7 +273,21 @@ int main(int argc, char* argv[]){
                     printf("Hai rifiutato\n");
                     pack_reply_message(&reply_m, 0, match_m.my_id);
                 }
-                send_message(&reply_m, &sv_addr_listen, sd);
+                
+                //sv_addr_listen = setupOtherAddress("127.0.0.1", sv_port);
+                send_message(&reply_m, &sv_addr_listen, secondSd);
+
+                if(strncmp(cmd_s,"y",1)==0){
+                    printf("Waiting for Battle request...\n");
+                    recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
+                    printf("Recived Battle request !!!!\n");
+                    pack_match_move_message(&m, 0);
+                    send_message(&m, &opponent_addr, secondSd);
+
+                    printf("\n%d\n", ntohs(opponent_addr.sin_port));
+                    forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), sd, secondSd, FALSE);
+                }
+
                 close(sd);
             }
             else 
@@ -312,6 +327,7 @@ int main(int argc, char* argv[]){
                     send_message(&m, &sv_addr, sd);
                     struct message ack_match_m;
                     printf("Waiting Match ACK....\n");
+                    
                     recv_message(sd, &ack_match_m, (struct sockaddr*)&sv_addr);
                     int esito = (ack_match_m.flag==1)?ACCEPT_OPCODE:DENY_OPCODE;
                     printf("ACK Match received... Esito\n");
@@ -320,6 +336,15 @@ int main(int argc, char* argv[]){
                     }
                     else if(esito == ACCEPT_OPCODE){
                         printf("Partita accettata (main thread)\n");
+                        opponent_addr = setupOtherAddress("127.0.0.1", ack_match_m.dest_port);
+
+                        pack_match_move_message(&m, 0);
+                        send_message(&m, &opponent_addr, secondSd);
+
+                        printf("Waiting for confirm !!!!\n");
+                        recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
+
+                        forza4Engine("127.0.0.1", opponentPort, sd, secondSd, TRUE);
                     }
                     else{
                         printf("OPCODE Error da gestire\n");

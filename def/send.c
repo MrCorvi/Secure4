@@ -50,6 +50,10 @@ int serialize_message(void* buffer, struct message *aux){
 			pos+=sizeof(aux->my_id);
 			memcpy(buffer+pos, &aux->addColumn, sizeof(aux->addColumn));
 			pos+=sizeof(aux->addColumn);
+			memcpy(buffer+pos, &aux->dest_ip, sizeof(aux->dest_ip));
+			pos+=sizeof(aux->dest_ip);
+			memcpy(buffer+pos, &aux->dest_port, sizeof(aux->dest_port));
+			pos+=sizeof(aux->dest_port);
 			break;
 		case MATCH_OPCODE:
 			memcpy(buffer+pos, &aux->my_id, sizeof(aux->my_id));

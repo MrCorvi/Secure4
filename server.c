@@ -71,6 +71,15 @@ struct message pack_list_ack(){
 	return aux;
 }
 
+struct sockaddr_in setupOtherAddress(char *ip, int port){
+    struct sockaddr_in other_addr;
+    memset(&other_addr,0, sizeof(other_addr)); //pulizia
+    other_addr.sin_family= AF_INET;
+    other_addr.sin_port = htons(port);
+    inet_pton(AF_INET, ip , &other_addr.sin_addr);
+    return other_addr;
+}
+
 int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 
 	struct message* aux2;
@@ -120,19 +129,27 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			//addres creation
 			memset(&listen_addr,0, sizeof(listen_addr)); //pulizia
 			listen_addr.sin_family= AF_INET;
-			listen_addr.sin_addr.s_addr = INADDR_ANY;
 			listen_addr.sin_port = htons(dest_port);
+			//listen_addr.sin_addr.s_addr = INADDR_ANY;
+			inet_pton(AF_INET, dest_ip , &listen_addr.sin_addr);
 
             send_message(aux, &listen_addr, sd_listen);
-			printf("attendo reply\n");
+			printf("waiting reply\n");
 			int req = recv_message(sd_listen, &aux, (struct sockaddr*)&listen_addr); //3000 receive port and then pass message to others
 			if(req!=1){
 				printf("Errore (andra' implementato ERR_OPCODE)\n");
 				close(sd_listen);
 				exit(1);
 			}
-			send_message(&aux, cl_addr, sd);
+
+			aux->dest_ip = (uint32_t)listen_addr.sin_addr.s_addr;
+			aux->dest_port = dest_port;
+			
+			printf("source port: %d", ntohl(cl_addr->sin_port));
+			struct sockaddr_in resp_addr = setupOtherAddress("127.0.0.1", ntohl(cl_addr->sin_port));
+			send_message(&aux, &resp_addr, sd);
 			break;
+			
 		case LOGOUT_OPCODE:
 			//look at .csv if correct id
 			ret = get_row_by_id(filename,aux->my_id);
