@@ -6,6 +6,7 @@
 #include<stdlib.h>
 #include<stdio.h>
 #include<string.h>
+#include<signal.h>
 #include "header/forza4Engine.h"
 #ifndef MESSAGE_H
     #define MESSAGE_H
@@ -26,7 +27,7 @@
 uint16_t dest_id;
 struct sockaddr_in cl_address, cl_listen_addr, sv_addr;
 char* sv_ip;
-int sv_port, cl_id, cl2_id, cl_listen_port;
+int sv_port, cl_id, cl2_id, cl_secondary_port;
 
 void print_help(){
 
@@ -105,7 +106,7 @@ void pack_login_message(struct message* aux){
 
 	aux->opcode = LOGIN_OPCODE;
     aux->my_id = cl_id;
-    aux->my_listen_port = cl_listen_port;
+    aux->my_listen_port = cl_secondary_port;
 }
 
 void pack_logout_message(struct message* aux){
@@ -120,7 +121,7 @@ void pack_match_move_message(struct message* aux, uint8_t column){
     aux->addColumn = column;
 }
 
-struct sockaddr_in setupOtherAddress(char *ip, int port){
+struct sockaddr_in setupAddress(char *ip, int port){
     struct sockaddr_in other_addr;
     memset(&other_addr,0, sizeof(other_addr)); //pulizia
     other_addr.sin_family= AF_INET;
@@ -146,10 +147,29 @@ void pack_match_message(struct message* aux){
 
 }
 
+int setupSocket(int port){
+    //addres creation
+    memset(&cl_listen_addr,0, sizeof(cl_listen_addr)); //pulizia
+    cl_listen_addr.sin_family= AF_INET;
+    cl_listen_addr.sin_addr.s_addr = INADDR_ANY;
+    cl_listen_addr.sin_port = htons(port);
+
+    //int sd = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
+    //int ret = bind(sd, (struct sockaddr*)&cl_listen_addr, sizeof(cl_listen_addr));
+    int secondSd = socket(AF_INET, SOCK_DGRAM, 0);
+    int ret = bind(secondSd, (struct sockaddr*)&cl_listen_addr, sizeof(cl_listen_addr));
+    if(ret!=0){
+        printf("Binding Error: the port %d is already in use\n", port);			
+        exit(1);			
+    }
+
+    return secondSd;
+}
+
 int main(int argc, char* argv[]){
 
     struct message m, listRequestMessage;
-	int sd, opponentPort, secondary_port;
+	int sd, opponentPort, cl_main_port;
     struct sockaddr_in opponent_addr;
 
 	// argument check
@@ -162,10 +182,9 @@ int main(int argc, char* argv[]){
 	sv_ip = argv[1];
 	sv_port = atoi(argv[2]); 
     cl_id = atoi(argv[3]);
-    secondary_port = atoi(argv[4]);
+    cl_main_port = atoi(argv[4]);
     
-    cl_listen_port = (argc==5)? atoi(argv[4]): sv_port+100;
-    cl_listen_port = secondary_port;
+    cl_secondary_port = (argc>=6)? atoi(argv[5]): cl_main_port+100;
 
     pid_t pid;
 
@@ -181,9 +200,7 @@ int main(int argc, char* argv[]){
     memset(&opponent_addr,0, sizeof(opponent_addr)); // cleaning
     opponent_addr.sin_family= AF_INET;
     opponent_addr.sin_addr.s_addr = INADDR_ANY;
-    opponent_addr.sin_port = htons(secondary_port); // host to net
-
-    printf("This client secondary port: %d\n", secondary_port);
+    opponent_addr.sin_port = htons(cl_main_port); // host to net
 
     // secondary socket creation
     int secondSd ;
@@ -201,7 +218,8 @@ int main(int argc, char* argv[]){
 	cl_address.sin_addr.s_addr = htonl(INADDR_ANY); 
     cl_address.sin_port = htons(sv_port);
     pack_login_message(&m);
-    printf("PORTA: %d\n", cl_listen_port);
+    printf("MAIN PORTA: %d\n", cl_main_port);
+    printf("SECONDARY PORTA: %d\n", cl_secondary_port);
 
     //server address creation
 	memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
@@ -237,20 +255,7 @@ int main(int argc, char* argv[]){
             struct sockaddr_in sv_addr_listen;
             char cmd_s[128];
 
-            //addres creation
-            memset(&cl_listen_addr,0, sizeof(cl_listen_addr)); //pulizia
-            cl_listen_addr.sin_family= AF_INET;
-            cl_listen_addr.sin_addr.s_addr = INADDR_ANY;
-            cl_listen_addr.sin_port = htons(cl_listen_port);
-
-            //int sd = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
-            //int ret = bind(sd, (struct sockaddr*)&cl_listen_addr, sizeof(cl_listen_addr));
-            secondSd = socket(AF_INET, SOCK_DGRAM, 0);
-            int ret = bind(secondSd, (struct sockaddr*)&cl_listen_addr, sizeof(cl_listen_addr));
-            if(ret!=0){
-			    perror("Binding Error!!!\n");			
-			    exit(1);			
-	        }
+            secondSd = setupSocket(cl_secondary_port);
 
             recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen);
 
@@ -282,14 +287,14 @@ int main(int argc, char* argv[]){
                 send_message(&reply_m, &sv_addr_listen, secondSd);
 
                 if(strncmp(cmd_s,"y",1)==0){
-                    printf("Waiting for Battle request...\n");
+                    printf("Waiting for Battle request on port %d...\n", ntohs(cl_secondary_port));
                     recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
                     printf("Recived Battle request !!!!\n");
                     pack_match_move_message(&m, 0);
                     send_message(&m, &opponent_addr, secondSd);
 
-                    printf("\n%d\n", ntohs(opponent_addr.sin_port));
-                    forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), sd, secondSd, FALSE);
+                    printf("\nAdversary port: %d\n", ntohs(opponent_addr.sin_port));
+                    forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE);
                 }
 
                 close(secondSd);
@@ -311,36 +316,39 @@ int main(int argc, char* argv[]){
                     break;
                 case CMD_LIST:
 
-                    memset(&sv_addr,0, sizeof(sv_addr)); //pu
-                    sv_addr.sin_family= AF_INET;
-                    sv_addr.sin_port = htons(sv_port);
-                    inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
+                    sv_addr = setupAddress("127.0.0.1", sv_port);
                     
                     //printf("placeholder list\n");
                     pack_list_message(&listRequestMessage, cl_id);
                     listRequest(listRequestMessage, sv_addr, sd);
                     break;
                 case CMD_MATCH:
-                    memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
-                    sv_addr.sin_family= AF_INET;
-                    sv_addr.sin_port = htons(sv_port);
-                    inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
 
+                    sv_addr = setupAddress("127.0.0.1", sv_port);
+
+                    //Sending request for match
                     pack_match_message(&m);
-
                     send_message(&m, &sv_addr, sd);
+
+                    //Waiting request replay
                     struct message ack_match_m;
                     printf("Waiting Match ACK....\n");
-                    
                     recv_message(sd, &ack_match_m, (struct sockaddr*)&sv_addr);
+
+
                     int esito = (ack_match_m.flag==1)?ACCEPT_OPCODE:DENY_OPCODE;
+
+                    kill(pid, SIGKILL);
+                    sleep(1);
+                    secondSd = setupSocket(cl_secondary_port);
+                        
                     printf("ACK Match received... Esito\n");
                     if(esito== DENY_OPCODE){
                         printf("Partita rifiutata (main thread)\n");
-                    }
-                    else if(esito == ACCEPT_OPCODE){
+                    }else if(esito == ACCEPT_OPCODE){
                         printf("Partita accettata (main thread)\n");
-                        opponent_addr = setupOtherAddress("127.0.0.1", ack_match_m.dest_port);
+                        printf("Sending to port: %d\n", ack_match_m.dest_port);
+                        opponent_addr = setupAddress("127.0.0.1", (int)ack_match_m.dest_port);
 
                         pack_match_move_message(&m, 0);
                         send_message(&m, &opponent_addr, secondSd);
@@ -348,7 +356,7 @@ int main(int argc, char* argv[]){
                         printf("Waiting for confirm !!!!\n");
                         recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
 
-                        forza4Engine("127.0.0.1", opponentPort, sd, secondSd, TRUE);
+                        forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, TRUE);
                     }
                     else{
                         printf("OPCODE Error da gestire\n");
@@ -363,7 +371,7 @@ int main(int argc, char* argv[]){
                     printf("\n");
 
                     //connect with other user
-                    opponent_addr = setupOtherAddress("127.0.0.1", opponentPort);
+                    opponent_addr = setupAddress("127.0.0.1", opponentPort);
 
                     pack_match_move_message(&m, 0);
                     send_message(&m, &opponent_addr, secondSd);

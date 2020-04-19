@@ -64,6 +64,10 @@ int deserialize_message(char* buffer, struct message *aux){
 			pos += sizeof(aux->dest_id);
 			memcpy(&aux->flag, buffer+pos, sizeof(aux->flag));
 			pos += sizeof(aux->flag);
+			memcpy(&aux->dest_ip, buffer+pos, sizeof(aux->dest_ip));
+			pos += sizeof(aux->dest_ip);
+			memcpy(&aux->dest_port, buffer+pos, sizeof(aux->dest_port));
+			pos += sizeof(aux->dest_port);
 			printf("AUX FLAG ricevuto: %u <--> %d\n ", aux->flag, aux->flag );
 			break;
 		default:
@@ -84,7 +88,7 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 	//printf("New message!!!\n");
 	
 	if(ret<0){
-		printf("ERRORE recvfrom\n");
+		perror("ERRORE recvfrom\n");
 		exit(1);		
 	}
 

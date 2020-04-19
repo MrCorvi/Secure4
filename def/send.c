@@ -50,10 +50,6 @@ int serialize_message(void* buffer, struct message *aux){
 			pos+=sizeof(aux->my_id);
 			memcpy(buffer+pos, &aux->addColumn, sizeof(aux->addColumn));
 			pos+=sizeof(aux->addColumn);
-			memcpy(buffer+pos, &aux->dest_ip, sizeof(aux->dest_ip));
-			pos+=sizeof(aux->dest_ip);
-			memcpy(buffer+pos, &aux->dest_port, sizeof(aux->dest_port));
-			pos+=sizeof(aux->dest_port);
 			break;
 		case MATCH_OPCODE:
 			memcpy(buffer+pos, &aux->my_id, sizeof(aux->my_id));
@@ -68,6 +64,10 @@ int serialize_message(void* buffer, struct message *aux){
 			pos+=sizeof(aux->dest_id);
 			memcpy(buffer+pos, &aux->flag, sizeof(aux->flag));
 			pos+=sizeof(aux->flag);
+			memcpy(buffer+pos, &aux->dest_ip, sizeof(aux->dest_ip));
+			pos+=sizeof(aux->dest_ip);
+			memcpy(buffer+pos, &aux->dest_port, sizeof(aux->dest_port));
+			pos+=sizeof(aux->dest_port);
 			printf("AUX FLAG INVIATO: %u <--> %d\n ", aux->flag, aux->flag );
 			break;
 		default:
@@ -90,7 +90,7 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket){
 	//printf("sending %d\n", m->opcode);
 	ret = sendto(socket, buf, len , 0, (struct sockaddr*)dest_addr, sizeof(struct sockaddr_in));	
 	if(ret<0){
-		printf("sendto ERROR");
+		perror("sendto ERROR");
 		exit(1);		
 	}	
 

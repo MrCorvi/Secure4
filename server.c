@@ -135,20 +135,28 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 
             send_message(aux, &listen_addr, sd_listen);
 			printf("waiting reply\n");
-			int req = recv_message(sd_listen, &aux, (struct sockaddr*)&listen_addr); //3000 receive port and then pass message to others
+
+			struct message aux_risp;
+			int req = recv_message(sd_listen, &aux_risp, (struct sockaddr*)&listen_addr); //3000 receive port and then pass message to others
 			if(req!=1){
 				printf("Errore (andra' implementato ERR_OPCODE)\n");
 				close(sd_listen);
 				exit(1);
 			}
 
-			//aux->dest_ip = (uint32_t)listen_addr.sin_addr.s_addr;
-			//aux->dest_port = dest_port;
+			//printf("flag: %d \n", (int)aux->flag);
+
+			struct message risp;
+			risp.opcode = REPLY_OPCODE;
+			risp.dest_ip = dest_ip;
+			risp.dest_port = dest_port;
+			risp.flag = aux_risp.flag;
+			
 			
 			//printf("source port: %d", ntohl(cl_addr->sin_port));
 			//struct sockaddr_in resp_addr = setupOtherAddress("127.0.0.1", ntohl(cl_addr->sin_port));
 			//send_message(&aux, &resp_addr, sd);
-			send_message(&aux, cl_addr, sd);
+			send_message(&risp, cl_addr, sd);
 			break;
 			
 		case LOGOUT_OPCODE:
