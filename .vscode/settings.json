@@ -3,6 +3,7 @@
         "*.md": "markdown",
         "list.h": "c",
         "message.h": "c",
-        "utilityfile.h": "c"
+        "utilityfile.h": "c",
+        "inet.h": "c"
     }
 }

@@ -71,7 +71,7 @@ struct message pack_list_ack(){
 	return aux;
 }
 
-struct sockaddr_in setupOtherAddress(char *ip, int port){
+struct sockaddr_in setupAddress(char *ip, int port){
     struct sockaddr_in other_addr;
     memset(&other_addr,0, sizeof(other_addr)); //pulizia
     other_addr.sin_family= AF_INET;

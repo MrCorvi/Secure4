@@ -1,7 +1,10 @@
 #include<sys/types.h>
 #include<sys/socket.h>
+#include<sys/stat.h>
+#include<fcntl.h>
 #include<netinet/in.h>
 #include<arpa/inet.h>
+#include<semaphore.h> 
 #include<unistd.h>
 #include<stdlib.h>
 #include<stdio.h>
@@ -26,8 +29,9 @@
 
 uint16_t dest_id;
 struct sockaddr_in cl_address, cl_listen_addr, sv_addr;
-char* sv_ip;
-int sv_port, cl_id, cl2_id, cl_secondary_port;
+char *sv_ip;
+int sv_port, cl_id, cl2_id, cl_secondary_port, secondSd;;
+sem_t *mutex_active_process, *mutex_secondary_port;
 
 void print_help(){
 
@@ -166,6 +170,104 @@ int setupSocket(int port){
     return secondSd;
 }
 
+void secondaryPortRequest(){
+    int val;
+    //printf("Secondary port request!!!!!!!!!!!!!!\n");
+    /*sem_getvalue(mutex_secondary_port, &val);
+    printf("Sem val father: %d\n", val);*/
+
+    close(secondSd);
+    sem_wait(mutex_secondary_port);
+    secondSd = setupSocket(cl_secondary_port);
+    
+    /*sem_getvalue(mutex_secondary_port, &val);
+    printf("Sem val father: %d\n", val);*/
+    //printf("End secondary port request!!!!!!!!!!!!!!!\n");
+}
+
+void childCode(){
+    struct sockaddr_in sv_addr_listen, opponent_addr;
+    struct message match_m, m;
+    char cmd_s[128];
+
+    //setup child signals
+    signal(SIGUSR2, secondaryPortRequest);
+    while(1){
+
+        secondSd = setupSocket(cl_secondary_port);
+
+        recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen);
+
+        kill(getppid(), SIGUSR1);
+
+        int val;
+        sem_getvalue(mutex_active_process, &val);
+        printf("Sem val son: %d\n", val);
+
+        if(match_m.opcode == ACCEPT_OPCODE){
+            printf("Sfida accettata (child thread)\n");
+        }else if(match_m.opcode == MATCH_OPCODE){
+            
+            struct message reply_m;
+
+            printf("Sei stato sfidato da: %d. Accetti? [y/n]", match_m.my_id);
+            printf("\033[0;32m");
+            printf(">  ");
+            printf("\033[0m"); 
+            if(	fgets(cmd_s, 128, stdin)==NULL){
+                printf("Error fgets da gestire. Per ora terminazione forzata\n");
+                exit(1);
+            } 
+            printf("CMD_S %s\n", cmd_s);
+            if(strncmp(cmd_s,"y",1)==0){
+                printf("Hai accettato\n");
+                pack_reply_message(&reply_m, 1, match_m.my_id);
+            }
+            else{
+                printf("Hai rifiutato\n");
+                pack_reply_message(&reply_m, 0, match_m.my_id);
+            }
+            
+            //sv_addr_listen = setupOtherAddress("127.0.0.1", sv_port);
+            send_message(&reply_m, &sv_addr_listen, secondSd);
+
+            if(strncmp(cmd_s,"y",1)==0){
+                printf("Waiting for Battle request on port %d...\n", ntohs(cl_secondary_port));
+                recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
+                printf("Recived Battle request !!!!\n");
+                pack_match_move_message(&m, 0);
+                send_message(&m, &opponent_addr, secondSd);
+
+                printf("\nAdversary port: %d\n", ntohs(opponent_addr.sin_port));
+                forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE);
+            }
+
+            close(secondSd);
+            //sem_post(mutex_active_process);
+        }else{
+            printf("Errore OPCODE da gestire\n");
+        }
+        
+        sem_post(mutex_active_process);
+
+        sem_getvalue(mutex_active_process, &val);
+        printf("Sem val son: %d\n", val);
+    }
+}
+
+void battleRequest(){
+    int val;
+    printf("IIIIIIIIIIIIIIIIIIIIIIM IIIIIn\n");
+    sem_getvalue(mutex_active_process, &val);
+    printf("Sem val father: %d\n", val);
+
+    sem_wait(mutex_active_process);
+    
+    sem_getvalue(mutex_active_process, &val);
+    printf("Sem val father: %d\n", val);
+    printf("IIIIIIIIIIIIIIIIIIIIIIM mMMMMMMMMMMMMMM BACCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCc\n");
+}
+
 int main(int argc, char* argv[]){
 
     struct message m, listRequestMessage;
@@ -179,6 +281,19 @@ int main(int argc, char* argv[]){
 		exit(0);
 	}
 
+    //Initialasing semaphors
+    mutex_active_process = sem_open("mutex_active_process", O_CREAT, 0644, 0);
+    if(mutex_active_process == SEM_FAILED) {
+        perror("semaphore initilization");
+        exit(1);
+    }
+    mutex_secondary_port = sem_open("mutex_secondary_port", O_CREAT, 0644, 0);
+    if(mutex_secondary_port == SEM_FAILED) {
+        perror("semaphore initilization");
+        exit(1);
+    }
+    
+    //Getting vaalues from comand line
 	sv_ip = argv[1];
 	sv_port = atoi(argv[2]); 
     cl_id = atoi(argv[3]);
@@ -186,7 +301,6 @@ int main(int argc, char* argv[]){
     
     cl_secondary_port = (argc>=6)? atoi(argv[5]): cl_main_port+100;
 
-    pid_t pid;
 
     // socket creation
 	sd = socket(AF_INET, SOCK_DGRAM,0);	
@@ -195,21 +309,8 @@ int main(int argc, char* argv[]){
 		exit(1);
 	}
 
-
-    // address creation
-    memset(&opponent_addr,0, sizeof(opponent_addr)); // cleaning
-    opponent_addr.sin_family= AF_INET;
-    opponent_addr.sin_addr.s_addr = INADDR_ANY;
-    opponent_addr.sin_port = htons(cl_main_port); // host to net
-
     // secondary socket creation
     int secondSd ;
-    /*int secondSd = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
-    int ret = bind(secondSd, (struct sockaddr*)&opponent_addr, sizeof(opponent_addr));
-    if(ret!=0){
-        perror("Binding Error\n");			
-        exit(1);			
-    }*/
 
 	// Client address creation
 	memset(&cl_address,0, sizeof(cl_address)); // cleaning
@@ -243,135 +344,66 @@ int main(int argc, char* argv[]){
     printf(": Enjoy with your friends! ");
     print_help();
 
+    pid_t pid;
     pid = fork();
 	if(pid==-1){
-		printf("Fork Error\n");
+		perror("Fork Error\n");
 		exit(1);		
 	}	
 	if(pid==0){ // child process
-
-        while(1){
-            struct message match_m;
-            struct sockaddr_in sv_addr_listen;
-            char cmd_s[128];
-
-            secondSd = setupSocket(cl_secondary_port);
-
-            recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen);
-
-            if(match_m.opcode == ACCEPT_OPCODE){
-                printf("Sfida accettata (child thread)\n");
-            }else if(match_m.opcode == MATCH_OPCODE){
-                
-                struct message reply_m;
-
-                printf("Sei stato sfidato da: %d. Accetti? [y/n]", match_m.my_id);
-                printf("\033[0;32m");
-                printf(">  ");
-                printf("\033[0m"); 
-                if(	fgets(cmd_s, 128, stdin)==NULL){
-                    printf("Error fgets da gestire. Per ora terminazione forzata\n");
-                    exit(1);
-                } 
-                printf("CMD_S %s\n", cmd_s);
-                if(strncmp(cmd_s,"y",1)==0){
-                    printf("Hai accettato\n");
-                    pack_reply_message(&reply_m, 1, match_m.my_id);
-                }
-                else{
-                    printf("Hai rifiutato\n");
-                    pack_reply_message(&reply_m, 0, match_m.my_id);
-                }
-                
-                //sv_addr_listen = setupOtherAddress("127.0.0.1", sv_port);
-                send_message(&reply_m, &sv_addr_listen, secondSd);
-
-                if(strncmp(cmd_s,"y",1)==0){
-                    printf("Waiting for Battle request on port %d...\n", ntohs(cl_secondary_port));
-                    recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
-                    printf("Recived Battle request !!!!\n");
-                    pack_match_move_message(&m, 0);
-                    send_message(&m, &opponent_addr, secondSd);
-
-                    printf("\nAdversary port: %d\n", ntohs(opponent_addr.sin_port));
-                    forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE);
-                }
-
-                close(secondSd);
-            }
-            else 
-                printf("Errore OPCODE da gestire\n");
-        }
+        childCode();        
+        return 0;
 	}
-    else{
-        while(1){
-            int cmd = get_cmd();
 
-            switch(cmd){
-                case CMD_UNKNOWN:
-                    printf("UNKNOWN COMMAND. Type !help to know the possibile ones\n");
-                    break;
-                case CMD_HELP:
-                    print_help();
-                    break;
-                case CMD_LIST:
+    //Setup signal for father
+    signal(SIGUSR1, battleRequest);
 
-                    sv_addr = setupAddress("127.0.0.1", sv_port);
+    //Father process
+    while(1){
+        int cmd = get_cmd();
+
+        switch(cmd){
+            case CMD_UNKNOWN:
+                printf("UNKNOWN COMMAND. Type !help to know the possibile ones\n");
+                break;
+            case CMD_HELP:
+                print_help();
+                break;
+            case CMD_LIST:
+
+                sv_addr = setupAddress("127.0.0.1", sv_port);
+                
+                //printf("placeholder list\n");
+                pack_list_message(&listRequestMessage, cl_id);
+                listRequest(listRequestMessage, sv_addr, sd);
+                break;
+            case CMD_MATCH:
+
+                sv_addr = setupAddress("127.0.0.1", sv_port);
+
+                //Sending request for match
+                pack_match_message(&m);
+                send_message(&m, &sv_addr, sd);
+
+                //Waiting request replay
+                struct message ack_match_m;
+                printf("Waiting Match ACK....\n");
+                recv_message(sd, &ack_match_m, (struct sockaddr*)&sv_addr);
+
+
+                int esito = (ack_match_m.flag==1)?ACCEPT_OPCODE:DENY_OPCODE;
+
+                kill(pid, SIGUSR2);
+                sleep(1);
+                secondSd = setupSocket(cl_secondary_port);
                     
-                    //printf("placeholder list\n");
-                    pack_list_message(&listRequestMessage, cl_id);
-                    listRequest(listRequestMessage, sv_addr, sd);
-                    break;
-                case CMD_MATCH:
-
-                    sv_addr = setupAddress("127.0.0.1", sv_port);
-
-                    //Sending request for match
-                    pack_match_message(&m);
-                    send_message(&m, &sv_addr, sd);
-
-                    //Waiting request replay
-                    struct message ack_match_m;
-                    printf("Waiting Match ACK....\n");
-                    recv_message(sd, &ack_match_m, (struct sockaddr*)&sv_addr);
-
-
-                    int esito = (ack_match_m.flag==1)?ACCEPT_OPCODE:DENY_OPCODE;
-
-                    kill(pid, SIGKILL);
-                    sleep(1);
-                    secondSd = setupSocket(cl_secondary_port);
-                        
-                    printf("ACK Match received... Esito\n");
-                    if(esito== DENY_OPCODE){
-                        printf("Partita rifiutata (main thread)\n");
-                    }else if(esito == ACCEPT_OPCODE){
-                        printf("Partita accettata (main thread)\n");
-                        printf("Sending to port: %d\n", ack_match_m.dest_port);
-                        opponent_addr = setupAddress("127.0.0.1", (int)ack_match_m.dest_port);
-
-                        pack_match_move_message(&m, 0);
-                        send_message(&m, &opponent_addr, secondSd);
-
-                        printf("Waiting for confirm !!!!\n");
-                        recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
-
-                        forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, TRUE);
-                    }
-                    else{
-                        printf("OPCODE Error da gestire\n");
-                    }
-                    
-                    //forza4Engine();
-                    break;
-                    
-                case CMD_DIRECT_MATCH:
-                    printf("ID of the adversary port: ");
-                    scanf("%d", &opponentPort);
-                    printf("\n");
-
-                    //connect with other user
-                    opponent_addr = setupAddress("127.0.0.1", opponentPort);
+                printf("ACK Match received... Esito\n");
+                if(esito== DENY_OPCODE){
+                    printf("Partita rifiutata (main thread)\n");
+                }else if(esito == ACCEPT_OPCODE){
+                    printf("Partita accettata (main thread)\n");
+                    printf("Sending to port: %d\n", ack_match_m.dest_port);
+                    opponent_addr = setupAddress("127.0.0.1", (int)ack_match_m.dest_port);
 
                     pack_match_move_message(&m, 0);
                     send_message(&m, &opponent_addr, secondSd);
@@ -379,45 +411,79 @@ int main(int argc, char* argv[]){
                     printf("Waiting for confirm !!!!\n");
                     recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
 
-                    forza4Engine("127.0.0.1", opponentPort, sd, secondSd, TRUE);
-                    break;
+                    forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, TRUE);
 
-                case CMD_WAIT_MATCH:
-        
-                    //connect with other user
-                    printf("Waiting for Battle request...\n");
-                    recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
-                    printf("Recived Battle request !!!!\n");
-                    pack_match_move_message(&m, 0);
-                    send_message(&m, &opponent_addr, secondSd);
-
-                    printf("\n%d\n", ntohs(opponent_addr.sin_port));
-                    forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), sd, secondSd, FALSE);
-                    break;
-
-                case CMD_LOGOUT:
-
-                    //DA MODULARIZZARE
-                    //creazione indirizzo server
-                    memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
-                    sv_addr.sin_family= AF_INET;
-                    sv_addr.sin_port = htons(sv_port);
-                    inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
-
-                    pack_logout_message(&m);
-
-                    send_message(&m, &sv_addr, sd);
-                    struct message ack_logout_m;
-                    printf("Waiting Logout ACK....\n");
-                    recv_message(sd, &ack_logout_m, (struct sockaddr*)&sv_addr);
-                    printf("Logout ACK received... Login Completed\n");
-                    if(ack_logout_m.opcode != ACK_OPCODE){
-                        printf("Logout Opcode Error: %d\n", ack_logout_m.opcode);
-                        exit(1);
+                    close(secondSd);
+                    pid = fork();
+                    if(pid==-1){
+                        perror("Fork Error\n");
+                        exit(1);		
+                    }	
+                    if(pid==0){ // child process
+                        childCode();        
                     }
-                    exit(0);
-            }   
-        }
+                }
+                else{
+                    printf("OPCODE Error da gestire\n");
+                }
+                
+                sem_post(mutex_secondary_port);
+                //forza4Engine();
+                break;
+                
+            case CMD_DIRECT_MATCH:
+                printf("ID of the adversary port: ");
+                scanf("%d", &opponentPort);
+                printf("\n");
+
+                //connect with other user
+                opponent_addr = setupAddress("127.0.0.1", opponentPort);
+
+                pack_match_move_message(&m, 0);
+                send_message(&m, &opponent_addr, secondSd);
+
+                printf("Waiting for confirm !!!!\n");
+                recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
+
+                forza4Engine("127.0.0.1", opponentPort, sd, secondSd, TRUE);
+                break;
+
+            case CMD_WAIT_MATCH:
+    
+                //connect with other user
+                printf("Waiting for Battle request...\n");
+                recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
+                printf("Recived Battle request !!!!\n");
+                pack_match_move_message(&m, 0);
+                send_message(&m, &opponent_addr, secondSd);
+
+                printf("\n%d\n", ntohs(opponent_addr.sin_port));
+                forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), sd, secondSd, FALSE);
+                break;
+
+            case CMD_LOGOUT:
+
+                //DA MODULARIZZARE
+                //creazione indirizzo server
+                memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
+                sv_addr.sin_family= AF_INET;
+                sv_addr.sin_port = htons(sv_port);
+                inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
+
+                pack_logout_message(&m);
+
+                send_message(&m, &sv_addr, sd);
+                struct message ack_logout_m;
+                printf("Waiting Logout ACK....\n");
+                recv_message(sd, &ack_logout_m, (struct sockaddr*)&sv_addr);
+                printf("Logout ACK received... Login Completed\n");
+                if(ack_logout_m.opcode != ACK_OPCODE){
+                    printf("Logout Opcode Error: %d\n", ack_logout_m.opcode);
+                    exit(1);
+                }
+                exit(0);
+        }   
     }
+
     return 1;
 }
