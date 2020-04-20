@@ -24,8 +24,6 @@
 #define CMD_LIST 2
 #define CMD_MATCH 3
 #define CMD_LOGOUT 4
-#define CMD_DIRECT_MATCH 10
-#define CMD_WAIT_MATCH 11
 
 uint16_t dest_id;
 struct sockaddr_in cl_address, cl_listen_addr, sv_addr;
@@ -39,8 +37,6 @@ void print_help(){
 	printf("!help --> show all available commands\n");
     printf("!list --> get IPs of all online clients\n");
     printf("!match dest_ip -> request a challenge to the client corresponding to dest_ip\n");
-    printf("!battle --> direct match\n");
-    printf("!wait --> wait for match request\n");
 	printf("!logout --> logout by the server and stop the program\n");
     
 }
@@ -74,10 +70,6 @@ int get_cmd(){
         return CMD_LIST;
     }
 
-    if(strncmp(cmd_s, "!wait",5)==0){
-        return CMD_WAIT_MATCH;
-    }
-
 	if (strlen(cmd_s)<6){
     	return CMD_UNKNOWN;
     }
@@ -95,10 +87,6 @@ int get_cmd(){
 	}
 	if (strlen(cmd_s)<7)
     	return CMD_UNKNOWN;
-
-    if (strncmp(cmd_s, "!battle",5)==0){
-    	return CMD_DIRECT_MATCH ;
-    }
 
 	if(strncmp(cmd_s, "!logout",7)==0)
 		return CMD_LOGOUT;
@@ -171,13 +159,16 @@ int setupSocket(int port){
 }
 
 void secondaryPortRequest(){
-    int val;
     //printf("Secondary port request!!!!!!!!!!!!!!\n");
-    /*sem_getvalue(mutex_secondary_port, &val);
+    /*
+    int val;
+    sem_getvalue(mutex_secondary_port, &val);
     printf("Sem val father: %d\n", val);*/
 
     close(secondSd);
     sem_wait(mutex_secondary_port);
+    sleep(1);
+    close(secondSd);
     secondSd = setupSocket(cl_secondary_port);
     
     /*sem_getvalue(mutex_secondary_port, &val);
@@ -252,6 +243,8 @@ void childCode(){
 
         sem_getvalue(mutex_active_process, &val);
         printf("Sem val son: %d\n", val);
+
+        close(secondSd);
     }
 }
 
@@ -271,7 +264,7 @@ void battleRequest(){
 int main(int argc, char* argv[]){
 
     struct message m, listRequestMessage;
-	int sd, opponentPort, cl_main_port;
+	int sd, cl_main_port;
     struct sockaddr_in opponent_addr;
 
 	// argument check
@@ -309,30 +302,27 @@ int main(int argc, char* argv[]){
 		exit(1);
 	}
 
-    // secondary socket creation
-    int secondSd ;
-
 	// Client address creation
 	memset(&cl_address,0, sizeof(cl_address)); // cleaning
 	cl_address.sin_family = AF_INET;
 	//hostlong from host byte order to network byte order
 	cl_address.sin_addr.s_addr = htonl(INADDR_ANY); 
     cl_address.sin_port = htons(sv_port);
+
     pack_login_message(&m);
     printf("MAIN PORTA: %d\n", cl_main_port);
     printf("SECONDARY PORTA: %d\n", cl_secondary_port);
 
     //server address creation
-	memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
-	sv_addr.sin_family= AF_INET;
-	sv_addr.sin_port = htons(sv_port);
-	inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
+    sv_addr = setupAddress("127.0.0.1", sv_port);
 
     printf("Send Login request\n");
 	send_message(&m, &sv_addr, sd);
+
     struct message ack_login_m;
     printf("Waiting ACK...\n");
     recv_message(sd, &ack_login_m, (struct sockaddr*)&sv_addr);
+
     printf("ACK received... Login Completed\n");
     if(ack_login_m.opcode != ACK_OPCODE){
         printf("Login Opcode Error\n");
@@ -427,40 +417,11 @@ int main(int argc, char* argv[]){
                     printf("OPCODE Error da gestire\n");
                 }
                 
+                close(secondSd);
                 sem_post(mutex_secondary_port);
                 //forza4Engine();
                 break;
                 
-            case CMD_DIRECT_MATCH:
-                printf("ID of the adversary port: ");
-                scanf("%d", &opponentPort);
-                printf("\n");
-
-                //connect with other user
-                opponent_addr = setupAddress("127.0.0.1", opponentPort);
-
-                pack_match_move_message(&m, 0);
-                send_message(&m, &opponent_addr, secondSd);
-
-                printf("Waiting for confirm !!!!\n");
-                recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
-
-                forza4Engine("127.0.0.1", opponentPort, sd, secondSd, TRUE);
-                break;
-
-            case CMD_WAIT_MATCH:
-    
-                //connect with other user
-                printf("Waiting for Battle request...\n");
-                recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
-                printf("Recived Battle request !!!!\n");
-                pack_match_move_message(&m, 0);
-                send_message(&m, &opponent_addr, secondSd);
-
-                printf("\n%d\n", ntohs(opponent_addr.sin_port));
-                forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), sd, secondSd, FALSE);
-                break;
-
             case CMD_LOGOUT:
 
                 //DA MODULARIZZARE
