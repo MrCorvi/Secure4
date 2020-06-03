@@ -47,9 +47,8 @@ int get_cmd(){
 
 	char cmd_s[128];
 	
-    printf("\033[0;32m");
-	printf(">  ");
-	printf("\033[0m"); 
+    printf("\033[0;32m  \n>  \033[0m");
+    fflush(stdin);
     if(	fgets(cmd_s, 128, stdin)==NULL){
         printf("Error fgets da gestire. Per ora terminazione forzata\n");
         exit(1);
@@ -174,7 +173,7 @@ void battleRequest(){
     //printf("Sem val father: %d\n", val);
 
     sem_wait(mutex_active_process);
-    
+
     //sem_getvalue(mutex_active_process, &val);
     //printf("Sem val father: %d\n", val);
 }
@@ -256,21 +255,14 @@ void childCode(){
                 
                 kill(getppid(), SIGUSR1);
                 forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE);
-                sem_post(mutex_active_process);
                 
-                //Stampo il cursore
-                printf("\033[0;32m");
-                printf("\n>  ");
-                printf("\033[0m"); 
-            }
+                printf("Press Enter to return to the main console ...\n");
 
+                sem_post(mutex_active_process);
+            }
         }else{
             printf("Errore OPCODE da gestire\n");
         }
-        //printf("                active process post\n");
-        
-
-        //close(secondSd);
     }
 }
 
@@ -393,7 +385,7 @@ int main(int argc, char* argv[]){
 
         switch(cmd){
             case CMD_EMPTY:
-                printf("\n");
+                //printf("\n");
                 //printf("%c[2K", 27);
                 break;
 
@@ -448,6 +440,9 @@ int main(int argc, char* argv[]){
                     recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
 
                     forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, TRUE);
+                    printf("Returning to the main console ...\n");
+                    char temp[5];
+                    fgets(temp, 5, stdin);
 
                     close(secondSd);
                     
