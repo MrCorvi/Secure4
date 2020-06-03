@@ -177,7 +177,6 @@ void battleRequest(){
 
 //Signal per intrrompere l'esecuzione del processo figlio
 void secondaryPortRequest(){
-    printf("eeentroooo innnnnnn Tamadreeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee!!\n");
 
     close(secondSd);
 
@@ -185,9 +184,7 @@ void secondaryPortRequest(){
     sem_post(mutex_active_process);
 
     sem_wait(mutex_secondary_port);
-    printf("Tamadreeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee!!\n");
     secondSd = setupSocket(cl_secondary_port);
-    printf("Si ricomincia aaaa afaaaaaaaaaaaaaaa        %d\n", secondSd);
 }
 
 //Codice del processo figlio
@@ -201,7 +198,6 @@ void childCode(){
     secondSd = setupSocket(cl_secondary_port);
     while(1){
 
-        printf("Si ricomincia aaaa afaaaaaaaaaaaaaaa        %d\n", secondSd);
         recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen);
 
 

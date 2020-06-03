@@ -13,12 +13,13 @@ void setup(){
             map[j][i] = VOID;
         }
     }
-    printf("GAME START!\nInput 9 if you want to exit");
+    printf("\033[0;36m############################################ GAME START ############################################\033[0m\n");
 }
 
 void renderMap(){
     printf("\n");
     for(int i=0; i<=MAP_HEIGHT; i++){
+        printf("\t\t\t\t       ");
         for (int j = 0; j < MAP_WIDTH; j++){
             if(i == MAP_HEIGHT){
                 printf(" %d ", j);
