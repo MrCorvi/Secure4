@@ -172,9 +172,9 @@ void battleRequest(){
     int val;
     //sem_getvalue(mutex_active_process, &val);
     //printf("Sem val father: %d\n", val);
-    
-    sem_wait(mutex_active_process);
 
+    sem_wait(mutex_active_process);
+    
     //sem_getvalue(mutex_active_process, &val);
     //printf("Sem val father: %d\n", val);
 }
@@ -185,11 +185,12 @@ void battleRequest(){
 void secondaryPortRequest(){
     //printf("Secondary port request!!!!!!!!!!!!!!\n");
     
-    //int val;
-    //sem_getvalue(mutex_secondary_port, &val);
-    //printf("Sem val son: %d\n", val);
+    int val;
 
     close(secondSd);
+
+    //riattivo il processo padre
+    sem_post(mutex_active_process);
 
     sem_wait(mutex_secondary_port);
     secondSd = setupSocket(cl_secondary_port);
@@ -205,14 +206,14 @@ void childCode(){
     struct sockaddr_in sv_addr_listen, opponent_addr;
     struct message match_m, m;
     char cmd_s[128], command;
+    nice(0); 
 
+    secondSd = setupSocket(cl_secondary_port);
     while(1){
 
-        secondSd = setupSocket(cl_secondary_port);
 
         recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen);
 
-        kill(getppid(), SIGUSR1);
 
         //Sto sfidando io qualcuno o mi sta arrivando se hanno accettato la sfida o no ?
         if(match_m.opcode == ACCEPT_OPCODE){
@@ -224,18 +225,12 @@ void childCode(){
             //clean input buffer
             fflush(stdin);
 
+            kill(getppid(), SIGUSR1);
             printf("\nSei stato sfidato da: %d. Accetti? [y/n] : ", match_m.my_id);
-            
             do{        
-                /*if(	fgets(cmd_s, 128, stdin)==NULL){
-                    printf("Error fgets da gestire. Per ora terminazione forzata\n");
-                    exit(1);
-                } */
                 scanf("%c", &command);
-                //printf("%d", command == 'y');
             }while(command != 'y' && command != 'n');
-            //}while(strcmp(cmd_s, "y\n") != 0 || strcmp(cmd_s, "n\n") != 0);
-            //printf("CMD_S %s\n", cmd_s);
+            sem_post(mutex_active_process);
 
             //Rispondo se ho accettato la richista o meno
             if(command == 'y'){
@@ -258,7 +253,15 @@ void childCode(){
 
                 //Game start !!!
                 printf("\nAdversary port: %d\n", ntohs(opponent_addr.sin_port));
+                
+                kill(getppid(), SIGUSR1);
                 forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE);
+                sem_post(mutex_active_process);
+                
+                //Stampo il cursore
+                printf("\033[0;32m");
+                printf("\n>  ");
+                printf("\033[0m"); 
             }
 
         }else{
@@ -267,8 +270,7 @@ void childCode(){
         //printf("                active process post\n");
         
 
-        close(secondSd);
-        sem_post(mutex_active_process);
+        //close(secondSd);
     }
 }
 
@@ -288,15 +290,26 @@ int main(int argc, char* argv[]){
 	}
 
     //Initialasing semaphors
-    mutex_active_process = sem_open("mutex_active_process", O_CREAT, 0644, -2);
+    mutex_active_process = sem_open("mutex_active_process", O_CREAT | O_EXCL, 0644, 0);
     if(mutex_active_process == SEM_FAILED) {
-        perror("semaphore initilization");
-        exit(1);
+        //perror("semaphore initilization");
+        sem_unlink("mutex_active_process");
+        mutex_active_process = sem_open("mutex_active_process", O_CREAT | O_EXCL, 0644, 0);
+        if(mutex_active_process == SEM_FAILED) {
+            perror("semaphore initilization");
+            exit(1);
+        }
     }
-    mutex_secondary_port = sem_open("mutex_secondary_port", O_CREAT, 0644, -3);
+
+    mutex_secondary_port = sem_open("mutex_secondary_port", O_CREAT | O_EXCL, 0644, 0);
     if(mutex_secondary_port == SEM_FAILED) {
-        perror("semaphore initilization");
-        exit(1);
+        //perror("semaphore initilization");
+        sem_unlink("mutex_secondary_port");
+        mutex_secondary_port = sem_open("mutex_secondary_port", O_CREAT | O_EXCL, 0644, 0);
+        if(mutex_secondary_port == SEM_FAILED) {
+            perror("semaphore initilization");
+            exit(1);
+        }
     }
 
     int val;
@@ -380,7 +393,8 @@ int main(int argc, char* argv[]){
 
         switch(cmd){
             case CMD_EMPTY:
-                //printf("\n");
+                printf("\n");
+                //printf("%c[2K", 27);
                 break;
 
             case CMD_UNKNOWN:
@@ -417,8 +431,10 @@ int main(int argc, char* argv[]){
                 if(esito== DENY_OPCODE){
                     printf("Partita rifiutata (main thread)\n");
                 }else if(esito == ACCEPT_OPCODE){
+
                     kill(pid, SIGUSR2);
-                    sleep(1);
+                    //aspetto che il porcesso figlio chouda il socket secondario
+                    sem_wait(mutex_active_process);
                     secondSd = setupSocket(cl_secondary_port);
 
                     printf("Partita accettata (main thread)\n");
@@ -441,6 +457,7 @@ int main(int argc, char* argv[]){
                     printf("OPCODE Error da gestire\n");
                 }
                 
+                fflush(stdin);
                 break;
                 
             case CMD_LOGOUT:
