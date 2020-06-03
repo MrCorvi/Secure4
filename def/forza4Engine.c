@@ -27,9 +27,13 @@ void renderMap(){
             if(map[j][i] == VOID){
                 printf(" . ");
             }else if(map[j][i] == PLAYER_LOCAL){
+                printf("\033[0;36m");
                 printf(" X ");
+                printf("\033[0m");
             }else{
+                printf("\033[0;31m");
                 printf(" O ");
+                printf("\033[0m");
             }
         }
         printf("\n\n");

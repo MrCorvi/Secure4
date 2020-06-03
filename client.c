@@ -47,7 +47,7 @@ int get_cmd(){
 
 	char cmd_s[128];
 	
-    printf("\033[0;32m  \n>  \033[0m");
+    printf("\033[0;32m>  \033[0m");
     fflush(stdin);
     if(	fgets(cmd_s, 128, stdin)==NULL){
         printf("Error fgets da gestire. Per ora terminazione forzata\n");
@@ -168,23 +168,16 @@ int setupSocket(int port){
 
 
 void battleRequest(){
-    int val;
-    //sem_getvalue(mutex_active_process, &val);
-    //printf("Sem val father: %d\n", val);
 
     sem_wait(mutex_active_process);
 
-    //sem_getvalue(mutex_active_process, &val);
-    //printf("Sem val father: %d\n", val);
 }
 
 
 
 //Signal per intrrompere l'esecuzione del processo figlio
 void secondaryPortRequest(){
-    //printf("Secondary port request!!!!!!!!!!!!!!\n");
-    
-    int val;
+    printf("eeentroooo innnnnnn Tamadreeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee!!\n");
 
     close(secondSd);
 
@@ -192,11 +185,9 @@ void secondaryPortRequest(){
     sem_post(mutex_active_process);
 
     sem_wait(mutex_secondary_port);
+    printf("Tamadreeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee!!\n");
     secondSd = setupSocket(cl_secondary_port);
-    
-    //sem_getvalue(mutex_secondary_port, &val);
-    //printf("Sem val son: %d\n", val);
-    //printf("End secondary port request!!!!!!!!!!!!!!!\n");
+    printf("Si ricomincia aaaa afaaaaaaaaaaaaaaa        %d\n", secondSd);
 }
 
 //Codice del processo figlio
@@ -204,13 +195,13 @@ void secondaryPortRequest(){
 void childCode(){
     struct sockaddr_in sv_addr_listen, opponent_addr;
     struct message match_m, m;
-    char cmd_s[128], command;
+    char command;
     nice(0); 
 
     secondSd = setupSocket(cl_secondary_port);
     while(1){
 
-
+        printf("Si ricomincia aaaa afaaaaaaaaaaaaaaa        %d\n", secondSd);
         recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen);
 
 
@@ -303,12 +294,6 @@ int main(int argc, char* argv[]){
             exit(1);
         }
     }
-
-    int val;
-    sem_getvalue(mutex_active_process, &val);
-    printf("Sem father son: %d\n", val);
-    sem_getvalue(mutex_secondary_port, &val);
-    printf("Sem val son: %d\n", val);
     
     //Getting values from comand line
 	sv_ip = argv[1];
@@ -386,7 +371,7 @@ int main(int argc, char* argv[]){
         switch(cmd){
             case CMD_EMPTY:
                 //printf("\n");
-                //printf("%c[2K", 27);
+                printf("%c[2K", 27);
                 break;
 
             case CMD_UNKNOWN:
@@ -440,13 +425,12 @@ int main(int argc, char* argv[]){
                     recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
 
                     forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, TRUE);
+                    close(secondSd);
+                    sem_post(mutex_secondary_port);
+
                     printf("Returning to the main console ...\n");
                     char temp[5];
                     fgets(temp, 5, stdin);
-
-                    close(secondSd);
-                    
-                    sem_post(mutex_secondary_port);
                 }
                 else{
                     printf("OPCODE Error da gestire\n");
