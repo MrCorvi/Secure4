@@ -156,6 +156,8 @@ int setupSocket(int port){
     //int sd = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
     //int ret = bind(sd, (struct sockaddr*)&cl_listen_addr, sizeof(cl_listen_addr));
     int secondSd = socket(AF_INET, SOCK_DGRAM, 0);
+    int one = 1;
+    setsockopt(secondSd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     int ret = bind(secondSd, (struct sockaddr*)&cl_listen_addr, sizeof(cl_listen_addr));
     if(ret!=0){
         printf("Binding Error: the port %d is already in use\n", port);			
@@ -386,6 +388,11 @@ int main(int argc, char* argv[]){
                 break;
             case CMD_MATCH:
 
+                if(dest_id==cl_id){
+                    printf("You can't rematch yourself!\n");
+                    break;
+                }
+
                 sv_addr = setupAddress("127.0.0.1", sv_port);
 
                 //Sending request for match
@@ -455,6 +462,8 @@ int main(int argc, char* argv[]){
                     printf("Logout Opcode Error: %d\n", ack_logout_m.opcode);
                     exit(1);
                 }
+                close(sd);
+                close(secondSd);
                 exit(0);
         }   
     }
