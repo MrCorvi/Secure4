@@ -107,7 +107,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			char buffer[1024];
 			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);
 			int cl_port = aux->my_listen_port;
-			sprintf(buffer,"%d,%s,%d", aux->my_id, str, cl_port);
+			sprintf(buffer,"%d,%s,%d,%d", aux->my_id, str, cl_port,100);
 			append_row(filename, buffer);
             struct message m = pack_ack(aux->my_id);
             send_message(&m, cl_addr, sd);
@@ -118,11 +118,52 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
             send_message(&ackList, cl_addr, sd);
             break;
 		case MATCH_OPCODE:
-			printf("%d <--> %d \n", aux->dest_id, ntohs(aux->dest_id));
+
 			dest_ip = get_column_by_id(filename, ntohs(aux->dest_id), 2);
-			dest_port = atoi(get_column_by_id(filename, ntohs(aux->dest_id), 3));
+			dest_port = (short)atoi(get_column_by_id(filename, ntohs(aux->dest_id), 3));
+			uint32_t nonce_stored = atoi(get_column_by_id(filename, ntohs(aux->dest_id), 4));
+			uint32_t nonce_recived = htonl(aux->nonce);
+
+			printf("Nonce recived: %d		Nonce stored: %d\n", nonce_recived, nonce_stored);
+
+			printf("%d <--> %d \n", aux->dest_id, ntohs(aux->dest_id));
 			printf("DEST IP: %s\n", dest_ip);
 			printf("DEST PORT; %u\n", dest_port);
+
+			//check if the nonce received is 1 more of the one stored
+			if((nonce_stored+1) != nonce_recived){
+				printf("Errore: il nonce ricevuto non era quello aspettato");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+				break;
+			}
+
+			//update the nonce stored
+			char *source_ip = get_column_by_id(filename, aux->my_id, 2);
+			//printf("						%s", source_ip);
+			uint16_t source_port = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
+			update_row(filename, aux->my_id, source_ip, source_port, nonce_stored + 1);
+
+			/*
+			int row_num;
+			
+			//remove old row version
+			
+			row_num = get_row_by_id(filename, aux->my_id);
+			//if not pack err
+			if(row_num==-1){
+				printf("ID non presente!\n");
+				return 0;
+			}
+			printf("rimuovo riga %d \n", row_num);
+			
+			remove_row(filename, row_num);
+			
+
+			//append new row version
+			char *source_ip = get_column_by_id(filename, ntohs(aux->dest_id), 2);
+			int  source_port = atoi(get_column_by_id(filename, ntohs(aux->dest_id), 3));
+			sprintf(buffer,"%d,%s,%d,%d", aux->my_id, source_ip, source_port, nonce_stored + 1);
+			append_row(filename, buffer); 
+			*/
             
 			sd_listen = socket(AF_INET, SOCK_DGRAM, 0);
 

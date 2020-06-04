@@ -31,6 +31,7 @@ struct sockaddr_in cl_address, cl_listen_addr, sv_addr;
 char *sv_ip;
 int sv_port, cl_id, cl2_id, cl_main_port, cl_secondary_port;
 int sd, secondSd;
+uint32_t nonce = 100;
 sem_t *mutex_active_process, *mutex_secondary_port;
 
 void print_help(){
@@ -142,8 +143,13 @@ void pack_match_message(struct message* aux){
     aux->opcode = MATCH_OPCODE;
     aux->my_id = cl_id;
     aux->dest_id = htons(dest_id);
+    aux->nonce = htonl(nonce);
     printf("Dest id pack match: %u, %u\n", dest_id, aux->dest_id);
 
+}
+
+void nonceInc(){
+    nonce++;
 }
 
 int setupSocket(int port){
@@ -385,6 +391,8 @@ int main(int argc, char* argv[]){
                 listRequest(listRequestMessage, sv_addr, sd);
                 break;
             case CMD_MATCH:
+
+                nonceInc();
 
                 sv_addr = setupAddress("127.0.0.1", sv_port);
 

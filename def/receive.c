@@ -56,6 +56,8 @@ int deserialize_message(char* buffer, struct message *aux){
 			pos += sizeof(aux->my_id);
 			memcpy(&aux->dest_id, buffer+pos, sizeof(aux->dest_id));
 			pos += sizeof(aux->dest_id);
+			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
+			pos += sizeof(aux->nonce);
 			break;
 		case REPLY_OPCODE:
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));

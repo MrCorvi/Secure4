@@ -56,6 +56,8 @@ int serialize_message(void* buffer, struct message *aux){
 			pos+=sizeof(aux->my_id);
 			memcpy(buffer+pos, &aux->dest_id, sizeof(aux->dest_id));
 			pos+=sizeof(aux->dest_id);
+			memcpy(buffer+pos, &aux->nonce, sizeof(aux->nonce));
+			pos+=sizeof(aux->nonce);
 			break;
 		case REPLY_OPCODE:
 			memcpy(buffer+pos, &aux->my_id, sizeof(aux->my_id));

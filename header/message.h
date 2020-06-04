@@ -32,4 +32,5 @@ struct message{
     uint16_t dest_port;
     uint16_t column; 
     uint16_t flag; // 1 accept 0 deny
+    uint32_t nonce;
 };
