@@ -136,6 +136,7 @@ void pack_reply_message(struct message* aux, uint16_t flag, uint16_t dest_id_aux
     aux->my_id = cl_id;
     aux->dest_id = dest_id_aux;
     aux->flag = flag;
+    aux->nonce = nonce;
 }
 
 void pack_match_message(struct message* aux){
@@ -148,9 +149,6 @@ void pack_match_message(struct message* aux){
 
 }
 
-void nonceInc(){
-    nonce++;
-}
 
 int setupSocket(int port){
     //addres creation
@@ -193,6 +191,10 @@ void secondaryPortRequest(){
     secondSd = setupSocket(cl_secondary_port);
 }
 
+void updateNonce(){
+    nonce += 2;
+}
+
 //Codice del processo figlio
 //Si occupa di stare in ascolto sul socket secondario di richieste di sfida che arrivano dal Server
 void childCode(){
@@ -206,6 +208,14 @@ void childCode(){
 
         recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen);
 
+        //check if the nonce received is 1 more of the one stored
+        //printf("\nNonce rec: %d       stored:%d\n", match_m.nonce, nonce);
+        if((nonce + 1) != match_m.nonce){
+            printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            continue;
+        }
+        nonce += 2;
+        kill(getppid(), SIGUSR1);
 
         //Sto sfidando io qualcuno o mi sta arrivando se hanno accettato la sfida o no ?
         if(match_m.opcode == ACCEPT_OPCODE){
@@ -217,7 +227,7 @@ void childCode(){
             //clean input buffer
             fflush(stdin);
 
-            kill(getppid(), SIGUSR1);
+            kill(getppid(), SIGUSR2);
             printf("\nSei stato sfidato da: %d. Accetti? [y/n] : ", match_m.my_id);
             do{        
                 scanf("%c", &command);
@@ -233,6 +243,8 @@ void childCode(){
                 printf("Hai rifiutato\n");
                 pack_reply_message(&reply_m, 0, match_m.my_id);
             }
+
+
             send_message(&reply_m, &sv_addr_listen, secondSd);
 
             //Richiesta accettata
@@ -246,7 +258,7 @@ void childCode(){
                 //Game start !!!
                 printf("\nAdversary port: %d\n", ntohs(opponent_addr.sin_port));
                 
-                kill(getppid(), SIGUSR1);
+                kill(getppid(), SIGUSR2);
                 forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE);
                 
                 printf("Press Enter to return to the main console ...\n");
@@ -345,6 +357,8 @@ int main(int argc, char* argv[]){
     printf(": Enjoy with your friends! ");
     print_help();
 
+    //to increse the other porcess nonce
+    signal(SIGUSR1, updateNonce);
 
     //Creo processo figlio per gestire le richieste di partita
     pid_t pid;
@@ -364,7 +378,7 @@ int main(int argc, char* argv[]){
 	}
 
     //Setup signal to interupt the father process
-    signal(SIGUSR1, battleRequest);
+    signal(SIGUSR2, battleRequest);
 
     //Father process
     while(1){
@@ -392,7 +406,8 @@ int main(int argc, char* argv[]){
                 break;
             case CMD_MATCH:
 
-                nonceInc();
+                nonce++;
+                printf("Nonce: %d\n", nonce);
 
                 sv_addr = setupAddress("127.0.0.1", sv_port);
 
@@ -404,6 +419,17 @@ int main(int argc, char* argv[]){
                 struct message ack_match_m;
                 printf("Waiting Match ACK....\n");
                 recv_message(sd, &ack_match_m, (struct sockaddr*)&sv_addr);
+
+                //Nonce check
+                //printf("\nNonce rec: %d       stored:%d\n", ack_match_m.nonce, nonce);
+                if((nonce + 1) != ack_match_m.nonce){
+                    printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    continue;
+                }
+                nonce++;
+                //update other branch nonce
+                kill(pid, SIGUSR1);
+
 
                 int esito = (ack_match_m.flag==1)?ACCEPT_OPCODE:DENY_OPCODE;
 

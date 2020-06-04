@@ -70,6 +70,8 @@ int deserialize_message(char* buffer, struct message *aux){
 			pos += sizeof(aux->dest_ip);
 			memcpy(&aux->dest_port, buffer+pos, sizeof(aux->dest_port));
 			pos += sizeof(aux->dest_port);
+			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
+			pos += sizeof(aux->nonce);
 			printf("AUX FLAG ricevuto: %u <--> %d\n ", aux->flag, aux->flag );
 			break;
 		default:

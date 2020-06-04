@@ -121,49 +121,29 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 
 			dest_ip = get_column_by_id(filename, ntohs(aux->dest_id), 2);
 			dest_port = (short)atoi(get_column_by_id(filename, ntohs(aux->dest_id), 3));
-			uint32_t nonce_stored = atoi(get_column_by_id(filename, ntohs(aux->dest_id), 4));
-			uint32_t nonce_recived = htonl(aux->nonce);
+			uint32_t nonce_stored = atoi(get_column_by_id(filename, aux->my_id , 4));
+			uint32_t nonce_sender = htonl(aux->nonce);
 
-			printf("Nonce recived: %d		Nonce stored: %d\n", nonce_recived, nonce_stored);
+			printf("Nonce recived: %d		Nonce stored: %d\n", nonce_sender, nonce_stored);
 
 			printf("%d <--> %d \n", aux->dest_id, ntohs(aux->dest_id));
 			printf("DEST IP: %s\n", dest_ip);
 			printf("DEST PORT; %u\n", dest_port);
 
 			//check if the nonce received is 1 more of the one stored
-			if((nonce_stored+1) != nonce_recived){
-				printf("Errore: il nonce ricevuto non era quello aspettato");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			if((nonce_stored+1) != nonce_sender){
+				printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 				break;
 			}
 
 			//update the nonce stored
-			char *source_ip = get_column_by_id(filename, aux->my_id, 2);
-			//printf("						%s", source_ip);
+			char    *source_ip   = get_column_by_id(filename, aux->my_id, 2);
 			uint16_t source_port = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
 			update_row(filename, aux->my_id, source_ip, source_port, nonce_stored + 1);
 
-			/*
-			int row_num;
-			
-			//remove old row version
-			
-			row_num = get_row_by_id(filename, aux->my_id);
-			//if not pack err
-			if(row_num==-1){
-				printf("ID non presente!\n");
-				return 0;
-			}
-			printf("rimuovo riga %d \n", row_num);
-			
-			remove_row(filename, row_num);
-			
-
-			//append new row version
-			char *source_ip = get_column_by_id(filename, ntohs(aux->dest_id), 2);
-			int  source_port = atoi(get_column_by_id(filename, ntohs(aux->dest_id), 3));
-			sprintf(buffer,"%d,%s,%d,%d", aux->my_id, source_ip, source_port, nonce_stored + 1);
-			append_row(filename, buffer); 
-			*/
+			//set the reciver nonce
+			uint32_t nonce_reciver = atoi(get_column_by_id(filename, ntohs(aux->dest_id), 4));
+			aux->nonce = nonce_reciver + 1;
             
 			sd_listen = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -171,7 +151,6 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			memset(&listen_addr,0, sizeof(listen_addr)); //pulizia
 			listen_addr.sin_family= AF_INET;
 			listen_addr.sin_port = htons(dest_port);
-			//listen_addr.sin_addr.s_addr = INADDR_ANY;
 			inet_pton(AF_INET, dest_ip , &listen_addr.sin_addr);
 
             send_message(aux, &listen_addr, sd_listen);
@@ -185,19 +164,31 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				exit(1);
 			}
 
-			//printf("flag: %d \n", (int)aux->flag);
+			//Check corret nonce
+			printf("Nonce 			recived: %d		Nonce stored: %d\n", aux_risp.nonce, nonce_reciver);
+			if( aux_risp.nonce != (nonce_reciver + 2)){
+				printf("Errore: il nonce ricevuto dal reciver non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+				break;
+			}
+			uint32_t new_nonce_reciver = nonce_reciver + 2;
+			printf("											%d\n", new_nonce_reciver);
+			update_row(filename, ntohs(aux->dest_id), dest_ip, dest_port, nonce_reciver + 2);
+
 
 			struct message risp;
 			risp.opcode = REPLY_OPCODE;
 			risp.dest_ip = dest_ip;
 			risp.dest_port = dest_port;
 			risp.flag = aux_risp.flag;
+			risp.nonce = nonce_stored + 2;
 			
 			
-			//printf("source port: %d", ntohl(cl_addr->sin_port));
-			//struct sockaddr_in resp_addr = setupOtherAddress("127.0.0.1", ntohl(cl_addr->sin_port));
-			//send_message(&aux, &resp_addr, sd);
 			send_message(&risp, cl_addr, sd);
+
+			source_ip   = get_column_by_id(filename, aux->my_id, 2);
+			source_port = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
+			update_row(filename, aux->my_id, source_ip, source_port, nonce_stored + 2);
+
 			break;
 			
 		case LOGOUT_OPCODE:
