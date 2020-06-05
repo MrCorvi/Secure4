@@ -57,7 +57,7 @@ struct message pack_err(uint32_t id){
 
     struct message aux;
     aux.opcode = ERR_OPCODE;
-    aux.my_id =htonl(id);
+    aux.my_id = id;
     return aux;
 }
 
@@ -114,6 +114,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				struct message m = pack_err(aux->my_id);
             	send_message(&m, cl_addr, sd);
 				close(sd_listen);
+				break;
 			}
 			char buffer[1024];
 			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);
@@ -130,10 +131,10 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
             break;
 		case MATCH_OPCODE:
 
-			dest_ip = get_column_by_id(filename, ntohs(aux->dest_id), 2);
-			dest_port = (short)atoi(get_column_by_id(filename, ntohs(aux->dest_id), 3));
+			dest_ip = get_column_by_id(filename, aux->dest_id, 2);
+			dest_port = (short)atoi(get_column_by_id(filename, aux->dest_id, 3));
 			uint32_t nonce_stored = atoi(get_column_by_id(filename, aux->my_id , 4));
-			uint32_t nonce_sender = htonl(aux->nonce);
+			uint32_t nonce_sender = aux->nonce;
 
 			printf("Nonce recived: %d		Nonce stored: %d\n", nonce_sender, nonce_stored);
 
@@ -153,7 +154,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			update_row(filename, aux->my_id, source_ip, source_port, nonce_stored + 1);
 
 			//set the reciver nonce
-			uint32_t nonce_reciver = atoi(get_column_by_id(filename, ntohs(aux->dest_id), 4));
+			uint32_t nonce_reciver = atoi(get_column_by_id(filename, aux->dest_id, 4));
 			aux->nonce = nonce_reciver + 1;
             
 			sd_listen = socket(AF_INET, SOCK_DGRAM, 0);
@@ -166,6 +167,11 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 
             send_message(aux, &listen_addr, sd_listen);
 			printf("waiting reply\n");
+
+			
+			dest_ip = get_column_by_id(filename, aux->dest_id, 2);
+			dest_port = (short)atoi(get_column_by_id(filename, aux->dest_id, 3));
+			printf("												DEST IP: %s\n", dest_ip);
 
 			struct message aux_risp;
 			int req = recv_message(sd_listen, &aux_risp, (struct sockaddr*)&listen_addr); //3000 receive port and then pass message to others
@@ -183,7 +189,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			}
 			uint32_t new_nonce_reciver = nonce_reciver + 2;
 			printf("											%d\n", new_nonce_reciver);
-			update_row(filename, ntohs(aux->dest_id), dest_ip, dest_port, nonce_reciver + 2);
+			update_row(filename, aux->dest_id, dest_ip, dest_port, nonce_reciver + 2);
 
 
 			struct message risp;
@@ -257,6 +263,7 @@ int main(int argc, char* argv[]){
 
 		pid_t pid;
 		int req = recv_message(sd, &m, (struct sockaddr*)&cl_addr); //3000 receive port and then pass message to others
+		printf("padre server RICEVO %d, %d E %d\n", m.opcode, m.my_id, m.my_listen_port);
 		if(req!=1){
             printf("Errore (andra' implementato ERR_OPCODE)\n");
 			close(sd);

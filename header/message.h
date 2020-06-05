@@ -26,7 +26,7 @@ struct message{
     uint32_t dest_id; // NULL if opcode != MATCH. In that case 
                       // Server thread just forward MATCH message
                       // and dest_client reply (ACK or DENY)
-    uint8_t addColumn;//Used in game to specifie, in game, the Column where to add the disk
+    uint16_t addColumn;//Used in game to specifie, in game, the Column where to add the disk
     uint32_t dest_ip;
     uint16_t my_listen_port;
     uint16_t dest_port;
