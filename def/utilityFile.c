@@ -89,19 +89,22 @@ void remove_row(char* filename, int row){
     /* Get the first line of the file (header) with a POSIX function*/
     line_size = getline(&line_buf, &line_buf_size, file1);
     line_count++; /* Increment our line count */
+    //printf("                                    %d   %s\n", (int)line_size, line_buf);
     while(line_size >= 0){
         
         if(line_count != row)
             fprintf(file2, "%s", line_buf);
  
         // Get the next line 
-        line_size = getline(&line_buf, &line_buf_size, file1);   
+        line_size = getline(&line_buf, &line_buf_size, file1); 
+        //printf("                                    %d   %s   %d %d\n", (int)line_size, line_buf, line_count, row);
         line_count++;
     }
     /* Free the allocated resources */
     free(line_buf);
     line_buf = NULL;
     fclose(file1);
+    fclose(file2);
 
     system("mv aux.csv loggedUser.csv");
 }
@@ -161,15 +164,45 @@ int get_row_by_id(char* filename, int id){
 
     return -1;
 }
-/*
-int main(){
 
-    char* filename = "activeuser.csv";
- 
-    //read_all_file(filename);
-    //print_column(filename, 3);
-    //append_row(filename, "ciao a tutti");  
-    //remove_row(filename, 3);
+const char* get_column_by_id(char* filename, int id,int col){
+
+    FILE* file1 = fopen(filename,"r");
+    char buffer[1024];
+    char snum[5];
+
+    sprintf(snum, "%d", id);
+    printf("SNUM: %s ID:%d\n", snum, id);
+
+    while(fgets(buffer, 1024, file1)){
+        char* tmp = strdup(buffer);
+        if(strcmp(get_field(tmp,1),snum)==0){
+            return get_field(buffer,col);
+        }
+        free(tmp);
+    }
+    fclose(file1);
+
+    return NULL;
 }
-*/
+
+int update_row(char* filename, uint32_t my_id, char ip[], uint16_t cl_port, uint32_t nonce){
+    char buffer[1024];
+    int row_num;
+    
+    //remove old row version
+    row_num = get_row_by_id(filename, my_id);
+    //if not pack err
+    if(row_num==-1){
+        printf("ID non presente!\n");
+        return 0;
+    }
+    printf("rimuovo riga %d \n", row_num);
+    remove_row(filename, row_num);
+
+    //append new row version
+    sprintf(buffer,"%d,%s,%d,%d", my_id, ip, cl_port, nonce);
+    append_row(filename, buffer);
+    return 1;
+}
 

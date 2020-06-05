@@ -12,7 +12,7 @@ server.o: server.c
 
 
 client: client.o forza4Engine.o receive.o send.o list.o
-	$(CC) $(CFLAGS) $^ -o client 
+	$(CC) $(CFLAGS) $^ -o client -pthread
 	rm *.o
 	
 client.o: client.c
