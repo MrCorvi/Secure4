@@ -45,6 +45,8 @@ int serialize_message(void* buffer, struct message *msg){
 		case ACK_OPCODE:
 			memcpy(buffer+pos, &aux.my_id, sizeof(aux.my_id));
 			pos+=sizeof(aux.my_id);
+			memcpy(buffer+pos, &aux.nonce, sizeof(aux.nonce));
+			pos+=sizeof(aux.nonce);
 			break;
 		case LIST_OPCODE:
 			memcpy(buffer+pos, &aux.my_id, sizeof(aux.my_id));
@@ -55,6 +57,8 @@ int serialize_message(void* buffer, struct message *msg){
 		case LOGOUT_OPCODE:
 			memcpy(buffer+pos, &aux.my_id, sizeof(aux.my_id));
 			pos+=sizeof(aux.my_id);
+			memcpy(buffer+pos, &aux.nonce, sizeof(aux.nonce));
+			pos+=sizeof(aux.nonce);
 			break;
 		case ACK_LIST:
 			memcpy(buffer+pos, &aux.nOnlinePlayers, sizeof(aux.nOnlinePlayers));

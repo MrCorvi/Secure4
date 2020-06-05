@@ -37,6 +37,8 @@ int deserialize_message(char* buffer, struct message *aux){
 		case ACK_OPCODE:
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
 			pos += sizeof(aux->my_id);
+			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
+			pos += sizeof(aux->nonce);
 			break;
 		case LIST_OPCODE:
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
@@ -60,6 +62,8 @@ int deserialize_message(char* buffer, struct message *aux){
 		case LOGOUT_OPCODE:
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
 			pos += sizeof(aux->my_id);
+			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
+			pos += sizeof(aux->nonce);
 			break;
 
 		case MATCH_MOVE_OPCODE:

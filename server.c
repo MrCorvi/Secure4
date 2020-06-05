@@ -45,11 +45,12 @@ int socket_creation(){
 	return sd;
 }
 
-struct message pack_ack(uint32_t id){
+struct message pack_ack(uint32_t id, uint32_t nonce){
 
     struct message aux;
     aux.opcode = ACK_OPCODE;
     aux.my_id = id;
+	aux.nonce = nonce;
     return aux;
 }
 
@@ -127,7 +128,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			int cl_port = aux->my_listen_port;
 			sprintf(buffer,"%d,%s,%d,%d", aux->my_id, str, cl_port,100);
 			append_row(filename, buffer);
-            struct message m = pack_ack(aux->my_id);
+            struct message m = pack_ack(aux->my_id, 0);
             send_message(&m, cl_addr, sd);
             break;
 		case LIST_OPCODE:
@@ -225,6 +226,10 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			break;
 			
 		case LOGOUT_OPCODE:
+			//check nonce
+			if(!checkNonce(aux->my_id, aux->nonce, 2))
+				break;
+
 			//look at .csv if correct id
 			ret = get_row_by_id(filename,aux->my_id);
 			//if not pack err
@@ -235,7 +240,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			printf("rimuovo riga %d \n", ret);
 			remove_row(filename, ret);
 			printf("Riga rimossa!\n");
-			struct message ackLogout = pack_ack(aux->my_id);
+			struct message ackLogout = pack_ack(aux->my_id, aux->nonce + 1);
             send_message(&ackLogout, cl_addr, sd);
 		default:
 			break;

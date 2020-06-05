@@ -118,6 +118,7 @@ void pack_logout_message(struct message* aux){
 
 	aux->opcode = LOGOUT_OPCODE;
     aux->my_id = cl_id;
+    aux->nonce = nonce;
 }
 
 void pack_match_move_message(struct message* aux, uint8_t column){
@@ -178,7 +179,7 @@ int setupSocket(int port){
 
 int nonceCheck(uint32_t nonceReceived, int incNonce, pid_t pid){
     //Nonce check
-    printf("\nNonce rec: %d       stored:%d\n", nonceReceived, nonce);
+    //printf("\nNonce rec: %d       stored:%d\n", nonceReceived, nonce);
     if((nonce + 1) != nonceReceived){
         printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         return 0;
@@ -340,6 +341,7 @@ int main(int argc, char* argv[]){
 		printf("Socket Creation Error: Client Stopping\n");
 		exit(1);
 	}
+    
 
 	// Client address creation
 	memset(&cl_address,0, sizeof(cl_address)); // cleaning
@@ -441,12 +443,12 @@ int main(int argc, char* argv[]){
                 break;
             case CMD_MATCH:
 
-                nonce++;
-                printf("Nonce: %d\n", nonce);
                 if(dest_id==cl_id){
                     printf("You can't rematch yourself!\n");
                     break;
                 }
+                nonce++;
+                //("Nonce: %d\n", nonce);
 
                 sv_addr = setupAddress("127.0.0.1", sv_port);
 
@@ -511,17 +513,24 @@ int main(int argc, char* argv[]){
                 sv_addr.sin_port = htons(sv_port);
                 inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
 
+                nonce++;
                 pack_logout_message(&m);
 
                 send_message(&m, &sv_addr, sd);
-                struct message ack_logout_m;
+
                 printf("Waiting Logout ACK....\n");
+                struct message ack_logout_m;
                 recv_message(sd, &ack_logout_m, (struct sockaddr*)&sv_addr);
                 printf("Logout ACK received... Login Completed\n");
                 if(ack_logout_m.opcode != ACK_OPCODE){
                     printf("Logout Opcode Error: %d\n", ack_logout_m.opcode);
                     exit(1);
                 }
+
+                //nonce check
+                if(!nonceCheck(ack_logout_m.nonce, 1, pid))
+                    continue;
+
                 close(sd);
                 close(secondSd);
                 exit(0);
