@@ -148,8 +148,8 @@ void pack_match_message(struct message* aux){
 
     aux->opcode = MATCH_OPCODE;
     aux->my_id = cl_id;
-    aux->dest_id = htons(dest_id);
-    aux->nonce = htonl(nonce);
+    aux->nonce = nonce;
+    aux->dest_id = dest_id;
     printf("Dest id pack match: %u, %u\n", dest_id, aux->dest_id);
 
 }
@@ -165,6 +165,8 @@ int setupSocket(int port){
     //int sd = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
     //int ret = bind(sd, (struct sockaddr*)&cl_listen_addr, sizeof(cl_listen_addr));
     int secondSd = socket(AF_INET, SOCK_DGRAM, 0);
+    int one = 1;
+    setsockopt(secondSd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     int ret = bind(secondSd, (struct sockaddr*)&cl_listen_addr, sizeof(cl_listen_addr));
     if(ret!=0){
         printf("Binding Error: the port %d is already in use\n", port);			
@@ -343,10 +345,11 @@ int main(int argc, char* argv[]){
 	memset(&cl_address,0, sizeof(cl_address)); // cleaning
 	cl_address.sin_family = AF_INET;
 	//hostlong from host byte order to network byte order
-	cl_address.sin_addr.s_addr = htonl(INADDR_ANY); 
+	cl_address.sin_addr.s_addr = INADDR_ANY; 
     cl_address.sin_port = htons(sv_port);
 
     pack_login_message(&m);
+    printf("LOGIN MSG: %d\n", m.my_id);
     printf("MAIN PORTA: %d\n", cl_main_port);
     printf("SECONDARY PORTA: %d\n", cl_secondary_port);
 
@@ -440,6 +443,10 @@ int main(int argc, char* argv[]){
 
                 nonce++;
                 printf("Nonce: %d\n", nonce);
+                if(dest_id==cl_id){
+                    printf("You can't rematch yourself!\n");
+                    break;
+                }
 
                 sv_addr = setupAddress("127.0.0.1", sv_port);
 
@@ -515,6 +522,8 @@ int main(int argc, char* argv[]){
                     printf("Logout Opcode Error: %d\n", ack_logout_m.opcode);
                     exit(1);
                 }
+                close(sd);
+                close(secondSd);
                 exit(0);
         }   
     }
