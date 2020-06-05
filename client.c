@@ -141,7 +141,7 @@ void pack_match_message(struct message* aux){
 
     aux->opcode = MATCH_OPCODE;
     aux->my_id = cl_id;
-    aux->dest_id = htons(dest_id);
+    aux->dest_id = dest_id;
     printf("Dest id pack match: %u, %u\n", dest_id, aux->dest_id);
 
 }
@@ -313,10 +313,11 @@ int main(int argc, char* argv[]){
 	memset(&cl_address,0, sizeof(cl_address)); // cleaning
 	cl_address.sin_family = AF_INET;
 	//hostlong from host byte order to network byte order
-	cl_address.sin_addr.s_addr = htonl(INADDR_ANY); 
+	cl_address.sin_addr.s_addr = INADDR_ANY; 
     cl_address.sin_port = htons(sv_port);
 
     pack_login_message(&m);
+    printf("LOGIN MSG: %d\n", m.my_id);
     printf("MAIN PORTA: %d\n", cl_main_port);
     printf("SECONDARY PORTA: %d\n", cl_secondary_port);
 

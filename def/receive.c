@@ -2,6 +2,19 @@
 
 #include "../header/receive.h"
 
+void toHost(struct message* msg){
+
+	msg->opcode = (msg->opcode!=0)?ntohs(msg->opcode):0;
+	msg->my_id = (msg->my_id!=0)?ntohl(msg->my_id):0;
+	msg->my_listen_port = (msg->my_listen_port!=0)?ntohs(msg->my_listen_port):0;
+	msg->nOnlinePlayers = (msg->nOnlinePlayers!=0)?ntohs(msg->nOnlinePlayers):0; 
+	msg->dest_id = (msg->dest_id!=0)?ntohl(msg->dest_id):0;
+	msg->dest_ip = (msg->dest_ip!=0)?ntohl(msg->dest_ip):0;
+	msg->dest_port = (msg->dest_port)?ntohs(msg->dest_port):0;
+	msg->flag = (msg->flag)?ntohs(msg->flag):0;
+	msg->addColumn = (msg->addColumn)?ntohs(msg->addColumn):0;
+}
+
 int deserialize_message(char* buffer, struct message *aux){
 
 	uint16_t opcodex, *temp;
@@ -11,8 +24,8 @@ int deserialize_message(char* buffer, struct message *aux){
 	//printf("opcode: %d\n", opcodex);
 	aux->opcode = opcodex;
 	pos+=sizeof(opcodex);
-
-	switch(opcodex){
+	printf("aux opcode %d\n", aux->opcode);
+	switch(ntohs(aux->opcode)){
 
         case LOGIN_OPCODE:
             memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
@@ -33,8 +46,8 @@ int deserialize_message(char* buffer, struct message *aux){
 			//pos += sizeof(uint16_t);
 			//Return the list of online users
 			temp = (uint16_t*)buffer+pos;
-			for (int i = 0; i < aux->nOnlinePlayers; i++){
-				aux->onlinePlayers[i] = temp[i];
+			for (int i = 0; i < ntohs(aux->nOnlinePlayers); i++){
+				aux->onlinePlayers[i] = ntohs(temp[i]);
 				pos+= sizeof(uint16_t);
 			}
 			printf("\n");
@@ -73,6 +86,7 @@ int deserialize_message(char* buffer, struct message *aux){
 		default:
 			break;
 	}
+	toHost(aux);
 	return 1;
 }
 
@@ -93,5 +107,6 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 	}
 
 	ret = deserialize_message(buffer, message);
+	printf("recv_message() RICEVO %d E %d\n", message->my_id, message->my_listen_port);
 	return ret;
 }
