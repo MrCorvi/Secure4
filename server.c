@@ -53,6 +53,14 @@ struct message pack_ack(uint32_t id){
     return aux;
 }
 
+struct message pack_err(uint32_t id){
+
+    struct message aux;
+    aux.opcode = ERR_OPCODE;
+    aux.my_id =htonl(id);
+    return aux;
+}
+
 struct message pack_list_ack(){
     struct message aux;
 	uint16_t len;
@@ -103,6 +111,9 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			if(ret!=-1){
 				printf("ERRORE GIA' LOGGATO, da gestire con Err pack");
 				// per ora inserisce comunque per agevolare testing
+				struct message m = pack_err(aux->my_id);
+            	send_message(&m, cl_addr, sd);
+				close(sd_listen);
 			}
 			char buffer[1024];
 			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);
