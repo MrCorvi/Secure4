@@ -17,7 +17,6 @@
 #endif
 #include "header/send.h"
 #include "header/receive.h"
-#include "header/list.h"
 
 #define CMD_UNKNOWN 0
 #define CMD_HELP 1
@@ -109,6 +108,12 @@ void pack_login_message(struct message* aux){
     aux->my_listen_port = cl_secondary_port;
 }
 
+void pack_list_message(struct message* aux, uint32_t id){
+	aux->opcode = LIST_OPCODE;
+    aux->my_id = id;
+    aux->nonce = nonce;
+}
+
 void pack_logout_message(struct message* aux){
 
 	aux->opcode = LOGOUT_OPCODE;
@@ -169,6 +174,20 @@ int setupSocket(int port){
     return secondSd;
 }
 
+int nonceCheck(uint32_t nonceReceived, int incNonce, pid_t pid){
+    //Nonce check
+    printf("\nNonce rec: %d       stored:%d\n", nonceReceived, nonce);
+    if((nonce + 1) != nonceReceived){
+        printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        return 0;
+    }
+    nonce+=incNonce;
+
+    //update other branch nonce
+    kill(pid, SIGUSR1);
+    return 1;
+}
+
 
 
 void battleRequest(){
@@ -208,14 +227,9 @@ void childCode(){
 
         recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen);
 
-        //check if the nonce received is 1 more of the one stored
-        //printf("\nNonce rec: %d       stored:%d\n", match_m.nonce, nonce);
-        if((nonce + 1) != match_m.nonce){
-            printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        //nonce check
+        if(nonceCheck(match_m.nonce, 2, getppid()) == 0)
             continue;
-        }
-        nonce += 2;
-        kill(getppid(), SIGUSR1);
 
         //Sto sfidando io qualcuno o mi sta arrivando se hanno accettato la sfida o no ?
         if(match_m.opcode == ACCEPT_OPCODE){
@@ -399,10 +413,28 @@ int main(int argc, char* argv[]){
             case CMD_LIST:
 
                 sv_addr = setupAddress("127.0.0.1", sv_port);
-                
-                //printf("placeholder list\n");
-                pack_list_message(&listRequestMessage, cl_id);
-                listRequest(listRequestMessage, sv_addr, sd);
+
+                //nonce setup
+                nonce++;
+                pack_list_message(&m, cl_id);
+    
+                printf("Getting list of online users from the server \n");
+                send_message(&m, &sv_addr, sd);
+                printf("Waiting ACK...\n");
+
+                struct message ack_list;
+                recv_message(sd, &ack_list, (struct sockaddr*)&sv_addr);
+
+                //nonce check
+                if(nonceCheck(ack_list.nonce, 1, pid) == 0)
+                    continue;
+
+                printf("ACK received");
+
+                printf("List of the logged users:\n");
+                for (int i = 0; i < ack_list.nOnlinePlayers; i++){
+                    printf("- %d \n", ack_list.onlinePlayers[i]);
+                }
                 break;
             case CMD_MATCH:
 
@@ -420,15 +452,9 @@ int main(int argc, char* argv[]){
                 printf("Waiting Match ACK....\n");
                 recv_message(sd, &ack_match_m, (struct sockaddr*)&sv_addr);
 
-                //Nonce check
-                //printf("\nNonce rec: %d       stored:%d\n", ack_match_m.nonce, nonce);
-                if((nonce + 1) != ack_match_m.nonce){
-                    printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                //nonce check
+                if(nonceCheck(ack_match_m.nonce, 1, pid) == 0)
                     continue;
-                }
-                nonce++;
-                //update other branch nonce
-                kill(pid, SIGUSR1);
 
 
                 int esito = (ack_match_m.flag==1)?ACCEPT_OPCODE:DENY_OPCODE;

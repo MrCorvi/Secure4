@@ -27,17 +27,21 @@ int deserialize_message(char* buffer, struct message *aux){
 		case LIST_OPCODE:
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
 			pos += sizeof(aux->my_id);
+			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
+			pos += sizeof(aux->nonce);
 			break;
 		case ACK_LIST:
-			memcpy(&aux->nOnlinePlayers, buffer+pos, sizeof(uint16_t));
-			//pos += sizeof(uint16_t);
-			//Return the list of online users
+			memcpy(&aux->nOnlinePlayers, buffer+pos, sizeof(aux->nOnlinePlayers));
+			pos += sizeof(aux->nOnlinePlayers);
+			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
+			//pos += sizeof(aux->nonce);
+			
 			temp = (uint16_t*)buffer+pos;
 			for (int i = 0; i < aux->nOnlinePlayers; i++){
 				aux->onlinePlayers[i] = temp[i];
 				pos+= sizeof(uint16_t);
 			}
-			printf("\n");
+			//printf("\n");
 			break;
 		case LOGOUT_OPCODE:
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));

@@ -53,21 +53,13 @@ struct message pack_ack(uint32_t id){
     return aux;
 }
 
-struct message pack_list_ack(){
+struct message pack_list_ack(uint32_t nonce){
     struct message aux;
 	uint16_t len;
     aux.opcode = ACK_LIST;
 	get_ID_column("loggedUser.csv", &len, aux.onlinePlayers);
 	aux.nOnlinePlayers = len;
-    /*for (int i = 0; i < aux.nOnlinePlayers; i++){
-		printf("- %d \n", aux.onlinePlayers[i]);
-	}*/
-	
-	/*
-	aux.nOnlinePlayers = 3;
-	aux.onlinePlayers[0] = 100;
-    aux.onlinePlayers[1] = 150;
-	aux.onlinePlayers[2] = 200;*/
+	aux.nonce = nonce;
 	return aux;
 }
 
@@ -80,14 +72,28 @@ struct sockaddr_in setupAddress(char *ip, int port){
     return other_addr;
 }
 
+int checkNonce(uint32_t id, uint32_t nonce_recived, int inc){
+	uint32_t nonce_stored = atoi(get_column_by_id(filename, id , 4));
+
+	printf("Nonce recived: %d		Nonce stored: %d\n", nonce_recived, nonce_stored);
+	//check if the nonce received is 1 more of the one stored
+	if((nonce_stored+1) != nonce_recived){
+		printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		return 0;
+	}
+
+	//update the nonce stored
+	char    *ip   = get_column_by_id(filename, id, 2);
+	uint16_t port = (short)atoi(get_column_by_id(filename, id, 3));
+	update_row(filename, id, ip, port, nonce_stored + inc);
+	return 1;
+}
+
 int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 
-	struct message* aux2;
-	struct sockaddr_in dest_cl_address, sv_addr;
     uint16_t opcode = (uint16_t) aux->opcode;   
 	char *dest_ip;
 	uint16_t dest_port;   
-	int ret;
 	char str[INET_ADDRSTRLEN];
 	int sd_listen = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
 
@@ -99,7 +105,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
             printf("Placeholder controllo ID.....\n");
 			
 			int ret = get_row_by_id(filename, aux->my_id);
-			printf("row : %d", ret);
+			printf("row : %d\n", ret);
 			if(ret!=-1){
 				printf("ERRORE GIA' LOGGATO, da gestire con Err pack");
 				// per ora inserisce comunque per agevolare testing
@@ -114,22 +120,33 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
             break;
 		case LIST_OPCODE:
             printf("List request from ID: %d\n", aux->my_id);
-            struct message ackList = pack_list_ack(aux->my_id);
+
+			//check nonce
+			if(!checkNonce(aux->my_id, aux->nonce, 2))
+				break;
+
+            struct message ackList = pack_list_ack(aux->nonce + 1);
+			printf("nonce: %d\n", ackList.nonce);
             send_message(&ackList, cl_addr, sd);
             break;
 		case MATCH_OPCODE:
 
-			dest_ip = get_column_by_id(filename, ntohs(aux->dest_id), 2);
-			dest_port = (short)atoi(get_column_by_id(filename, ntohs(aux->dest_id), 3));
+			dest_ip = get_column_by_id(filename, aux->dest_id, 2);
+			dest_port = (short)atoi(get_column_by_id(filename, aux->dest_id, 3));
 			uint32_t nonce_stored = atoi(get_column_by_id(filename, aux->my_id , 4));
+			uint32_t nonce_reciver = atoi(get_column_by_id(filename, aux->dest_id, 4));
 			uint32_t nonce_sender = htonl(aux->nonce);
 
-			printf("Nonce recived: %d		Nonce stored: %d\n", nonce_sender, nonce_stored);
+			//check nonce
+			if(!checkNonce(aux->my_id, nonce_sender, 1))
+				break;
 
-			printf("%d <--> %d \n", aux->dest_id, ntohs(aux->dest_id));
+
+			printf("%d <--> %d \n", aux->dest_id, aux->dest_id);
 			printf("DEST IP: %s\n", dest_ip);
 			printf("DEST PORT; %u\n", dest_port);
 
+			printf("Nonce recived: %d		Nonce stored: %d\n", nonce_sender, nonce_stored);
 			//check if the nonce received is 1 more of the one stored
 			if((nonce_stored+1) != nonce_sender){
 				printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -142,7 +159,6 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			update_row(filename, aux->my_id, source_ip, source_port, nonce_stored + 1);
 
 			//set the reciver nonce
-			uint32_t nonce_reciver = atoi(get_column_by_id(filename, ntohs(aux->dest_id), 4));
 			aux->nonce = nonce_reciver + 1;
             
 			sd_listen = socket(AF_INET, SOCK_DGRAM, 0);
@@ -172,7 +188,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			}
 			uint32_t new_nonce_reciver = nonce_reciver + 2;
 			printf("											%d\n", new_nonce_reciver);
-			update_row(filename, ntohs(aux->dest_id), dest_ip, dest_port, nonce_reciver + 2);
+			update_row(filename, aux->dest_id, dest_ip, dest_port, nonce_reciver + 2);
 
 
 			struct message risp;
