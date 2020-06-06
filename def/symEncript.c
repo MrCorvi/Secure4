@@ -90,7 +90,7 @@ unsigned char *plaintext){
 
 
 int symEncrypt(unsigned char *msg, unsigned char *key_gem, unsigned char *iv_gcm, unsigned char *cphr_buf, unsigned char *tag_buf){
-    int pt_len = strlen(msg);
+    int pt_len = strlen((char*)msg);
 
     //Use Encryption
     gcm_encrypt(msg, pt_len, iv_gcm, 12, key_gem, iv_gcm, 12, cphr_buf, tag_buf);
@@ -103,10 +103,8 @@ int symEncrypt(unsigned char *msg, unsigned char *key_gem, unsigned char *iv_gcm
 }
 
 
-int symDecrypt(int pt_len, unsigned char *key_gem, unsigned char *iv_gcm, unsigned char *cphr_buf, unsigned char *tag_buf){
+int symDecrypt(unsigned char *dec_buf, int pt_len, unsigned char *key_gem, unsigned char *iv_gcm, unsigned char *cphr_buf, unsigned char *tag_buf){
     //use Decription
-    unsigned char *dec_buf;
-    dec_buf=(unsigned char*)malloc(pt_len);
     gcm_decrypt(cphr_buf, pt_len, iv_gcm, 12, tag_buf, key_gem, iv_gcm, 12, dec_buf);
     printf("PlainTaxt: \n");
     BIO_dump_fp(stdout, (const char *)dec_buf, pt_len);

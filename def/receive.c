@@ -14,6 +14,7 @@ void toHost(struct message* msg){
 	msg->flag = (msg->flag)?ntohs(msg->flag):0;
 	msg->addColumn = (msg->addColumn)?ntohs(msg->addColumn):0;
 	msg->nonce = (msg->nonce)?ntohl(msg->nonce):0;
+	msg->ptLen = (msg->ptLen)?ntohl(msg->ptLen):0;
 }
 
 int deserialize_message(char* buffer, struct message *aux){
@@ -75,9 +76,13 @@ int deserialize_message(char* buffer, struct message *aux){
 			//decipher
 			memcpy(&aux->ptLen, buffer+pos, sizeof(aux->ptLen));
 			pos += sizeof(aux->ptLen);
-			memcpy(&aux->cphtBuffer, buffer+pos, sizeof(aux->cphtBuffer));
-			pos += (int) aux->ptLen;
-			memcpy(&aux->tagBuffer, buffer+pos, sizeof(aux->tagBuffer));
+
+			aux->cphtBuffer = (unsigned char*)malloc(ntohl(aux->ptLen));
+			memcpy(aux->cphtBuffer, buffer+pos, ntohl(aux->ptLen));
+			pos += ntohl(aux->ptLen);
+
+    		aux->tagBuffer  = (unsigned char*)malloc(16);
+			memcpy(aux->tagBuffer, buffer+pos, 16);
 			pos += 16;
 			break;
 

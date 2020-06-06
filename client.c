@@ -125,6 +125,9 @@ void pack_match_move_message(struct message* aux, uint8_t column){
     aux->opcode = MATCH_MOVE_OPCODE;
     aux->my_id = cl_id;
     aux->addColumn = column;
+    aux->ptLen = 1;
+    aux->cphtBuffer = (unsigned char*)malloc(aux->ptLen);
+    aux->tagBuffer  = (unsigned char*)malloc(16);
 }
 
 struct sockaddr_in setupAddress(char *ip, int port){
@@ -271,6 +274,8 @@ void childCode(){
                 printf("Recived Battle request !!!!\n");
                 pack_match_move_message(&m, 0);
                 send_message(&m, &opponent_addr, secondSd);
+                free(m.cphtBuffer);
+                free(m.tagBuffer);
 
                 //Game start !!!
                 printf("\nAdversary port: %d\n", ntohs(opponent_addr.sin_port));
@@ -485,6 +490,8 @@ int main(int argc, char* argv[]){
 
                     pack_match_move_message(&m, 0);
                     send_message(&m, &opponent_addr, secondSd);
+                    free(m.cphtBuffer);
+                    free(m.tagBuffer);
 
                     printf("Waiting for confirm !!!!\n");
                     recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);

@@ -142,15 +142,13 @@ int checkEndGame(){
 
 //Multiplayer part
 
-void pack_match_move_message_local(struct message* aux, uint8_t column, unsigned char *msg, int ptLen, unsigned char *tag){
+void pack_match_move_message_local(struct message* aux, uint8_t column, int ptLen){
     aux->opcode = MATCH_MOVE_OPCODE;
     aux->my_id = sendSd;
     aux->addColumn = column;
 
     //encripted version
-    aux->cphtBuffer = msg;
     aux->ptLen = ptLen;
-    aux->tagBuffer = tag;
 }
 
 struct sockaddr_in setupDestAddress(char *ip, int port){
@@ -170,19 +168,25 @@ int waitMove(){
     unsigned char key_gem[]= "1234567890123456";
     unsigned char iv_gcm[] = "123456789012" ;
 
-    m.ptLen = 610;
-
     recv_message(reciveSd, &m, (struct sockaddr*)&opponentAddr);
 
     printf("\n\nPt len: %d\n", m.ptLen);
     printf("CypherText: \n");
-    BIO_dump_fp(stdout, (const char *) m.cphtBuffer, m.ptLen);
+    BIO_dump_fp(stdout, (const char *)m.cphtBuffer, m.ptLen);
     printf("Tag: \n");
     BIO_dump_fp(stdout, (const char *)m.tagBuffer, 16);
 
-    symDecrypt(m.ptLen, key_gem, iv_gcm, m.cphtBuffer, m.tagBuffer);
+    
+    unsigned char pt[10];
+    symDecrypt(pt, m.ptLen, key_gem, iv_gcm, m.cphtBuffer, m.tagBuffer);
+    pt[m.ptLen]= '\0';
+    int col = atoi(pt);
+    printf("                            hoimmennnna    %d\n", col);
 
-    return (unsigned int)m.addColumn;
+    free(m.cphtBuffer);
+    free(m.tagBuffer);
+
+    return (unsigned int)col;
 }
 
 void sendMove(uint8_t column){
@@ -191,26 +195,25 @@ void sendMove(uint8_t column){
 
     unsigned char msg[10];
     sprintf(msg, "%d", column);
+
     //create key
     unsigned char key_gem[]= "1234567890123456";
     unsigned char iv_gcm[] = "123456789012" ;
-    unsigned char *tag_buf;
-    unsigned char *cphr_buf;
 
-    int ptLen = strlen(msg);
+    int ptLen = strlen((char*)msg);
 
-    cphr_buf = (unsigned char*)malloc(sizeof(msg));
-    tag_buf  = (unsigned char*)malloc(16);
+    m.cphtBuffer = (unsigned char*)malloc(sizeof(msg));
+    m.tagBuffer  = (unsigned char*)malloc(16);
 
-    symEncrypt(msg, key_gem, iv_gcm, cphr_buf, tag_buf);
+    symEncrypt(msg, key_gem, iv_gcm, m.cphtBuffer, m.tagBuffer);
 
-    pack_match_move_message_local(&m, column, cphr_buf, ptLen, tag_buf);
+    pack_match_move_message_local(&m, column, ptLen);
     send_message(&m, &opponentAddr, sendSd);
 
-    symDecrypt(m.ptLen, key_gem, iv_gcm, m.cphtBuffer, m.tagBuffer);
 
-    free(cphr_buf);
-    free(tag_buf);
+
+    free(m.cphtBuffer);
+    free(m.tagBuffer);
 }
 
 

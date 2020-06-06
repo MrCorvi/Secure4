@@ -34,6 +34,6 @@ struct message{
     uint16_t flag; // 1 accept 0 deny
     uint32_t nonce;
     unsigned char *cphtBuffer;
-    int ptLen;
+    int ptLen; //plain text length
     unsigned char *tagBuffer;
 };

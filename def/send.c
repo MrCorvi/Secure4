@@ -17,6 +17,7 @@ struct message toNet(struct message* msg){
 	aux.flag = htons(msg->flag);
 	aux.addColumn = htons(msg->addColumn);
 	aux.nonce = htonl(msg->nonce);
+	aux.ptLen = htonl(msg->ptLen);
 	
 	return aux;
 }
@@ -80,11 +81,15 @@ int serialize_message(void* buffer, struct message *msg){
 			pos+=sizeof(aux.addColumn);
 			
 			//Cypher
+			//printf("ptLen: %d\n", msg->ptLen);
 			memcpy(buffer+pos, &aux.ptLen, sizeof(aux.ptLen));
 			pos+=sizeof(aux.ptLen);
-			memcpy(buffer+pos, &aux.cphtBuffer, sizeof(aux.cphtBuffer));
-			pos+= aux.ptLen;
-			memcpy(buffer+pos, &aux.tagBuffer, sizeof(aux.tagBuffer));
+
+			memcpy(buffer+pos, (const char *) msg->cphtBuffer, msg->ptLen);
+			pos+= msg->ptLen;
+
+			memcpy(buffer+pos, (const char *) msg->tagBuffer, 16);
+			
 			pos+= 16;
 			
 			break;
@@ -126,6 +131,7 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket){
 	int ret;
 
 	// packet creation
+	printf("ptLen: %d\n", m->ptLen); 
 	int len = serialize_message(buf, m);
 	ret = sendto(socket, buf, len , 0, (struct sockaddr*)dest_addr, sizeof(struct sockaddr_in));	
 	if(ret<0){
