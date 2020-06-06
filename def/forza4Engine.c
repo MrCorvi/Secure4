@@ -142,10 +142,15 @@ int checkEndGame(){
 
 //Multiplayer part
 
-void pack_match_move_message_local(struct message* aux, uint8_t column){
+void pack_match_move_message_local(struct message* aux, uint8_t column, unsigned char *msg, int ptLen, unsigned char *tag){
     aux->opcode = MATCH_MOVE_OPCODE;
     aux->my_id = sendSd;
     aux->addColumn = column;
+
+    //encripted version
+    aux->cphtBuffer = msg;
+    aux->ptLen = ptLen;
+    aux->tagBuffer = tag;
 }
 
 struct sockaddr_in setupDestAddress(char *ip, int port){
@@ -161,7 +166,22 @@ int waitMove(){
     struct message m;
     struct sockaddr_in opponentAddr;
 
+    //create key
+    unsigned char key_gem[]= "1234567890123456";
+    unsigned char iv_gcm[] = "123456789012" ;
+
+    m.ptLen = 610;
+
     recv_message(reciveSd, &m, (struct sockaddr*)&opponentAddr);
+
+    printf("\n\nPt len: %d\n", m.ptLen);
+    printf("CypherText: \n");
+    BIO_dump_fp(stdout, (const char *) m.cphtBuffer, m.ptLen);
+    printf("Tag: \n");
+    BIO_dump_fp(stdout, (const char *)m.tagBuffer, 16);
+
+    symDecrypt(m.ptLen, key_gem, iv_gcm, m.cphtBuffer, m.tagBuffer);
+
     return (unsigned int)m.addColumn;
 }
 
@@ -169,8 +189,28 @@ void sendMove(uint8_t column){
     struct sockaddr_in opponentAddr = setupDestAddress(destIp, destPort);
     struct message m;
 
-    pack_match_move_message_local(&m, column);
+    unsigned char msg[10];
+    sprintf(msg, "%d", column);
+    //create key
+    unsigned char key_gem[]= "1234567890123456";
+    unsigned char iv_gcm[] = "123456789012" ;
+    unsigned char *tag_buf;
+    unsigned char *cphr_buf;
+
+    int ptLen = strlen(msg);
+
+    cphr_buf = (unsigned char*)malloc(sizeof(msg));
+    tag_buf  = (unsigned char*)malloc(16);
+
+    symEncrypt(msg, key_gem, iv_gcm, cphr_buf, tag_buf);
+
+    pack_match_move_message_local(&m, column, cphr_buf, ptLen, tag_buf);
     send_message(&m, &opponentAddr, sendSd);
+
+    symDecrypt(m.ptLen, key_gem, iv_gcm, m.cphtBuffer, m.tagBuffer);
+
+    free(cphr_buf);
+    free(tag_buf);
 }
 
 

@@ -293,7 +293,7 @@ void childCode(){
 
 int main(int argc, char* argv[]){
 
-    struct message m, listRequestMessage;
+    struct message m;
     struct sockaddr_in opponent_addr;
 
 	// argument check

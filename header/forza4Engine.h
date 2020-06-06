@@ -7,6 +7,7 @@
 #endif
 #include "../header/send.h"
 #include "../header/receive.h"
+#include "../header/symEncript.h"
 
 #define TRUE 1
 #define FALSE 0

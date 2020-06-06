@@ -78,6 +78,15 @@ int serialize_message(void* buffer, struct message *msg){
 			pos+=sizeof(aux.my_id);
 			memcpy(buffer+pos, &aux.addColumn, sizeof(aux.addColumn));
 			pos+=sizeof(aux.addColumn);
+			
+			//Cypher
+			memcpy(buffer+pos, &aux.ptLen, sizeof(aux.ptLen));
+			pos+=sizeof(aux.ptLen);
+			memcpy(buffer+pos, &aux.cphtBuffer, sizeof(aux.cphtBuffer));
+			pos+= aux.ptLen;
+			memcpy(buffer+pos, &aux.tagBuffer, sizeof(aux.tagBuffer));
+			pos+= 16;
+			
 			break;
 		case MATCH_OPCODE:
 			memcpy(buffer+pos, &aux.my_id, sizeof(aux.my_id));

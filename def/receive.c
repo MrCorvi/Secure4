@@ -71,6 +71,14 @@ int deserialize_message(char* buffer, struct message *aux){
 			pos += sizeof(aux->my_id);
 			memcpy(&aux->addColumn, buffer+pos, sizeof(aux->addColumn));
 			pos += sizeof(aux->addColumn);
+
+			//decipher
+			memcpy(&aux->ptLen, buffer+pos, sizeof(aux->ptLen));
+			pos += sizeof(aux->ptLen);
+			memcpy(&aux->cphtBuffer, buffer+pos, sizeof(aux->cphtBuffer));
+			pos += (int) aux->ptLen;
+			memcpy(&aux->tagBuffer, buffer+pos, sizeof(aux->tagBuffer));
+			pos += 16;
 			break;
 
 		case MATCH_OPCODE:

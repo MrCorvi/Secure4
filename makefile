@@ -11,8 +11,8 @@ server.o: server.c
 
 
 
-client: client.o forza4Engine.o receive.o send.o
-	$(CC) $(CFLAGS) $^ -o client -pthread
+client: client.o forza4Engine.o receive.o send.o symEncript.o
+	$(CC) $(CFLAGS) $^ -o client -pthread -lcrypto 
 	rm *.o
 	
 client.o: client.c
