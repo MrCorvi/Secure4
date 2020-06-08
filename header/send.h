@@ -12,7 +12,9 @@
     #include"../header/message.h"
 #endif
 
+#include "../header/symEncript.h"
+
 
 int serialize_message(void* buffer, struct message *aux);
 
-void send_message(struct message *mex, struct sockaddr_in * dest_addr,int socket);
+void send_message(struct message *mex, struct sockaddr_in * dest_addr,int socket, int encrypt);

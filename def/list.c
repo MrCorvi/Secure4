@@ -21,9 +21,9 @@ void listRequest(struct message m, struct sockaddr_in sv_addr, int sd, pid_t pid
     struct message ack_list;
     
     printf("Getting list of online users from the server \n");
-    send_message(&m, &sv_addr, sd);
+    send_message(&m, &sv_addr, sd, FALSE);
     printf("Waiting ACK...\n");
-    recv_message(sd, &ack_list, (struct sockaddr*)&sv_addr);
+    recv_message(sd, &ack_list, (struct sockaddr*)&sv_addr, FALSE, 10);
 
     //nonce check
     //if(nonceCheck(m.nonce, 1, pid) == 0)

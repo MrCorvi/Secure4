@@ -18,6 +18,9 @@
 #define TRUE 1
 #define FALSE 0
 
+#define MAX_BUFFER_SIZE 128
+#define TAG_SIZE 16
+
 struct message{
 	uint16_t opcode;
     uint32_t my_id;

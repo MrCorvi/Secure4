@@ -1,7 +1,7 @@
 
 #include "../header/send.h"
 
-#define MAX_LEN 128
+#define MAX_BUFFER_SIZE 128
 
 struct message toNet(struct message* msg){
 
@@ -79,19 +79,8 @@ int serialize_message(void* buffer, struct message *msg){
 			pos+=sizeof(aux.my_id);
 			memcpy(buffer+pos, &aux.addColumn, sizeof(aux.addColumn));
 			pos+=sizeof(aux.addColumn);
-			
-			//Cypher
-			//printf("ptLen: %d\n", msg->ptLen);
-			memcpy(buffer+pos, &aux.ptLen, sizeof(aux.ptLen));
-			pos+=sizeof(aux.ptLen);
-
-			memcpy(buffer+pos, (const char *) msg->cphtBuffer, msg->ptLen);
-			pos+= msg->ptLen;
-
-			memcpy(buffer+pos, (const char *) msg->tagBuffer, 16);
-			
-			pos+= 16;
-			
+			memcpy(buffer+pos, &aux.nonce, sizeof(aux.nonce));
+			pos+=sizeof(aux.nonce);
 			break;
 		case MATCH_OPCODE:
 			memcpy(buffer+pos, &aux.my_id, sizeof(aux.my_id));
@@ -124,15 +113,48 @@ int serialize_message(void* buffer, struct message *msg){
 }
 
 
-void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket){
+void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, int encrypt){
 
 	void *buf;
-	buf = malloc(MAX_LEN);	
+	buf = malloc(MAX_BUFFER_SIZE + TAG_SIZE);	
 	int ret;
 
+
 	// packet creation
-	printf("ptLen: %d\n", m->ptLen); 
+	//printf("ptLen: %d\n", m->ptLen); 
 	int len = serialize_message(buf, m);
+
+	if(encrypt == TRUE){
+		//create key
+		unsigned char key_gem[]= "1234567890123456";
+		//unsigned char iv_gcm[] = "123456789012" ;
+		unsigned char iv_gcm[13];
+		
+		//Cypher
+		unsigned char *ct   = (unsigned char*)malloc(MAX_BUFFER_SIZE);	
+		unsigned char *tag  = (unsigned char*)malloc(TAG_SIZE);
+		unsigned char pt[MAX_BUFFER_SIZE];
+		int ptLen = MAX_BUFFER_SIZE;
+		int pos = 0;
+
+		sprintf(iv_gcm, "%-12d", m->nonce - 1);
+		printf("									iv: |%s|", iv_gcm);
+
+		memcpy(pt, buf, MAX_BUFFER_SIZE);
+
+		symEncrypt(pt, MAX_BUFFER_SIZE, key_gem, iv_gcm, ct, tag);
+
+		memcpy(buf+pos, (const char *) ct, MAX_BUFFER_SIZE);
+		pos+= MAX_BUFFER_SIZE;
+
+		memcpy(buf+pos, (const char *) tag, TAG_SIZE);
+		pos+= 16;
+
+
+		free(ct);
+		free(tag);
+	}
+
 	ret = sendto(socket, buf, len , 0, (struct sockaddr*)dest_addr, sizeof(struct sockaddr_in));	
 	if(ret<0){
 		perror("sendto ERROR");

@@ -6,6 +6,7 @@ int map [MAP_WIDTH][MAP_HEIGHT];
 char *destIp;
 int destPort ;
 int sendSd, reciveSd;
+uint32_t nonce;
 
 void setup(){
     for(int i=0; i<MAP_HEIGHT; i++){
@@ -140,6 +141,9 @@ int checkEndGame(){
 
 
 
+
+
+
 //Multiplayer part
 
 void pack_match_move_message_local(struct message* aux, uint8_t column, int ptLen){
@@ -148,7 +152,7 @@ void pack_match_move_message_local(struct message* aux, uint8_t column, int ptLe
     aux->addColumn = column;
 
     //encripted version
-    aux->ptLen = ptLen;
+    aux->nonce = nonce;
 }
 
 struct sockaddr_in setupDestAddress(char *ip, int port){
@@ -164,56 +168,28 @@ int waitMove(){
     struct message m;
     struct sockaddr_in opponentAddr;
 
-    //create key
-    unsigned char key_gem[]= "1234567890123456";
-    unsigned char iv_gcm[] = "123456789012" ;
+    recv_message(reciveSd, &m, (struct sockaddr*)&opponentAddr, TRUE, nonce);
 
-    recv_message(reciveSd, &m, (struct sockaddr*)&opponentAddr);
+    //Is the nonce correct ?
+     //Nonce check
+    printf("\nNonce rec: %d       stored:%d\n", m.nonce, nonce);
+    if((nonce + 1) != m.nonce){
+        printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        return 0;
+    }
+    nonce += 1;
 
-    printf("\n\nPt len: %d\n", m.ptLen);
-    printf("CypherText: \n");
-    BIO_dump_fp(stdout, (const char *)m.cphtBuffer, m.ptLen);
-    printf("Tag: \n");
-    BIO_dump_fp(stdout, (const char *)m.tagBuffer, 16);
-
-    
-    unsigned char pt[10];
-    symDecrypt(pt, m.ptLen, key_gem, iv_gcm, m.cphtBuffer, m.tagBuffer);
-    pt[m.ptLen]= '\0';
-    int col = atoi(pt);
-    printf("                            hoimmennnna    %d\n", col);
-
-    free(m.cphtBuffer);
-    free(m.tagBuffer);
-
-    return (unsigned int)col;
+    return (unsigned int)m.addColumn;
 }
 
 void sendMove(uint8_t column){
     struct sockaddr_in opponentAddr = setupDestAddress(destIp, destPort);
     struct message m;
 
-    unsigned char msg[10];
-    sprintf(msg, "%d", column);
-
-    //create key
-    unsigned char key_gem[]= "1234567890123456";
-    unsigned char iv_gcm[] = "123456789012" ;
-
-    int ptLen = strlen((char*)msg);
-
-    m.cphtBuffer = (unsigned char*)malloc(sizeof(msg));
-    m.tagBuffer  = (unsigned char*)malloc(16);
-
-    symEncrypt(msg, key_gem, iv_gcm, m.cphtBuffer, m.tagBuffer);
-
-    pack_match_move_message_local(&m, column, ptLen);
-    send_message(&m, &opponentAddr, sendSd);
-
-
-
-    free(m.cphtBuffer);
-    free(m.tagBuffer);
+    nonce++;
+    pack_match_move_message_local(&m, column, 5);
+    send_message(&m, &opponentAddr, sendSd, TRUE);
+    
 }
 
 
@@ -298,12 +274,13 @@ int update(int first){
 
 
 
-void forza4Engine(char *_destIp, int _destPort , int _sendSd, int _reciveSd, int first){
+void forza4Engine(char *_destIp, int _destPort , int _sendSd, int _reciveSd, int first, int nonce){
     int goOn = TRUE;
     destIp = _destIp;
     destPort = _destPort;
     sendSd = _sendSd;
     reciveSd = _reciveSd;
+    nonce = nonce;
 
 
     int firstTurn = first;

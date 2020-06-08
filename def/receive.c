@@ -72,7 +72,10 @@ int deserialize_message(char* buffer, struct message *aux){
 			pos += sizeof(aux->my_id);
 			memcpy(&aux->addColumn, buffer+pos, sizeof(aux->addColumn));
 			pos += sizeof(aux->addColumn);
+			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
+			pos += sizeof(aux->nonce);
 
+			/*
 			//decipher
 			memcpy(&aux->ptLen, buffer+pos, sizeof(aux->ptLen));
 			pos += sizeof(aux->ptLen);
@@ -84,6 +87,7 @@ int deserialize_message(char* buffer, struct message *aux){
     		aux->tagBuffer  = (unsigned char*)malloc(16);
 			memcpy(aux->tagBuffer, buffer+pos, 16);
 			pos += 16;
+			*/
 			break;
 
 		case MATCH_OPCODE:
@@ -116,16 +120,50 @@ int deserialize_message(char* buffer, struct message *aux){
 	return 1;
 }
 
-int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr){
+int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr, int dec, uint32_t nonce){
   	int ret;
-  	void *buffer = malloc(MAX_BUFFER_SIZE);
-  	int buffersize = MAX_BUFFER_SIZE;
+  	void *buffer = malloc(MAX_BUFFER_SIZE + TAG_SIZE);
+  	int buffersize = MAX_BUFFER_SIZE + TAG_SIZE;
 	socklen_t addrlen = sizeof(struct sockaddr_in);
 
 
 	//printf("Waiting new message\n");
   	ret = recvfrom(socket, buffer, buffersize, 0, (struct sockaddr*)mitt_addr, &addrlen);
 	//printf("New message!!!\n");
+
+	if(dec == TRUE){
+
+		//create key
+		unsigned char key_gem[]= "1234567890123456";
+		//unsigned char iv_gcm[] = "123456789012" ;
+		unsigned char iv_gcm[13];
+		unsigned char *ct, *tag, pt[MAX_BUFFER_SIZE];
+		int ptLen = MAX_BUFFER_SIZE;
+		int pos = 0;
+		
+		sprintf(iv_gcm, "%-12d", nonce);
+		printf("									iv: |%s|", iv_gcm);
+
+		ct = (unsigned char*)malloc(MAX_BUFFER_SIZE);
+		memcpy(ct, buffer+pos, MAX_BUFFER_SIZE);
+		pos += MAX_BUFFER_SIZE;
+
+		tag  = (unsigned char*)malloc(TAG_SIZE);
+		memcpy(tag, buffer+pos, TAG_SIZE);
+		pos += TAG_SIZE;
+
+		printf("CypherText: \n");
+		BIO_dump_fp(stdout, (const char *)ct, MAX_BUFFER_SIZE);
+		printf("Tag: \n");
+		BIO_dump_fp(stdout, (const char *)ct, TAG_SIZE);
+
+		symDecrypt(pt, MAX_BUFFER_SIZE, key_gem, iv_gcm, ct, tag);
+
+		memcpy(buffer, pt, TAG_SIZE);
+
+		free(ct);
+		free(tag);
+	}
 	
 	if(ret<0){
 		perror("ERRORE recvfrom\n");
@@ -133,6 +171,6 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 	}
 
 	ret = deserialize_message(buffer, message);
-	printf("recv_message() RICEVO %d E %d\n", message->my_id, message->my_listen_port);
+	//printf("recv_message() RICEVO %d E %d\n", message->my_id, message->my_listen_port);
 	return ret;
 }

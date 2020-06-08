@@ -2,8 +2,8 @@ CC=gcc
 CFLAGS = -Wall
 
 
-server: server.o receive.o send.o utilityFile.o
-	$(CC) $(CFLAGS) $^ -o server 
+server: server.o receive.o send.o utilityFile.o symEncript.o
+	$(CC) $(CFLAGS) $^ -o server -lcrypto 
 	rm *.o
 
 server.o: server.c 

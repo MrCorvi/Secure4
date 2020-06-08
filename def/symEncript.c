@@ -89,9 +89,7 @@ unsigned char *plaintext){
 }
 
 
-int symEncrypt(unsigned char *msg, unsigned char *key_gem, unsigned char *iv_gcm, unsigned char *cphr_buf, unsigned char *tag_buf){
-    int pt_len = strlen((char*)msg);
-
+int symEncrypt(unsigned char *msg, int pt_len, unsigned char *key_gem, unsigned char *iv_gcm, unsigned char *cphr_buf, unsigned char *tag_buf){
     //Use Encryption
     gcm_encrypt(msg, pt_len, iv_gcm, 12, key_gem, iv_gcm, 12, cphr_buf, tag_buf);
     printf("CypherText: \n");

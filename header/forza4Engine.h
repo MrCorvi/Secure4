@@ -19,4 +19,4 @@
 #define PLAYER_LOCAL 1
 #define PLAYER_HOST 2
 
-void forza4Engine(char *destIp, int destPort , int sendSd, int reciveSd, int first);
+void forza4Engine(char *destIp, int destPort , int sendSd, int reciveSd, int first, int nonce);

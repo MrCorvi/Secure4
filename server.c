@@ -119,7 +119,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				printf("ERRORE GIA' LOGGATO, da gestire con Err pack");
 				// per ora inserisce comunque per agevolare testing
 				struct message m = pack_err(aux->my_id);
-            	send_message(&m, cl_addr, sd);
+            	send_message(&m, cl_addr, sd, FALSE);
 				close(sd_listen);
 				break;
 			}
@@ -129,7 +129,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			sprintf(buffer,"%d,%s,%d,%d", aux->my_id, str, cl_port,100);
 			append_row(filename, buffer);
             struct message m = pack_ack(aux->my_id, 0);
-            send_message(&m, cl_addr, sd);
+            send_message(&m, cl_addr, sd, FALSE);
             break;
 		case LIST_OPCODE:
             printf("List request from ID: %d\n", aux->my_id);
@@ -140,7 +140,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 
             struct message ackList = pack_list_ack(aux->nonce + 1);
 			printf("nonce: %d\n", ackList.nonce);
-            send_message(&ackList, cl_addr, sd);
+            send_message(&ackList, cl_addr, sd, FALSE);
             break;
 		case MATCH_OPCODE:
 
@@ -182,7 +182,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			listen_addr.sin_port = htons(dest_port);
 			inet_pton(AF_INET, dest_ip , &listen_addr.sin_addr);
 
-            send_message(aux, &listen_addr, sd_listen);
+            send_message(aux, &listen_addr, sd_listen, FALSE);
 			printf("waiting reply\n");
 
 			
@@ -191,7 +191,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			printf("												DEST IP: %s\n", dest_ip);
 
 			struct message aux_risp;
-			int req = recv_message(sd_listen, &aux_risp, (struct sockaddr*)&listen_addr); //3000 receive port and then pass message to others
+			int req = recv_message(sd_listen, &aux_risp, (struct sockaddr*)&listen_addr, FALSE, nonce); //3000 receive port and then pass message to others
 			if(req!=1){
 				printf("Errore (andra' implementato ERR_OPCODE)\n");
 				close(sd_listen);
@@ -217,7 +217,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			risp.nonce = nonce_stored + 2;
 			
 			
-			send_message(&risp, cl_addr, sd);
+			send_message(&risp, cl_addr, sd, FALSE);
 
 			source_ip   = get_column_by_id(filename, aux->my_id, 2);
 			source_port = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
@@ -241,7 +241,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			remove_row(filename, ret);
 			printf("Riga rimossa!\n");
 			struct message ackLogout = pack_ack(aux->my_id, aux->nonce + 1);
-            send_message(&ackLogout, cl_addr, sd);
+            send_message(&ackLogout, cl_addr, sd, FALSE);
 		default:
 			break;
     }
@@ -283,7 +283,7 @@ int main(int argc, char* argv[]){
 	while(1){		
 
 		pid_t pid;
-		int req = recv_message(sd, &m, (struct sockaddr*)&cl_addr); //3000 receive port and then pass message to others
+		int req = recv_message(sd, &m, (struct sockaddr*)&cl_addr, FALSE, nonce); //3000 receive port and then pass message to others
 		printf("padre server RICEVO %d, %d E %d\n", m.opcode, m.my_id, m.my_listen_port);
 		if(req!=1){
             printf("Errore (andra' implementato ERR_OPCODE)\n");
