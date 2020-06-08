@@ -108,12 +108,12 @@ int serialize_message(void* buffer, struct message *msg){
 			pos+=sizeof(aux.pkey_len);
 			printf("KEY OPCODE e chiave lunga %d \n", aux.pkey_len);
 			for(int i = 0; i < msg->pkey_len; i++){
-				unsigned char temp1 = aux.peerkey[i];
-				memcpy(buffer+pos, &temp1, sizeof(temp1));
-				char bufchar;
-				memcpy(&bufchar, buffer+pos, sizeof(temp1));
+				//unsigned char temp1 = aux.peerkey[i];
+				memcpy(buffer+pos, &aux.peerkey[i], sizeof(aux.peerkey[i]));
+				//char bufchar;
+				//memcpy(&bufchar, buffer+pos, sizeof(temp1));
 				//printf("%i, %c, %c\n",i, temp1, bufchar);
-				pos+= sizeof(temp1);
+				pos+= 1; // sizeof(temp1);
 			}
 			break;
 		case AUTH2_OPCODE:

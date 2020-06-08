@@ -445,7 +445,7 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id)
 	EVP_PKEY_CTX *pctx, *kctx;
 	EVP_PKEY_CTX *ctx;
 	unsigned char *secret;
-	EVP_PKEY *pkey = NULL, *peerkey, *dh_params = NULL;
+	EVP_PKEY *pkey = NULL, *peerkey=NULL, *dh_params = NULL;
 	
     char str[32];
     char id[2];
@@ -455,7 +455,7 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id)
     strcat(str,".pem");
     printf("%s\n", str);
 
-
+    
     // Create the context for parameter generation 
 	if(!(pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL))) handleErrors();
 
@@ -475,6 +475,8 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id)
 	if(!EVP_PKEY_keygen_init(kctx)) handleErrors();
 	if (!EVP_PKEY_keygen(kctx, &pkey)) handleErrors();
 
+    printf("spostatoo");
+    if(NULL == (ctx = EVP_PKEY_CTX_new(pkey, NULL))) printf("ERRORE 1\n");
     //invia
     FILE* p1w = fopen(str, "w");
     if(!p1w){ printf("Error: cannot open file %s\n", str); exit(1); }
@@ -503,49 +505,49 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id)
     for (int i = 0; i < size; i++){
         printf("%c",  pem[i]);
     }
-
+    
     struct message aux;
     aux.opcode = KEY_OPCODE;    
     aux.peerkey = pem;
     aux.pkey_len = size;
 	send_message(&aux, &sv_addr, sd);
 
-
+    /*
     printf("YEEE: \n"); // è uguale a bio1 , già controllato
     BIO_dump_fp(stdout, pkey, size);
-    
+    */
     //ricevi 
     struct message ack;
-    printf("Attendo messaggio\n");
+    printf("Attendo messaggioo\n");
     recv_message(sd, &ack, (struct sockaddr*)&sv_addr);
     printf("Chiave ricevuta\n");
-	printf("Di lunghezza :::%d\n", ack.pkey_len );
+	printf("Di lunghezzaaa :::%d\n", ack.pkey_len );
 	for (int ii = 0; ii < ack.pkey_len; ii++){
             printf("%c", ack.peerkey[ii]);
     }
-
+    
     BIO *bio2 = NULL;
     if ((bio2 = BIO_new(BIO_s_mem())) == NULL)
       return NULL;
 
     //char *ciao="-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKNZZUE5aQ6rAvE9Xc+nE9hzyQIko\n9FR2nJv1BIRdcIUY+z1KLRyy0OcuR/maQrZIP/56WR9yxyuFiA9ThIka4Q==\n-----END PUBLIC KEY-----\n";
-
+    
     BIO_write(bio2, ack.peerkey, ack.pkey_len);
     //printf("bio2+128:: \n"); // è uguale a bio1 , già controllato
     //BIO_dump_fp(stdout, bio2, ack.pkey_len+128);
+    
     PEM_read_bio_PUBKEY(bio2, &peerkey, NULL, NULL);
     BIO_free(bio);
     BIO_free(bio2);
 
     //BIO_dump_fp(stdout, ack.peerkey, ack.pkey_len);
-    
+    //BIO_dump_fp(stdout, peerkey, ack.pkey_len+128);
     // Create the context for the shared secret derivation 
     //if(NULL == (ctx = EVP_PKEY_CTX_new(pkey, NULL)))   printf("ERRORE 1\n");
 
     // Initialise 
-	//if(EVP_PKEY_derive_init(ctx)<=0) handleErrors();
-    /*
-	// Provide the peer public key 
+	if(EVP_PKEY_derive_init(ctx)<=0) handleErrors();
+    	// Provide the peer public key 
 	if(EVP_PKEY_derive_set_peer(ctx, peerkey)<=0) handleErrors();
 
 	// Determine buffer length for shared secret 
@@ -566,7 +568,7 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id)
 	EVP_PKEY_CTX_free(pctx);
     printf("SEGRETO: \t");
 	BIO_dump_fp(stdout, (const char*)secret, secret_len);
-    */
+    
 	return secret;
 }
 
@@ -685,7 +687,8 @@ int main(int argc, char* argv[]){
 
     size_t *secret_len = 64;
     printf("Ehiii");
-    unsigned char* secret = "0123456789";; //get_secret_ec(secret_len, cl_id);
+    get_secret_ec(secret_len, cl_id);
+    unsigned char* secret =  "0123456789"; //get_secret_ec(secret_len, cl_id);
     unsigned char* digest = hash(secret);
 
 
