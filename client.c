@@ -265,7 +265,7 @@ void childCode(){
             }
 
 
-            send_message(&reply_m, &sv_addr_listen, secondSd, FALSE);
+            send_message(&reply_m, &sv_addr_listen, secondSd, TRUE);
 
             //Richiesta accettata
             if(command == 'y'){
@@ -273,7 +273,7 @@ void childCode(){
                 recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr, FALSE, nonce);
                 printf("Recived Battle request !!!!\n");
                 pack_match_move_message(&m, 0);
-                send_message(&m, &opponent_addr, secondSd, FALSE);
+                send_message(&m, &opponent_addr, secondSd, TRUE);
                 free(m.cphtBuffer);
                 free(m.tagBuffer);
 
@@ -281,7 +281,7 @@ void childCode(){
                 printf("\nAdversary port: %d\n", ntohs(opponent_addr.sin_port));
                 
                 kill(getppid(), SIGUSR2);
-                forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE, nonce);
+                forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE, 100);
                 
                 printf("Press Enter to return to the main console ...\n");
 
@@ -429,11 +429,11 @@ int main(int argc, char* argv[]){
                 pack_list_message(&m, cl_id);
     
                 printf("Getting list of online users from the server \n");
-                send_message(&m, &sv_addr, sd, FALSE);
+                send_message(&m, &sv_addr, sd, TRUE);
                 printf("Waiting ACK...\n");
 
                 struct message ack_list;
-                recv_message(sd, &ack_list, (struct sockaddr*)&sv_addr, FALSE, nonce);
+                recv_message(sd, &ack_list, (struct sockaddr*)&sv_addr, TRUE, 0);
 
                 //nonce check
                 if(nonceCheck(ack_list.nonce, 1, pid) == 0)
@@ -459,7 +459,7 @@ int main(int argc, char* argv[]){
 
                 //Sending request for match
                 pack_match_message(&m);
-                send_message(&m, &sv_addr, sd, FALSE);
+                send_message(&m, &sv_addr, sd, TRUE);
 
                 //Waiting request replay
                 struct message ack_match_m;
@@ -489,14 +489,14 @@ int main(int argc, char* argv[]){
                     opponent_addr = setupAddress("127.0.0.1", (int)ack_match_m.dest_port);
 
                     pack_match_move_message(&m, 0);
-                    send_message(&m, &opponent_addr, secondSd, FALSE);
+                    send_message(&m, &opponent_addr, secondSd, TRUE);
                     free(m.cphtBuffer);
                     free(m.tagBuffer);
 
                     printf("Waiting for confirm !!!!\n");
                     recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr, FALSE, nonce);
 
-                    forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, TRUE, nonce);
+                    forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, TRUE, 100);
                     close(secondSd);
                     sem_post(mutex_secondary_port);
 
@@ -523,7 +523,7 @@ int main(int argc, char* argv[]){
                 nonce++;
                 pack_logout_message(&m);
 
-                send_message(&m, &sv_addr, sd, FALSE);
+                send_message(&m, &sv_addr, sd, TRUE);
 
                 printf("Waiting Logout ACK....\n");
                 struct message ack_logout_m;

@@ -92,10 +92,12 @@ unsigned char *plaintext){
 int symEncrypt(unsigned char *msg, int pt_len, unsigned char *key_gem, unsigned char *iv_gcm, unsigned char *cphr_buf, unsigned char *tag_buf){
     //Use Encryption
     gcm_encrypt(msg, pt_len, iv_gcm, 12, key_gem, iv_gcm, 12, cphr_buf, tag_buf);
+    /*
     printf("CypherText: \n");
     BIO_dump_fp(stdout, (const char *)cphr_buf, pt_len);
     printf("Tag: \n");
     BIO_dump_fp(stdout, (const char *)tag_buf, 16);
+    */
 
     return 0;
 }
@@ -104,40 +106,9 @@ int symEncrypt(unsigned char *msg, int pt_len, unsigned char *key_gem, unsigned 
 int symDecrypt(unsigned char *dec_buf, int pt_len, unsigned char *key_gem, unsigned char *iv_gcm, unsigned char *cphr_buf, unsigned char *tag_buf){
     //use Decription
     gcm_decrypt(cphr_buf, pt_len, iv_gcm, 12, tag_buf, key_gem, iv_gcm, 12, dec_buf);
+    /*
     printf("PlainTaxt: \n");
     BIO_dump_fp(stdout, (const char *)dec_buf, pt_len);
+    */
     return 0;
 }
-
-/*
-
-int test(){
-    unsigned char msg[] ="Ciao marte";
-    //create key
-    unsigned char key_gem[]="1234567890123456";
-    unsigned char iv_gcm[]= "123456789012" ;
-    unsigned char *cphr_buf;
-    unsigned char *tag_buf;
-    int cphr_len;
-    int tag_len;
-    int pt_len = sizeof(msg);
-    cphr_buf=(unsigned char*)malloc(pt_len);
-    tag_buf=(unsigned char*)malloc(16);
-
-    //Use Encryption
-    gcm_encrypt(msg, pt_len, iv_gcm, 12, key_gem, iv_gcm, 12, cphr_buf, tag_buf);
-    printf("CypherText: \n");
-    BIO_dump_fp(stdout, (const char *)cphr_buf, pt_len);
-    printf("Tag: \n");
-    BIO_dump_fp(stdout, (const char *)tag_buf, 16);
-
-    //use Decription
-    unsigned char *dec_buf;
-    dec_buf=(unsigned char*)malloc(pt_len);
-    gem_decrypt(cphr_buf, pt_len, iv_gcm, 12, tag_buf, key_gem, iv_gcm, 12, dec_buf);
-    printf("PlainTaxt: \n");
-    BIO_dump_fp(stdout, (const char *)dec_buf, pt_len);
-    return 0;
-}
-
-*/

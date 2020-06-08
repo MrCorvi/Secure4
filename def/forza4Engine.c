@@ -6,7 +6,7 @@ int map [MAP_WIDTH][MAP_HEIGHT];
 char *destIp;
 int destPort ;
 int sendSd, reciveSd;
-uint32_t nonce;
+uint32_t nonceCl_to_Cl;
 
 void setup(){
     for(int i=0; i<MAP_HEIGHT; i++){
@@ -152,7 +152,7 @@ void pack_match_move_message_local(struct message* aux, uint8_t column, int ptLe
     aux->addColumn = column;
 
     //encripted version
-    aux->nonce = nonce;
+    aux->nonce = nonceCl_to_Cl;
 }
 
 struct sockaddr_in setupDestAddress(char *ip, int port){
@@ -168,16 +168,16 @@ int waitMove(){
     struct message m;
     struct sockaddr_in opponentAddr;
 
-    recv_message(reciveSd, &m, (struct sockaddr*)&opponentAddr, TRUE, nonce);
+    recv_message(reciveSd, &m, (struct sockaddr*)&opponentAddr, TRUE, nonceCl_to_Cl);
 
     //Is the nonce correct ?
      //Nonce check
-    printf("\nNonce rec: %d       stored:%d\n", m.nonce, nonce);
-    if((nonce + 1) != m.nonce){
+    printf("\nNonce rec: %d       stored:%d\n", m.nonce, nonceCl_to_Cl);
+    if((nonceCl_to_Cl + 1) != m.nonce){
         printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         return 0;
     }
-    nonce += 1;
+    nonceCl_to_Cl += 1;
 
     return (unsigned int)m.addColumn;
 }
@@ -186,7 +186,7 @@ void sendMove(uint8_t column){
     struct sockaddr_in opponentAddr = setupDestAddress(destIp, destPort);
     struct message m;
 
-    nonce++;
+    nonceCl_to_Cl++;
     pack_match_move_message_local(&m, column, 5);
     send_message(&m, &opponentAddr, sendSd, TRUE);
     
@@ -274,13 +274,13 @@ int update(int first){
 
 
 
-void forza4Engine(char *_destIp, int _destPort , int _sendSd, int _reciveSd, int first, int nonce){
+void forza4Engine(char *_destIp, int _destPort , int _sendSd, int _reciveSd, int first, int nonceCtoc){
     int goOn = TRUE;
     destIp = _destIp;
     destPort = _destPort;
     sendSd = _sendSd;
     reciveSd = _reciveSd;
-    nonce = nonce;
+    nonceCl_to_Cl = nonceCtoc;
 
 
     int firstTurn = first;
