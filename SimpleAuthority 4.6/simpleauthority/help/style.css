@@ -1,0 +1,173 @@
+body
+{
+  margin: 0;
+}
+
+#nav
+{
+  position: fixed; /* Make it stick, even on scroll */
+  overflow: auto; /* Enable scrolling if the navbar has too much content */
+  top: 0;
+  left: 0;
+  width: 220px;
+  background-color: #DDDDDD;
+  height: 100%;
+}
+
+#nav_image
+{
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+#nav_image img
+{
+  display: block;
+  margin: 0 auto;
+}
+
+#nav_heading
+{
+  text-align: center;
+}
+
+#nav_heading h1
+{
+  font-size:large;
+  line-height: 1.5;
+  font-family: Georgia, "Times New Roman", Times, serif;
+  font-weight: normal;
+}
+
+#nav ul
+{
+  margin-left: 12px;
+  padding-left: 10px;
+  margin-top: 30px;
+  padding-bottom: 50px;
+}
+
+#nav li
+{
+  font-family: Arial, Helvetica, sans-serif;
+  white-space: nowrap;
+}
+
+.navitem
+{
+  color: DarkBlue;
+  list-style-type: none;
+  font-size: medium;
+  margin-left: 0px;
+  margin-top: 15px;
+  margin-bottom: 2px;
+}
+
+.navsubitem
+{
+  color: DarkBlue;
+  list-style-type: disc;
+  font-size: small;
+  margin-left: 18px;
+}
+
+#nav a
+{
+  color: DarkBlue;
+  text-decoration: none;
+}
+
+#nav a:hover
+{
+  text-decoration: underline;
+}
+
+#mainbody
+{
+  margin-left: 260px;
+  padding-bottom: 100px;
+  margin-right: 40px;
+}
+
+#mainbody h1
+{
+  color: DarkBlue;
+  font-family: 'Arial';
+  font-size: 140%;
+  margin-top: 2em;
+}
+
+#mainbody h2
+{
+  color: DarkBlue;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 120%;
+  margin-top: 2em;
+}
+
+#mainbody h3
+{
+  color: DarkBlue;
+  font-family: 'Arial';
+  font-size: 110%;
+  margin-top: 2em;
+}
+
+#mainbody a
+{
+  text-decoration: none;
+  color: DarkBlue;
+}
+
+#mainbody a:hover
+{
+  text-decoration: underline;
+}
+
+#mainbody .indent
+{
+  margin-left: 30px;
+  margin-right: 0px;
+}
+
+#mainbody .nodecoration
+{
+  color: White;
+  text-decoration: none;
+}
+
+#mainbody .nowrap
+{
+  white-space: nowrap;
+}
+
+table
+{
+  margin-right: 40px;
+}
+
+table.nogrid
+{
+  border: 0;
+  padding: 5px;
+}
+
+table.nogrid td
+{
+  padding-right: 20px;
+}
+
+code.example
+{
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  padding-left: 30px;
+}
+
+code.cli_syntax
+{
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}

@@ -1,0 +1,18 @@
+#!/bin/bash
+
+#
+# This script runs SimpleAuthority from the command line on Linux.
+# It supports the passing in of command line parameters.
+# Refer to the help documentation for details.
+#
+
+SCRIPT_PATH=`which "$0"`
+SCRIPT_DIR=`dirname "$SCRIPT_PATH"`
+
+if [ ! -d "$JAVA_HOME" ] ; then
+     JAVA=java
+else
+     JAVA=${JAVA_HOME}/bin/java
+fi
+
+$JAVA -cp "$SCRIPT_DIR/libraries/SimpleAuthority.jar":"$SCRIPT_DIR/libraries/bcprov-jdk15on-164.jar":"$SCRIPT_DIR/libraries/bcpkix-jdk15on-164.jar":"$SCRIPT_DIR/libraries/ldap.jar":"$SCRIPT_DIR/libraries/ical4j-withdeps.jar":"$SCRIPT_DIR" com.simpleauthority.SimpleAuthority "$@"

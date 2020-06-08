@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="generator" content="HTML Tidy for HTML5 for Mac OS X version 5.0.0">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <title>SimpleAuthority Help - Command Line Interface</title>
+</head>
+<body>
+  <div id="nav">
+    <div id="nav_image">
+      <a href="http://simpleauthority.com"><img src="images/SimpleAuthority.png" alt="logo"></a>
+    </div>
+    <div id="nav_heading">
+      <h1>SimpleAuthority<br>
+      Help&nbsp;Pages</h1>
+    </div>
+    <ul class="nav">
+      <li class="navitem">
+        <a href="gettingStarted.html">Getting&nbsp;Started</a>
+      </li>
+      <li class="navsubitem">
+        <a href="gettingStarted.html#mainWindow">The&nbsp;main&nbsp;window</a>
+      </li>
+      <li class="navsubitem">
+        <a href="gettingStarted.html#generatingCerts">Generating&nbsp;certificates</a>
+      </li>
+      <li class="navsubitem">
+        <a href="gettingStarted.html#fileTypes">File&nbsp;types</a>
+      </li>
+      <li class="navsubitem">
+        <a href="gettingStarted.html#usingCerts">Using&nbsp;certificates</a>
+      </li>
+      <li class="navitem">
+        <a href="generatingCA.html">Generating&nbsp;a&nbsp;CA</a>
+      </li>
+      <li class="navsubitem">
+        <a href="generatingCA.html#newCa">How&nbsp;to&nbsp;generate&nbsp;a&nbsp;CA</a>
+      </li>
+      <li class="navsubitem">
+        <a href="generatingCA.html#hierarchy">CA&nbsp;hierarchies</a>
+      </li>
+      <li class="navitem">
+        <a href="managingUsers.html">Managing&nbsp;Users</a>
+      </li>
+      <li class="navsubitem">
+        <a href="managingUsers.html#addRemoveUser">Adding&nbsp;and&nbsp;removing</a>
+      </li>
+      <li class="navsubitem">
+        <a href="managingUsers.html#importing">Importing&nbsp;details</a>
+      </li>
+      <li class="navsubitem">
+        <a href="managingUsers.html#userNames">User&nbsp;names</a>
+      </li>
+      <li class="navsubitem">
+        <a href="managingUsers.html#inactiveUsers">Inactive&nbsp;users</a>
+      </li>
+      <li class="navitem">
+        <a href="generatingCerts.html">Generating&nbsp;Certificates</a>
+      </li>
+      <li class="navsubitem">
+        <a href="generatingCerts.html#expiringCerts">Certificate&nbsp;status</a>
+      </li>
+      <li class="navsubitem">
+        <a href="generatingCerts.html#newCerts">New&nbsp;certificates</a>
+      </li>
+      <li class="navsubitem">
+        <a href="generatingCerts.html#csr">Certificate&nbsp;signing&nbsp;requests</a>
+      </li>
+      <li class="navsubitem">
+        <a href="generatingCerts.html#certTypes">Certificate&nbsp;types</a>
+      </li>
+      <li class="navsubitem">
+        <a href="generatingCerts.html#customCertTypes">Custom&nbsp;certificate&nbsp;types</a>
+      </li>
+      <li class="navitem">
+        <a href="managingCerts.html">Managing&nbsp;Certificates</a>
+      </li>
+      <li class="navsubitem">
+        <a href="managingCerts.html#view">Viewing&nbsp;certificate&nbsp;details</a>
+      </li>
+      <li class="navsubitem">
+        <a href="managingCerts.html#export">Exporting&nbsp;certificates</a>
+      </li>
+      <li class="navsubitem">
+        <a href="managingCerts.html#directoryPublishing">Directory&nbsp;publishing</a>
+      </li>
+      <li class="navsubitem">
+        <a href="managingCerts.html#revocation">Revoking&nbsp;certificates</a>
+      </li>
+      <li class="navsubitem">
+        <a href="managingCerts.html#calendar">Expiry&nbsp;date&nbsp;calendar</a>
+      </li>
+      <li class="navsubitem">
+        <a href="managingCerts.html#managingCertificates">Managing&nbsp;records</a>
+      </li>
+      <li class="navsubitem">
+        <a href="managingCerts.html#managingIdentities">Managing&nbsp;identities</a>
+      </li>
+      <li class="navitem">
+        <a href="commandLine.html">Command&nbsp;Line&nbsp;Interface</a>
+      </li>
+      <li class="navsubitem">
+        <a href="commandLine.html#cliUse">Using&nbsp;the&nbsp;command&nbsp;line</a>
+      </li>
+      <li class="navsubitem">
+        <a href="commandLine.html#cliCommands">Command&nbsp;line&nbsp;interface</a>
+      </li>
+      <li class="navsubitem">
+        <a href="commandLine.html#cliArguments">Command&nbsp;line&nbsp;arguments</a>
+      </li>
+      <li class="navsubitem">
+        <a href="commandLine.html#cliSystemProperties">System&nbsp;properties</a>
+      </li>
+      <li class="navsubitem">
+        <a href="commandLine.html#cliReturnCodes">Return&nbsp;codes</a>
+      </li>
+      <li class="navsubitem">
+        <a href="commandLine.html#cliServlet">Web&nbsp;application&nbsp;interface</a>
+      </li>
+      <li class="navitem">
+        <a href="usingCerts.html">Using&nbsp;Certificates</a>
+      </li>
+      <li class="navsubitem">
+        <a href="usingCerts.html#email">Secure&nbsp;email</a>
+      </li>
+      <li class="navsubitem">
+        <a href="usingCerts.html#documents">Document&nbsp;signing</a>
+      </li>
+      <li class="navsubitem">
+        <a href="usingCerts.html#vpn">VPN&nbsp;access</a>
+      </li>
+      <li class="navsubitem">
+        <a href="usingCerts.html#clientSSL">Client&nbsp;SSL&nbsp;authentication</a>
+      </li>
+      <li class="navsubitem">
+        <a href="usingCerts.html#serverSSL">Server&nbsp;SSL&nbsp;authentication</a>
+      </li>
+      <li class="navsubitem">
+        <a href="usingCerts.html#code">Code&nbsp;signing</a>
+      </li>
+    </ul>
+  </div>
+  <div id="mainbody">
+    <h1 id="commandLineInterface">Command Line Interface</h1>
+    <h2 id="cliUse">Using the command line</h2>
+    <p>The command line interface is accessed using the <code>sauth</code> command.</p>
+    <p>This supports a range of functions including:</p>
+    <ul>
+      <li>generating new certificates</li>
+      <li>creating new users</li>
+      <li>updating user details</li>
+      <li>deleting users</li>
+      <li>processing CSR files, and</li>
+      <li>generating CRLs.</li>
+    </ul>
+    <p>The command line interface requires an Enterprise license.</p>
+    <p>The installer automatically updates your <code>PATH</code> environment variable on Windows platforms so that the
+    <code>sauth.bat</code> script can be found. On Mac and Linux platforms, this needs to be done manually.</p>
+    <p>On Mac platforms with default install settings, you can do this by created a <code>.bash_profile</code> file in
+    your home directory (or appending your existing file) with the following line:</p><code class=
+    "cli_syntax"><span class="nowrap">export
+    PATH="/Applications/SimpleAuthority.app/Contents/MacOS":$PATH</span></code>
+    <h2 id="cliCommands">Command line interface</h2>
+    <p>The following commands are supported. See <a href="#cliArguments">below</a> for more information on
+    arguments.</p>
+    <h3 id="commandCert">cert</h3><code class="cli_syntax"><span class="nowrap">sauth cert -subj <em>arg</em></span>
+    <span class="nowrap">[-caname <em>arg</em>]</span> <span class="nowrap">[-keepca]</span> <span class=
+    "nowrap">[-passin <em>arg</em>]</span> <span class="nowrap">[-passout <em>arg</em>]</span> <span class=
+    "nowrap">[-verbose]</span> <span class="nowrap">[-stdout]</span> <span class="nowrap">[-noprivout]</span></code>
+    <code class="cli_syntax"><span class="nowrap">sauth cert -name <em>arg</em></span> <span class="nowrap">[-caname
+    <em>arg</em>]</span> <span class="nowrap">[-keepca]</span> <span class="nowrap">[-passin <em>arg</em>]</span>
+    <span class="nowrap">[-passout <em>arg</em>]</span> <span class="nowrap">[-verbose]</span> <span class=
+    "nowrap">[-stdout]</span> <span class="nowrap">[-noprivout]</span></code>
+    <p>Generates a new certificate for an existing user. The user can be identified using their subject distinguished
+    name, or just their name.</p>
+    <p>Options/Preferences settings are used to control the output directory for the new identity file, whether or not
+    a separate certificate file is also created, if a backup of the identity file is retained, file formats and names,
+    directory publishing and iCalendar publishing behaviour.</p>
+    <p>If <code class="nowrap">-passout</code> is not specified, a randomly generated password will be used for the new
+    identity file.</p>
+    <p>Examples:</p><code class="example"><span class="nowrap">sauth cert -subj "C=AU,O=Acme Inc,CN=John Doe"</span>
+    <span class="nowrap">-passin "pass:caPassword"</span></code> <code class="example"><span class="nowrap">sauth cert
+    -name "John Doe"</span> <span class="nowrap">-passin "pass:caPassword"</span> <span class="nowrap">-passout
+    "pass:JohnsPassword"</span></code>
+    <h3 id="commandBatchcert">batchcert</h3><code class="cli_syntax"><span class="nowrap">sauth batchcert</span>
+    <span class="nowrap">[-caname <em>arg</em>]</span> <span class="nowrap">[-passin <em>arg</em>]</span> <span class=
+    "nowrap">[-passout <em>arg</em>]</span> <span class="nowrap">[-verbose]</span> <span class=
+    "nowrap">[-stdout]</span></code>
+    <p>Generates new certificates for all active users that are currently marked as having "warning" (orange)
+    status.</p>
+    <p>Options/Preferences settings are used to control the time period for when users are marked with "warning" status
+    prior to certificate expiry, as well as other settings (see <code>cert</code> command for details).</p>
+    <p>Examples:</p><code class="example"><span class="nowrap">sauth batchcert</span></code> <code class=
+    "example"><span class="nowrap">sauth batchcert</span> <span class="nowrap">-passin "pass:caPassword"</span>
+    <span class="nowrap">-passout "pass:userPasswords"</span></code>
+    <h3 id="commandCreate">create</h3><code class="cli_syntax"><span class="nowrap">sauth create</span> <span class=
+    "nowrap">-subj <em>arg</em></span> <span class="nowrap">[-san <em>arg</em>]</span> <span class="nowrap">[-type
+    <em>arg</em>]</span> <span class="nowrap">[-days <em>arg</em>]</span> <span class="nowrap">[-verbose]</span></code>
+    <code class="cli_syntax"><span class="nowrap">sauth create</span> <span class="nowrap">-name <em>arg</em></span>
+    <span class="nowrap">[-san <em>arg</em>]</span> <span class="nowrap">[-type <em>arg</em>]</span> <span class=
+    "nowrap">[-days <em>arg</em>]</span> <span class="nowrap">[-verbose]</span></code>
+    <p>Creates a new user.</p>
+    <p>Default settings are used for the user's Organisational Unit, Organisation and Country settings when the
+    <code class="nowrap">-name</code> version of this command is used. Default settings are also used for the
+    certificate type and validity period if these are not specified.</p>
+    <p>Examples:</p><code class="example"><span class="nowrap">sauth create -subj "C=AU,O=Acme Inc,CN=John Doe"</span>
+    <span class="nowrap">-san "john@nowhere.com"</span></code> <code class="example"><span class="nowrap">sauth create
+    -name "John Doe"</span> <span class="nowrap">-type "General Purpose"</span> <span class="nowrap">-days
+    365</span></code>
+    <h3 id="commandUpdate">update</h3><code class="cli_syntax"><span class="nowrap">sauth update</span> <span class=
+    "nowrap">-subj <em>arg</em></span> <span class="nowrap">[-newsubj <em>arg</em>]</span> <span class="nowrap">[-san
+    <em>arg</em>]</span> <span class="nowrap">[-type <em>arg</em>]</span> <span class="nowrap">[-days
+    <em>arg</em>]</span> <span class="nowrap">[-active yes|no]</span> <span class="nowrap">[-verbose]</span></code>
+    <code class="cli_syntax"><span class="nowrap">sauth update</span> <span class="nowrap">-name <em>arg</em></span>
+    <span class="nowrap">[-newsubj <em>arg</em>]</span> <span class="nowrap">[-san <em>arg</em>]</span> <span class=
+    "nowrap">[-type <em>arg</em>]</span> <span class="nowrap">[-days <em>arg</em>]</span> <span class="nowrap">[-active
+    yes|no]</span> <span class="nowrap">[-verbose]</span></code>
+    <p>Updates an existing user entry with new details.</p>
+    <p>The user is identified using their subject distinguished name or name. The other arguments are used to specify
+    new user settings.</p>
+    <p>Examples:</p><code class="example"><span class="nowrap">sauth update</span> <span class="nowrap">-subj
+    "C=AU,O=Acme Inc,CN=John"</span> <span class="nowrap">-newsubj "C=AU,O=New Acme Inc,CN=John Doe"</span>
+    <span class="nowrap">-san "john@newacme.com"</span></code> <code class="example"><span class="nowrap">sauth
+    update</span> <span class="nowrap">-name "John Doe"</span> <span class="nowrap">-active no</span></code>
+    <h3 id="commandDelete">delete</h3>
+    <p><code class="cli_syntax"><span class="nowrap">sauth delete</span> <span class="nowrap">-subj <em>arg</em></span>
+    <span class="nowrap">[-verbose]</span></code> <code class="cli_syntax"><span class="nowrap">sauth delete</span>
+    <span class="nowrap">-name <em>arg</em></span> <span class="nowrap">[-verbose]</span></code></p>
+    <p>Deletes the specified user, including all certificate records and backup identity files.</p>
+    <p>Examples:</p><code class="example"><span class="nowrap">sauth delete</span> <span class="nowrap">-subj
+    "C=AU,O=Acme Inc,CN=John"</span></code> <code class="example"><span class="nowrap">sauth delete</span> <span class=
+    "nowrap">-name "John Doe"</span></code>
+    <h3 id="commandList">list</h3><code class="cli_syntax"><span class="nowrap">sauth list</span> <span class=
+    "nowrap">[-active yes|no]</span> <span class="nowrap">[-verbose]</span></code>
+    <p>Prints the subject distinguished names of users to <code>stdout</code>.</p>
+    <p>Each user is listed on a separate line. These values can each be used as a <code>-subj</code> argument parameter
+    to identify the user for other commands.</p>
+    <p>By default, all users are listed. The list can be restricted to active or inactive users by specifying
+    <code><span class="nowrap">-active yes|no</span></code>.</p>
+    <p>Additional fields are shown if the <code><span class="nowrap">-verbose</span></code> argument is used.</p>
+    <p>Examples:</p><code class="example"><span class="nowrap">sauth user list</span></code> <code class=
+    "example"><span class="nowrap">sauth user list -active yes</span></code>
+    <h3 id="commandCrl">crl</h3>
+    <p><code class="cli_syntax"><span class="nowrap">sauth crl [-caname <em>arg</em>]</span> <span class=
+    "nowrap">[-passin <em>arg</em>]</span> <span class="nowrap">[-verbose]</span> <span class=
+    "nowrap">[-stdout]</span></code></p>
+    <p>Generates a new CRL.</p>
+    <p>The output directory and other settings are retrieved from Options/Preferences. If the CRL file already exists,
+    it will be overwritten.</p>
+    <p>Example:</p><code class="example"><span class="nowrap">sauth crl -passin "env:CA_PASSWORD"</span></code>
+    <h3 id="commandCsr">csr</h3>
+    <p><code class="cli_syntax"><span class="nowrap">sauth csr -in <em>file</em></span> <span class="nowrap">[-type
+    <em>arg</em>]</span> <span class="nowrap">[-days <em>arg</em>]</span> <span class="nowrap">[-caname
+    <em>arg</em>]</span> <span class="nowrap">[-passin <em>arg</em>]</span> <span class="nowrap">[-verbose]</span>
+    <span class="nowrap">[-stdout]</span></code></p>
+    <p>Processes a certificate signing request file to generate a new certificate.</p>
+    <p>A new user is generated if required to hold the new certificate record. All subject distinguished name
+    parameters are included in the new certificate. Extension requests are included if <span class=
+    "nowrap"><code>-type</code></span> is not specified.</p>
+    <p>Examples:</p><code class="example"><span class="nowrap">sauth csr -in csr.txt</span></code> <code class=
+    "example"><span class="nowrap">sauth csr -in csr.txt</span> <span class="nowrap">-type "General Purpose"</span>
+    <span class="nowrap">-days 365</span> <span class="nowrap">-passin "env:CA_PASSWORD"</span></code>
+    <h3 id="commandRevoke">revoke</h3><code class="cli_syntax"><span class="nowrap">revoke -serial <em>arg</em></span>
+    <span class="nowrap">[-reason <em>arg</em>]</span> <span class="nowrap">[-verbose]</span></code> <code class=
+    "cli_syntax"><span class="nowrap">revoke -name <em>arg</em></span> <span class="nowrap">[-reason
+    <em>arg</em>]</span> <span class="nowrap">[-verbose]</span></code> <code class="cli_syntax"><span class=
+    "nowrap">revoke -subj <em>arg</em>]</span> <span class="nowrap">[-reason <em>arg</em>]</span> <span class=
+    "nowrap">[-verbose]</span></code>
+    <p>Revokes one or more certificates. A single certificate can be revoked based on the certificate serial number, or
+    all valid certificates for a specified user can be revoked.</p>
+    <p>Examples:</p><code class="example"><span class="nowrap">revoke -serial 123456</span></code> <code class=
+    "example"><span class="nowrap">revoke -name "John Doe" -reason 2</span></code>
+    <h3 id="commandFile">file</h3>
+    <p><code class="cli_syntax"><span class="nowrap">sauth file -in <em>file</em></span> <span class="nowrap">[-passin
+    <em>arg</em>]</span> <span class="nowrap">[-verbose]</span> <span class="nowrap">[-stdout]</span></code></p>
+    <p>Processes multiple commands that are contained in a text file. Each line in the file is processed as a separate
+    command. This is more efficient than calling the application multiple times because it avoids JVM startup and
+    shutdown times.</p>
+    <p>Comments can be included in the file using the <code>#</code> character. Any <code>-passin</code> or
+    <code>-verbose</code> command arguments that might exist in the file are ignored, since they are overwritten by the
+    respective <code>file</code> command arguments.</p>
+    <p>Example:</p><code class="cli_syntax"><span class="nowrap">sauth file -in commands.txt</span> <span class=
+    "nowrap">-passin "env:CA_PASSWORD"</span> <span class="nowrap">-verbose</span></code>
+    <p>where <code>commands.txt</code> contains:<br></p><code><span class="nowrap"># create new user</span><br>
+    <span class="nowrap">create -subj "C=AU,O=Acme Inc,CN=John Doe" -san "john@nowhere.com"</span><br>
+    <span class="nowrap"># generate certificate for new user</span><br>
+    <span class="nowrap">cert -name "John Doe"</span><br>
+    <span class="nowrap"># issue an updated CRL</span><br>
+    <span class="nowrap">crl</span></code>
+    <h3 id="commandHelp">help</h3><code class="cli_syntax"><span class="nowrap">sauth help</span></code>
+    <p>Displays this help information.</p>
+    <p>Example:</p><code class="example"><span class="nowrap">sauth help</span></code>
+    <h3 id="commandVersion">version</h3>
+    <p><code class="cli_syntax"><span class="nowrap">sauth version [-verbose]</span></code></p>
+    <p>Displays version information.</p>
+    <p>Example:</p><code class="example"><span class="nowrap">sauth version -verbose</span></code>
+    <h2 id="cliArguments">Command line arguments</h2>
+    <table class="nogrid">
+      <tr valign="top">
+        <td class="nowrap"><code>-name <em>arg</em></code></td>
+        <td>The user's name. This is the <code>CN</code> component of the subject distinguished name.</td>
+      </tr>
+      <tr valign="top">
+        <td><code class="nowrap">-subj <em>arg</em></code></td>
+        <td>The user's subject distinguished name. The argument must be formatted using the X.500 standard, with zero
+        or one values for <code>C</code>, <code>O</code>, <code>OU</code> and <code>CN</code> (in that order) elements
+        only, e.g. <code class="nowrap">-subj "C=AU,O=Acme Inc,CN=John Doe"</code></td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>-newsubj <em>arg</em></code></td>
+        <td>The new subject distinguished name. Used to update user details. The same rules apply for a valid argument
+        as for <code>-subj</code>.</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>-san <em>arg</em></code></td>
+        <td>The user's subject alternative name. This is usually their email address, but may also be used to hold a
+        DNS name or other value.</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>-type <em>arg</em></code></td>
+        <td>The name of the certificate type to use.</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>-days <em>arg</em></code></td>
+        <td>The certificate validity period in days.</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>-active yes|no</code></td>
+        <td>Whether or not a user is marked as active.</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>-caname <em>arg</em></code></td>
+        <td>The name of the CA to use.</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>-keepca</code></td>
+        <td>Keep a copy of any new CA identities generated for future use as a CA, using the same password as the
+        current CA.</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>-serial <em>arg</em></code></td>
+        <td>A certificate serial number in decimal format.</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>-reason <em>arg</em></code></td>
+        <td>The revocation reason code integer value (see rfc5280).</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>-in <em>file</em></code></td>
+        <td>The input file. The file may be specified using an absolute or relative path, however relative paths are
+        relative to the location of the <code>sauth</code> script.</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>-passin <em>arg</em></code></td>
+        <td>
+          Used to specify the CA password. A number of formats are supported for <code><em>arg</em></code>:<br>
+          <table class="noindent">
+            <tr valign="top">
+              <td><code>pass:password</code></td>
+              <td>The actual password is <code>password</code>. Since the password is visible to utilities (like
+              <code>ps</code> under Unix) this form provides minimal security.</td>
+            </tr>
+            <tr valign="top">
+              <td><code>env:var</code></td>
+              <td>Obtain the password from the environment variable <code>var</code>. Since the environment of other
+              processes is visible on certain platforms (e.g. <code>ps</code> under certain Unix OSes) this option
+              should be used with caution.</td>
+            </tr>
+            <tr valign="top">
+              <td><code>stdin</code></td>
+              <td>Read the password from standard input. This is the default behaviour and is the most secure
+              option.</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>-passout <em>arg</em></code></td>
+        <td>Specifies the password for new user identity files. See <code>-passin</code> for details of valid
+        <code><em>arg</em></code> values. A randomly generated password is used if this argument is not provided.</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>-verbose</code></td>
+        <td>Prints details about the operation being performed.</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>-stdout</code></td>
+        <td>Causes any new identities, certificates or CRLs to be printed to <code>stdout</code> using PEM format,
+        instead of creating new files in the output directory.</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>-noprivout</code></td>
+        <td>Do not output any private key or password information.</td>
+      </tr>
+    </table>
+    <h2 id="cliSystemProperties">System properties</h2>
+    <p>Java system properties can be used to override some Options/Preferences settings. These properties can be set
+    using the Java command line option -D.</p>
+    <table class="nogrid">
+      <tr valign="top">
+        <td class="nowrap"><code>com.simpleauthority.datadir</code></td>
+        <td>The data directory.</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>com.simpleauthority.outputdir</code></td>
+        <td>The output directory.</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap"><code>com.simpleauthority.cakeystore</code></td>
+        <td>The path to the CA PKCS#12 identity file (<code>.p12</code>). This file must also have a matching
+        certificate (<code>.cer</code>) file in the same directory.</td>
+      </tr>
+    </table>
+    <h2 id="cliReturnCodes">Return codes</h2>
+    <table class="nogrid">
+      <tr valign="top">
+        <td class="nowrap">0</td>
+        <td class="nowrap">Success</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap">1</td>
+        <td class="nowrap">Unknown command</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap">2</td>
+        <td class="nowrap">Invalid argument</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap">3</td>
+        <td class="nowrap">Unable to complete command</td>
+      </tr>
+      <tr valign="top">
+        <td class="nowrap">4</td>
+        <td class="nowrap">Bad configuration</td>
+      </tr>
+    </table>
+    <h2 id="cliServlet">Web application interface</h2>
+    <p>The Web application (servlet) interface can be used with a servlet container, like <a href=
+    "http://tomcat.apache.org">Apache Tomcat</a>, to integrate SimpleAuthority with third party software for automating
+    certificate operations. This interface supports all of the CLI commands listed above.</p>
+    <p>To get started:</p>
+    <ol>
+      <li>Install <a href="http://tomcat.apache.org">Apache Tomcat</a>.
+      </li>
+      <li>(Windows and Linux) Update the Tomcat Java security policy files to <a href=
+      "http://www.google.com.au/search?hl=en&amp;q=unlimited+strength+cryptography+site%3Aoracle.com&amp;btnG=Search&amp;meta=">
+        enable unlimited strength cryptography.</a>
+      </li>
+      <li>Copy the <code>SimpleAuthority.war</code> file to the Tomcat <code>webapps/</code> directory.</li>
+      <li>Start Tomcat.</li>
+      <li>Open your browser at http://localhost:8080/SimpleAuthority/</li>
+    </ol>
+    <p>Note that the CA password can be specified in the <code>SimpleAuthority.war</code> deployment descriptor
+    (<code>web.xml</code>) file.</p>
+    <p>Please <a href="http://simpleauthority.com/contact.html">contact us</a> if you get stuck.</p>
+  </div>
+</body>
+</html>

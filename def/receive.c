@@ -14,9 +14,12 @@ void toHost(struct message* msg){
 	msg->flag = (msg->flag)?ntohs(msg->flag):0;
 	msg->addColumn = (msg->addColumn)?ntohs(msg->addColumn):0;
 	msg->nonce = (msg->nonce)?ntohl(msg->nonce):0;
+	msg->sign_len = (msg->sign_len)?ntohs(msg->sign_len):0;
+	msg->cert_len = (msg->cert_len)?ntohs(msg->cert_len):0;
+	msg->pkey_len = (msg->pkey_len)?ntohs(msg->pkey_len):0;
 }
 
-int deserialize_message(char* buffer, struct message *aux){
+int deserialize_message(unsigned char* buffer, struct message *aux){
 
 	uint16_t opcodex, *temp;
 	int pos =0;
@@ -25,7 +28,7 @@ int deserialize_message(char* buffer, struct message *aux){
 	//printf("opcode: %d\n", opcodex);
 	aux->opcode = opcodex;
 	pos+=sizeof(opcodex);
-	printf("aux opcode %d\n", aux->opcode);
+	//printf("aux opcode %d\n", aux->opcode);
 	switch(ntohs(aux->opcode)){
 
         case LOGIN_OPCODE:
@@ -88,6 +91,58 @@ int deserialize_message(char* buffer, struct message *aux){
 			pos += sizeof(aux->nonce);
 			printf("AUX FLAG ricevuto: %u <--> %d\n ", aux->flag, aux->flag );
 			break;
+		case KEY_OPCODE:
+			printf("Sono quiii!\n");
+			memcpy(&aux->pkey_len, buffer+pos, sizeof(aux->pkey_len));
+			printf("sono qua con pkey-len %d!\n", aux->pkey_len);
+			pos += sizeof(aux->pkey_len);
+			//char *temp1 = (char *)buffer+pos;
+			//printf(temp1[0]);
+			printf("pkey len %d\n", aux->pkey_len);
+			aux->peerkey = malloc(ntohs(aux->pkey_len)+1); //POSSIBILE ERRORE
+			for (uint64_t i = 0; i < ntohs(aux->pkey_len); i++){
+				aux->peerkey[i] = (unsigned char)*(buffer+pos);
+				//printf("%d,%c,%c", i, *(buffer+pos),aux->peerkey[i]);
+				pos+= sizeof(char);
+			}
+			break;
+		case AUTH2_OPCODE:
+			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
+			pos += sizeof(aux->nonce);
+			break;
+		case AUTH3_OPCODE:
+			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
+			pos += sizeof(aux->nonce);
+			memcpy(&aux->sign_len, buffer+pos, sizeof(aux->sign_len));
+			pos += sizeof(aux->sign_len);
+			aux->sign = malloc(ntohs(aux->sign_len)+1);
+			for (uint64_t i = 0; i < ntohs(aux->sign_len); i++){
+				aux->sign[i] = (unsigned char)*(buffer+pos);
+				pos+= sizeof(char);
+				//printf("%u", aux->sign[i]);
+			}
+			break;
+		case AUTH4_OPCODE:
+			memcpy(&aux->sign_len, buffer+pos, sizeof(aux->sign_len));
+			pos += sizeof(aux->sign_len);
+			aux->sign = malloc(ntohs(aux->sign_len)+1);
+			for (uint64_t i = 0; i < ntohs(aux->sign_len); i++){
+				aux->sign[i] = (unsigned char)*(buffer+pos);
+				pos+= sizeof(char);
+				//printf("%u", aux->sign[i]);
+			}
+			memcpy(&aux->cert_len, buffer+pos, sizeof(aux->cert_len));
+			pos += sizeof(aux->cert_len);
+			//printf("\n POS1 %d e DIM CERT LEN %d\n", pos, ntohs(aux->cert_len));
+			aux->cert = malloc(ntohs(aux->cert_len)+1);
+			for (uint64_t i = 0; i < ntohs(aux->cert_len); i++){
+				aux->cert[i] = (unsigned char)*(buffer+pos);
+				pos+= 1;
+				//printf("%u", aux->cert[i]);
+				//printf("%d",pos);
+			}
+			//printf("sign %d e cert %d\n", aux->sign_len, aux->cert_len);
+			break;
 		default:
 			break;
 	}
@@ -97,21 +152,22 @@ int deserialize_message(char* buffer, struct message *aux){
 
 int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr){
   	int ret;
-  	void *buffer = malloc(MAX_BUFFER_SIZE);
-  	int buffersize = MAX_BUFFER_SIZE;
+  	void *buffer = malloc(MAX_BUFFER_LEN);
+  	int buffersize = MAX_BUFFER_LEN;
 	socklen_t addrlen = sizeof(struct sockaddr_in);
 
 
 	//printf("Waiting new message\n");
   	ret = recvfrom(socket, buffer, buffersize, 0, (struct sockaddr*)mitt_addr, &addrlen);
 	//printf("New message!!!\n");
-	
+
 	if(ret<0){
 		perror("ERRORE recvfrom\n");
 		exit(1);		
 	}
 
+	// decifra buf (magari con flag)
+
 	ret = deserialize_message(buffer, message);
-	printf("recv_message() RICEVO %d E %d\n", message->my_id, message->my_listen_port);
 	return ret;
 }

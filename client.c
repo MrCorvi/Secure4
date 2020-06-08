@@ -1,6 +1,12 @@
 #include<sys/types.h>
 #include<sys/socket.h>
 #include<sys/stat.h>
+#include<sys/sendfile.h>
+#include<openssl/evp.h>
+#include<openssl/ec.h>
+#include<openssl/crypto.h>
+#include<openssl/pem.h>
+#include<openssl/x509_vfy.h>
 #include<fcntl.h>
 #include<netinet/in.h>
 #include<arpa/inet.h>
@@ -8,8 +14,8 @@
 #include<unistd.h>
 #include<stdlib.h>
 #include<stdio.h>
-#include<string.h>
 #include<signal.h>
+#include<string.h>
 #include "header/forza4Engine.h"
 #ifndef MESSAGE_H
     #define MESSAGE_H
@@ -102,6 +108,41 @@ int get_cmd(){
 	return CMD_UNKNOWN;
 }
 
+unsigned char* sign(unsigned char* message, int* signature_len){
+    
+    // costante
+	char* client_file_name= "./keys/rsa_privkey1.pem";
+	FILE* fp = fopen(client_file_name, "r");
+	if(!fp) handleErrors();
+	EVP_PKEY* prvkey = PEM_read_PrivateKey(fp,NULL,NULL,NULL);
+	if(!prvkey){printf("Errore prvkey\n"); handleErrors();}
+	fclose(fp);
+
+    int ret;
+	unsigned char* signature;
+	signature = malloc(EVP_PKEY_size(prvkey));
+    if(!signature){printf("Malloc error\n"); handleErrors();}
+	EVP_MD_CTX* sctx = EVP_MD_CTX_new();
+    if(!sctx){printf("EVP_MD_CTX error"); handleErrors();}
+    ret = EVP_SignInit(sctx, EVP_sha256());
+    if(ret==0){printf("EVP_SignInit error"); handleErrors();}
+    ret = EVP_SignUpdate(sctx, (unsigned char*)message, 2); // costante magica sizeof(message));
+    if(ret==0){printf("EVP_SignUpdate error"); handleErrors();}
+	ret = EVP_SignFinal(sctx, signature, signature_len, prvkey);
+    if(ret==0){printf("EVP_SignFinal error"); handleErrors();}
+
+    /*
+    printf("firmaaa di lunghezza %d:  di un messaggio lungo%d\n", *signature_len, 2);
+    for(int i=0; i<*signature_len; i++){
+        printf("%u", signature[i]);
+    }
+    printf("fine \n");
+    */
+
+	return signature;
+    
+}
+
 void pack_login_message(struct message* aux){
 
 	aux->opcode = LOGIN_OPCODE;
@@ -148,6 +189,30 @@ void pack_match_message(struct message* aux){
     printf("Dest id pack match: %u, %u\n", dest_id, aux->dest_id);
 
 }
+
+void pack_response_message(struct message* aux, int cs){
+
+    int cu = 77; //costante magica
+    int sign_len;
+    char ch_cs[2];
+    sprintf(ch_cs, "%d", cs);
+    /*printf("\nSizeof ch_ch %d e Cs: ", sizeof(ch_cs));
+    for(int i=0; i<2; i++)
+        printf("%c", ch_cs[i]);
+    printf("\n");*/
+	unsigned char* signed_resp = sign(ch_cs, &sign_len);
+	/*printf("Firma CON LUNGHEZZA %d\n", sign_len);
+    for(int i=0; i<sign_len; i++)
+        printf("%u", signed_resp[i]);
+    printf("\n\n");*/
+
+    aux->opcode = AUTH3_OPCODE;
+    aux->nonce = cu;
+    aux->sign = signed_resp;
+    aux->sign_len = sign_len;
+
+}
+
 
 
 int setupSocket(int port){
@@ -273,7 +338,237 @@ void childCode(){
     }
 }
 
+unsigned char* hash(unsigned char* secret){
+	
+	unsigned char* digest;
+	int digestlen;
+	EVP_MD_CTX* Hctx;
 
+	digest = (unsigned char*)malloc(32);
+	Hctx = EVP_MD_CTX_new();
+
+	EVP_DigestInit(Hctx, EVP_sha256());
+	EVP_DigestUpdate(Hctx, secret, sizeof(secret));
+	EVP_DigestFinal(Hctx, digest, &digestlen);
+
+	printf("Digest:\n");
+	BIO_dump_fp(stdout, digest, digestlen);
+
+	return digest;
+}
+
+EVP_PKEY* verifyCertificate(struct message m){
+
+    int ret;
+    // costante magica
+    char* cacert_file_name = "./CA/Cybersec CA_cert.pem";
+    char* cacrl_file_name = "./CA/Cybersec CA_crl.pem";
+    char* certserver_file_name = "./CA/ServerCybersec_cert.pem"; //PER ORAAA
+
+    // load the CA's certificate and the CRL(considero di averli già)
+    FILE* cacert_file = fopen(cacert_file_name, "r");
+    if(!cacert_file) handleErrors();
+    X509* cacert = PEM_read_X509(cacert_file, NULL, NULL, NULL);
+    fclose(cacert_file);
+    if(!cacert){ printf("cacert error\n") ; handleErrors();}
+
+    FILE* crl_file = fopen(cacrl_file_name, "r");
+    if(!crl_file) handleErrors();
+    X509_CRL* crl = PEM_read_X509_CRL(crl_file, NULL, NULL, NULL);
+    fclose(crl_file);
+    if(!cacert){ printf("crl error\n") ; handleErrors();}
+
+    // build a store with the CA's certificate and the CRL:
+    X509_STORE* store = X509_STORE_new();
+    if(!store) { printf("store error\n") ; handleErrors();}
+    ret = X509_STORE_add_cert(store, cacert);
+    if(ret != 1){ printf("add cert error\n") ; handleErrors();}
+    ret = X509_STORE_add_crl(store, crl);
+    if(ret != 1){ printf("add crl error\n") ; handleErrors();}
+    ret = X509_STORE_set_flags(store, X509_V_FLAG_CRL_CHECK);
+    if(ret != 1){ printf("set flag error\n") ; handleErrors();}
+
+    // get server's certificate:
+ 
+    
+   /* printf("m_sign_len %d e firmaaaa\n", m.sign_len);
+    for(int i=0; i<m.sign_len; i++){
+        printf("%c", m.sign[i]);
+    }
+    printf("\n");
+    */
+    unsigned char *tmpPtr;		//because d2i_X509 moves the ptr 
+	tmpPtr = m.cert;
+    int cert_len = m.cert_len;
+
+    X509* cert = d2i_X509(NULL, (const unsigned char **)&tmpPtr, cert_len);
+    if(!cert){printf("d2i error with code %d\n", ERR_get_error());} //handleErrors();}
+    
+    // verify the certificate:
+    X509_STORE_CTX* certvfy_ctx = X509_STORE_CTX_new();
+    if(!certvfy_ctx) { printf("Error: X509_STORE_CTX_new returned NULL\n"); handleErrors(); }
+    ret = X509_STORE_CTX_init(certvfy_ctx, store, cert, NULL);
+    if(!ret) { printf("Error: X509_STORE_CTX_init returned NULL\n"); handleErrors(); }
+    ret = X509_verify_cert(certvfy_ctx);
+    if(!ret) { printf("Error: X509_verify_cert returned NULL\n"); handleErrors(); }
+
+    // print the successful verification to screen:
+    char* tmp = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
+    char* tmp2 = X509_NAME_oneline(X509_get_issuer_name(cert), NULL, 0);
+    printf("Certificate of %s released by %s verified successfully", tmp , tmp2);
+    free(tmp);
+    free(tmp2);
+
+    EVP_PKEY* server_pubkey = X509_get_pubkey(cert);
+    if(server_pubkey==NULL) handleErrors();
+    // riceve firmato
+    // verifica 
+
+    // deallocate data:
+    //EVP_MD_CTX_free(md_ctx);
+    X509_free(cert);
+    X509_STORE_free(store);
+    X509_STORE_CTX_free(certvfy_ctx);
+    
+    
+    printf("fine store :)");
+    return server_pubkey;
+}
+
+int handleErrors(){
+    printf("An error occourred \n");
+    exit(1);
+}
+
+unsigned char *get_secret_ec(size_t *secret_len, int cl_id)
+{
+	EVP_PKEY_CTX *pctx, *kctx;
+	EVP_PKEY_CTX *ctx;
+	unsigned char *secret;
+	EVP_PKEY *pkey = NULL, *peerkey, *dh_params = NULL;
+	
+    char str[32];
+    char id[2];
+    sprintf(id, "%d", cl_id);
+    strcpy(str, "./pubkeys/ecc_pubkey");
+    strcat(str, id);
+    strcat(str,".pem");
+    printf("%s\n", str);
+
+
+    // Create the context for parameter generation 
+	if(!(pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL))) handleErrors();
+
+	// Initialise the parameter generation 
+	if(!EVP_PKEY_paramgen_init(pctx)) handleErrors();
+
+	// We're going to use the ANSI X9.62 Prime 256v1 curve 
+	if(!EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, NID_X9_62_prime256v1)) handleErrors();
+
+	// Create the parameter object dh_params 
+	if (!EVP_PKEY_paramgen(pctx, &dh_params)) handleErrors();
+
+	// Create the context for the key generation 
+	if(NULL == (kctx = EVP_PKEY_CTX_new(dh_params, NULL))) handleErrors();
+
+	// Generate the key 
+	if(!EVP_PKEY_keygen_init(kctx)) handleErrors();
+	if (!EVP_PKEY_keygen(kctx, &pkey)) handleErrors();
+
+    //invia
+    FILE* p1w = fopen(str, "w");
+    if(!p1w){ printf("Error: cannot open file %s\n", str); exit(1); }
+    PEM_write_PUBKEY(p1w, pkey);
+    fseek(p1w, 0L, SEEK_END);
+    int size = ftell(p1w);
+    fseek(p1w, 0L, SEEK_SET);
+    fclose(p1w);
+
+    BIO *bio = NULL;
+    if ((bio = BIO_new(BIO_s_mem())) == NULL)
+      return NULL;
+
+    //PEM_write_bio_PrivateKey(bio, pkey, NULL, NULL, 0, NULL, NULL);
+    if (0 == PEM_write_bio_PUBKEY(bio, pkey)){
+      BIO_free(bio);
+      return NULL;
+    }
+
+    printf("BIO: \n"); // è uguale a bio1 , già controllato
+    BIO_dump_fp(stdout, bio, size);
+
+    char *pem = (char *) calloc(1, size + 1);
+    BIO_read(bio, pem, size);
+    printf("sizeof %d\n", size);
+    for (int i = 0; i < size; i++){
+        printf("%c",  pem[i]);
+    }
+
+    struct message aux;
+    aux.opcode = KEY_OPCODE;    
+    aux.peerkey = pem;
+    aux.pkey_len = size;
+	send_message(&aux, &sv_addr, sd);
+
+
+    printf("YEEE: \n"); // è uguale a bio1 , già controllato
+    BIO_dump_fp(stdout, pkey, size);
+    
+    //ricevi 
+    struct message ack;
+    printf("Attendo messaggio\n");
+    recv_message(sd, &ack, (struct sockaddr*)&sv_addr);
+    printf("Chiave ricevuta\n");
+	printf("Di lunghezza :::%d\n", ack.pkey_len );
+	for (int ii = 0; ii < ack.pkey_len; ii++){
+            printf("%c", ack.peerkey[ii]);
+    }
+
+    BIO *bio2 = NULL;
+    if ((bio2 = BIO_new(BIO_s_mem())) == NULL)
+      return NULL;
+
+    //char *ciao="-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKNZZUE5aQ6rAvE9Xc+nE9hzyQIko\n9FR2nJv1BIRdcIUY+z1KLRyy0OcuR/maQrZIP/56WR9yxyuFiA9ThIka4Q==\n-----END PUBLIC KEY-----\n";
+
+    BIO_write(bio2, ack.peerkey, ack.pkey_len);
+    //printf("bio2+128:: \n"); // è uguale a bio1 , già controllato
+    //BIO_dump_fp(stdout, bio2, ack.pkey_len+128);
+    PEM_read_bio_PUBKEY(bio2, &peerkey, NULL, NULL);
+    BIO_free(bio);
+    BIO_free(bio2);
+
+    //BIO_dump_fp(stdout, ack.peerkey, ack.pkey_len);
+    
+    // Create the context for the shared secret derivation 
+    //if(NULL == (ctx = EVP_PKEY_CTX_new(pkey, NULL)))   printf("ERRORE 1\n");
+
+    // Initialise 
+	//if(EVP_PKEY_derive_init(ctx)<=0) handleErrors();
+    /*
+	// Provide the peer public key 
+	if(EVP_PKEY_derive_set_peer(ctx, peerkey)<=0) handleErrors();
+
+	// Determine buffer length for shared secret 
+	if(EVP_PKEY_derive(ctx, NULL, &secret_len)<=0) handleErrors();
+
+	// Create the buffer 
+    secret = (unsigned char*)(malloc((int)(secret_len)));
+	if(!secret) handleErrors();
+
+	// Derive the shared secret 
+	if(EVP_PKEY_derive(ctx, secret, &secret_len)<=0) handleErrors();
+    
+	EVP_PKEY_CTX_free(ctx);
+	EVP_PKEY_free(peerkey);
+	EVP_PKEY_free(pkey);
+	EVP_PKEY_CTX_free(kctx);
+	EVP_PKEY_free(dh_params);
+	EVP_PKEY_CTX_free(pctx);
+    printf("SEGRETO: \t");
+	BIO_dump_fp(stdout, (const char*)secret, secret_len);
+    */
+	return secret;
+}
 
 
 int main(int argc, char* argv[]){
@@ -350,10 +645,52 @@ int main(int argc, char* argv[]){
     recv_message(sd, &ack_login_m, (struct sockaddr*)&sv_addr);
 
     printf("ACK received... Login Completed\n");
-    if(ack_login_m.opcode != ACK_OPCODE){
-        printf("Login Opcode Error\n");
+    if(ack_login_m.opcode != AUTH2_OPCODE){
+        printf("Login Opcode Error %d\n", ack_login_m.opcode);
         exit(1);
     }
+
+    printf("Cs = %d\n", ack_login_m.nonce);
+
+    struct message m_response;
+    pack_response_message(&m_response, ack_login_m.nonce);
+    send_message(&m_response, &sv_addr, sd);
+
+
+    struct message ack_cert_m;
+    printf("Waiting Cert and Response...\n");
+    recv_message(sd, &ack_cert_m, (struct sockaddr*)&sv_addr);
+    if(ack_cert_m.opcode != AUTH4_OPCODE){
+        printf("Login Opcode Error %d\n", ack_cert_m.opcode);
+        exit(1);
+    }
+    EVP_PKEY* server_pkey = verifyCertificate(ack_cert_m);
+
+    // verifica
+    char *test= "77"; //costante magica
+	int ret;
+    const EVP_MD* md = EVP_sha256();
+	EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
+	if(!md_ctx) handleErrors();
+	ret = EVP_VerifyInit(md_ctx, md);
+	if(ret==0){ printf("Error verify init\n"); handleErrors();}
+	ret = EVP_VerifyUpdate(md_ctx, test, 2);
+	if(ret==0){ printf("Error verify update\n"); handleErrors();}
+	ret = EVP_VerifyFinal(md_ctx, ack_cert_m.sign, ack_cert_m.sign_len, server_pkey);
+	if(ret!=1){ printf("Error verify final\n"); handleErrors();}
+	printf("Ca verified");
+	EVP_PKEY_free(server_pkey);
+	EVP_MD_CTX_free(md_ctx);
+
+
+    size_t *secret_len = 64;
+    printf("Ehiii");
+    unsigned char* secret = "0123456789";; //get_secret_ec(secret_len, cl_id);
+    unsigned char* digest = hash(secret);
+
+
+    /* Use digest of secret instead of secret to increase the entropy */
+
     printf("\033[1;32m");
 	printf("Welcome to Forza4");
 	printf("\033[0m"); 
@@ -409,12 +746,12 @@ int main(int argc, char* argv[]){
                 break;
             case CMD_MATCH:
 
-                nonce++;
-                printf("Nonce: %d\n", nonce);
                 if(dest_id==cl_id){
                     printf("You can't rematch yourself!\n");
                     break;
                 }
+                nonce++;
+                printf("Nonce: %d\n", nonce);
 
                 sv_addr = setupAddress("127.0.0.1", sv_port);
 
