@@ -98,13 +98,13 @@ unsigned char *get_secret_ec(size_t *secret_len, struct sockaddr_in *cl_addr,int
       return NULL;
 
     BIO_write(bio, aux.peerkey, aux.pkey_len);
-    printf("bio+128: \n"); // è uguale a bio1 , già controllato
-    BIO_dump_fp(stdout, bio, aux.pkey_len+128);
+    //printf("bio+128: \n"); // è uguale a bio1 , già controllato
+    //BIO_dump_fp(stdout, bio, aux.pkey_len+128);
 	PEM_read_bio_PUBKEY(bio, &peerkey, NULL, NULL);
     BIO_free(bio);
 
-    printf("YEEE: \n"); // è uguale a bio1 , già controllato
-    BIO_dump_fp(stdout, peerkey, aux.pkey_len);
+    //printf("YEEE: \n"); // è uguale a bio1 , già controllato
+    //BIO_dump_fp(stdout, peerkey, aux.pkey_len);
 
 	// invia
 	FILE* p1w = fopen(str, "w");
@@ -337,13 +337,6 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			struct message m_challenge = pack_challenge();
 			send_message(&m_challenge, cl_addr, sd, FALSE);
 			
-			char buffer[MAX_BUFFER_SIZE];
-			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);
-			int cl_port = aux->my_listen_port;
-			sprintf(buffer,"%d,%s,%d,%d", aux->my_id, str, cl_port,100); //costante magica
-			append_row(filename, buffer);
-            //struct message m = pack_ack(aux->my_id);
-			
 			struct message m_response;
 			struct sockaddr* cl_addr2;
 			recv_message(sd, &m_response, &cl_addr2, FALSE, 0); //c'era (struct sockaddr*)&cl_addr //
@@ -396,6 +389,12 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			// Hashing to increase entropy
 			unsigned char* digest= hash(secret);
 
+			char buffer[MAX_BUFFER_SIZE];
+			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);
+			int cl_port = aux->my_listen_port;
+			sprintf(buffer,"%d,%s,%d,%d", aux->my_id, str, cl_port,100); //costante magica
+			append_row(filename, buffer);
+            //struct message m = pack_ack(aux->my_id);
 
 				//struct message m = pack_ack(aux->my_id, 0);
             	//send_message(&m, cl_addr, sd, FALSE);
