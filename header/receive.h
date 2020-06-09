@@ -12,6 +12,10 @@
     #include"../header/message.h"
 #endif
 
+#include "../header/symEncript.h"
+
+
+
 int deserialize_message(unsigned char* buffer, struct message *aux);
 
-int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr);
+int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr, int dec, uint32_t nonce);

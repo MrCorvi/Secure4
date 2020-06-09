@@ -22,7 +22,8 @@
 #define TRUE 1
 #define FALSE 0
 
-#define MAX_BUFFER_LEN 4096
+#define MAX_BUFFER_SIZE 4096
+#define TAG_SIZE 16
 
 struct message{
 	uint16_t opcode;
@@ -45,4 +46,7 @@ struct message{
     uint16_t sign_len;
     unsigned char* cert;
     uint16_t cert_len;
+    unsigned char *cphtBuffer;
+    int ptLen; //plain text length
+    unsigned char *tagBuffer;
 };

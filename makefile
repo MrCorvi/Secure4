@@ -2,8 +2,8 @@ CC=gcc
 CFLAGS = -Wall
 
 
-server: server.o receive.o send.o utilityFile.o -lcrypto
-	$(CC) $(CFLAGS) $^ -o server 
+server: server.o receive.o send.o utilityFile.o symEncript.o
+	$(CC) $(CFLAGS) $^ -o server -lcrypto 
 	rm *.o
 
 server.o: server.c
@@ -11,8 +11,8 @@ server.o: server.c
 
 
 
-client: client.o forza4Engine.o receive.o send.o list.o
-	$(CC) $(CFLAGS) $^ -o client -pthread -lcrypto
+client: client.o forza4Engine.o receive.o send.o symEncript.o
+	$(CC) $(CFLAGS) $^ -o client -pthread -lcrypto 
 	rm *.o
 	
 client.o: client.c

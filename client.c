@@ -23,7 +23,6 @@
 #endif
 #include "header/send.h"
 #include "header/receive.h"
-#include "header/list.h"
 
 #define CMD_UNKNOWN 0
 #define CMD_HELP 1
@@ -150,16 +149,26 @@ void pack_login_message(struct message* aux){
     aux->my_listen_port = cl_secondary_port;
 }
 
+void pack_list_message(struct message* aux, uint32_t id){
+	aux->opcode = LIST_OPCODE;
+    aux->my_id = id;
+    aux->nonce = nonce;
+}
+
 void pack_logout_message(struct message* aux){
 
 	aux->opcode = LOGOUT_OPCODE;
     aux->my_id = cl_id;
+    aux->nonce = nonce;
 }
 
 void pack_match_move_message(struct message* aux, uint8_t column){
     aux->opcode = MATCH_MOVE_OPCODE;
     aux->my_id = cl_id;
     aux->addColumn = column;
+    aux->ptLen = 1;
+    aux->cphtBuffer = (unsigned char*)malloc(aux->ptLen);
+    aux->tagBuffer  = (unsigned char*)malloc(16);
 }
 
 struct sockaddr_in setupAddress(char *ip, int port){
@@ -236,6 +245,20 @@ int setupSocket(int port){
     return secondSd;
 }
 
+int nonceCheck(uint32_t nonceReceived, int incNonce, pid_t pid){
+    //Nonce check
+    //printf("\nNonce rec: %d       stored:%d\n", nonceReceived, nonce);
+    if((nonce + 1) != nonceReceived){
+        printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        return 0;
+    }
+    nonce+=incNonce;
+
+    //update other branch nonce
+    kill(pid, SIGUSR1);
+    return 1;
+}
+
 
 
 void battleRequest(){
@@ -273,16 +296,11 @@ void childCode(){
     secondSd = setupSocket(cl_secondary_port);
     while(1){
 
-        recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen);
+        recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen, FALSE, nonce);
 
-        //check if the nonce received is 1 more of the one stored
-        //printf("\nNonce rec: %d       stored:%d\n", match_m.nonce, nonce);
-        if((nonce + 1) != match_m.nonce){
-            printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        //nonce check
+        if(nonceCheck(match_m.nonce, 2, getppid()) == 0)
             continue;
-        }
-        nonce += 2;
-        kill(getppid(), SIGUSR1);
 
         //Sto sfidando io qualcuno o mi sta arrivando se hanno accettato la sfida o no ?
         if(match_m.opcode == ACCEPT_OPCODE){
@@ -312,21 +330,23 @@ void childCode(){
             }
 
 
-            send_message(&reply_m, &sv_addr_listen, secondSd);
+            send_message(&reply_m, &sv_addr_listen, secondSd, TRUE);
 
             //Richiesta accettata
             if(command == 'y'){
                 printf("Waiting for Battle request on port %d...\n", ntohs(cl_secondary_port));
-                recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
+                recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr, FALSE, nonce);
                 printf("Recived Battle request !!!!\n");
                 pack_match_move_message(&m, 0);
-                send_message(&m, &opponent_addr, secondSd);
+                send_message(&m, &opponent_addr, secondSd, TRUE);
+                free(m.cphtBuffer);
+                free(m.tagBuffer);
 
                 //Game start !!!
                 printf("\nAdversary port: %d\n", ntohs(opponent_addr.sin_port));
                 
                 kill(getppid(), SIGUSR2);
-                forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE);
+                forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE, 100);
                 
                 printf("Press Enter to return to the main console ...\n");
 
@@ -508,7 +528,7 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id)
     aux.opcode = KEY_OPCODE;    
     aux.peerkey = pem;
     aux.pkey_len = size;
-	send_message(&aux, &sv_addr, sd);
+	send_message(&aux, &sv_addr, sd, FALSE);
 
 
     printf("YEEE: \n"); // è uguale a bio1 , già controllato
@@ -517,7 +537,7 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id)
     //ricevi 
     struct message ack;
     printf("Attendo messaggio\n");
-    recv_message(sd, &ack, (struct sockaddr*)&sv_addr);
+    recv_message(sd, &ack, (struct sockaddr*)&sv_addr, FALSE, 0);
     printf("Chiave ricevuta\n");
 	printf("Di lunghezza :::%d\n", ack.pkey_len );
 	for (int ii = 0; ii < ack.pkey_len; ii++){
@@ -573,7 +593,7 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id)
 
 int main(int argc, char* argv[]){
 
-    struct message m, listRequestMessage;
+    struct message m;
     struct sockaddr_in opponent_addr;
 
 	// argument check
@@ -621,6 +641,7 @@ int main(int argc, char* argv[]){
 		printf("Socket Creation Error: Client Stopping\n");
 		exit(1);
 	}
+    
 
 	// Client address creation
 	memset(&cl_address,0, sizeof(cl_address)); // cleaning
@@ -638,11 +659,11 @@ int main(int argc, char* argv[]){
     sv_addr = setupAddress("127.0.0.1", sv_port);
 
     printf("Send Login request\n");
-	send_message(&m, &sv_addr, sd);
+	send_message(&m, &sv_addr, sd, FALSE);
 
     struct message ack_login_m;
     printf("Waiting ACK...\n");
-    recv_message(sd, &ack_login_m, (struct sockaddr*)&sv_addr);
+    recv_message(sd, &ack_login_m, (struct sockaddr*)&sv_addr, FALSE, nonce);
 
     printf("ACK received... Login Completed\n");
     if(ack_login_m.opcode != AUTH2_OPCODE){
@@ -654,12 +675,12 @@ int main(int argc, char* argv[]){
 
     struct message m_response;
     pack_response_message(&m_response, ack_login_m.nonce);
-    send_message(&m_response, &sv_addr, sd);
+    send_message(&m_response, &sv_addr, sd, FALSE);
 
 
     struct message ack_cert_m;
     printf("Waiting Cert and Response...\n");
-    recv_message(sd, &ack_cert_m, (struct sockaddr*)&sv_addr);
+    recv_message(sd, &ack_cert_m, (struct sockaddr*)&sv_addr, FALSE, 0);
     if(ack_cert_m.opcode != AUTH4_OPCODE){
         printf("Login Opcode Error %d\n", ack_cert_m.opcode);
         exit(1);
@@ -739,10 +760,28 @@ int main(int argc, char* argv[]){
             case CMD_LIST:
 
                 sv_addr = setupAddress("127.0.0.1", sv_port);
-                
-                //printf("placeholder list\n");
-                pack_list_message(&listRequestMessage, cl_id);
-                listRequest(listRequestMessage, sv_addr, sd);
+
+                //nonce setup
+                nonce++;
+                pack_list_message(&m, cl_id);
+    
+                printf("Getting list of online users from the server \n");
+                send_message(&m, &sv_addr, sd, TRUE);
+                printf("Waiting ACK...\n");
+
+                struct message ack_list;
+                recv_message(sd, &ack_list, (struct sockaddr*)&sv_addr, TRUE, 0);
+
+                //nonce check
+                if(nonceCheck(ack_list.nonce, 1, pid) == 0)
+                    continue;
+
+                printf("ACK received");
+
+                printf("List of the logged users:\n");
+                for (int i = 0; i < ack_list.nOnlinePlayers; i++){
+                    printf("- %d \n", ack_list.onlinePlayers[i]);
+                }
                 break;
             case CMD_MATCH:
 
@@ -751,28 +790,22 @@ int main(int argc, char* argv[]){
                     break;
                 }
                 nonce++;
-                printf("Nonce: %d\n", nonce);
+                //("Nonce: %d\n", nonce);
 
                 sv_addr = setupAddress("127.0.0.1", sv_port);
 
                 //Sending request for match
                 pack_match_message(&m);
-                send_message(&m, &sv_addr, sd);
+                send_message(&m, &sv_addr, sd, TRUE);
 
                 //Waiting request replay
                 struct message ack_match_m;
                 printf("Waiting Match ACK....\n");
-                recv_message(sd, &ack_match_m, (struct sockaddr*)&sv_addr);
+                recv_message(sd, &ack_match_m, (struct sockaddr*)&sv_addr, FALSE, nonce);
 
-                //Nonce check
-                //printf("\nNonce rec: %d       stored:%d\n", ack_match_m.nonce, nonce);
-                if((nonce + 1) != ack_match_m.nonce){
-                    printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                //nonce check
+                if(nonceCheck(ack_match_m.nonce, 1, pid) == 0)
                     continue;
-                }
-                nonce++;
-                //update other branch nonce
-                kill(pid, SIGUSR1);
 
 
                 int esito = (ack_match_m.flag==1)?ACCEPT_OPCODE:DENY_OPCODE;
@@ -793,12 +826,14 @@ int main(int argc, char* argv[]){
                     opponent_addr = setupAddress("127.0.0.1", (int)ack_match_m.dest_port);
 
                     pack_match_move_message(&m, 0);
-                    send_message(&m, &opponent_addr, secondSd);
+                    send_message(&m, &opponent_addr, secondSd, TRUE);
+                    free(m.cphtBuffer);
+                    free(m.tagBuffer);
 
                     printf("Waiting for confirm !!!!\n");
-                    recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr);
+                    recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr, FALSE, nonce);
 
-                    forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, TRUE);
+                    forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, TRUE, 100);
                     close(secondSd);
                     sem_post(mutex_secondary_port);
 
@@ -822,17 +857,24 @@ int main(int argc, char* argv[]){
                 sv_addr.sin_port = htons(sv_port);
                 inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
 
+                nonce++;
                 pack_logout_message(&m);
 
-                send_message(&m, &sv_addr, sd);
-                struct message ack_logout_m;
+                send_message(&m, &sv_addr, sd, TRUE);
+
                 printf("Waiting Logout ACK....\n");
-                recv_message(sd, &ack_logout_m, (struct sockaddr*)&sv_addr);
+                struct message ack_logout_m;
+                recv_message(sd, &ack_logout_m, (struct sockaddr*)&sv_addr, FALSE, nonce);
                 printf("Logout ACK received... Login Completed\n");
                 if(ack_logout_m.opcode != ACK_OPCODE){
                     printf("Logout Opcode Error: %d\n", ack_logout_m.opcode);
                     exit(1);
                 }
+
+                //nonce check
+                if(!nonceCheck(ack_logout_m.nonce, 1, pid))
+                    continue;
+
                 close(sd);
                 close(secondSd);
                 exit(0);
