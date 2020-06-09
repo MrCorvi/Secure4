@@ -346,7 +346,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			
 			struct message m_response;
 			struct sockaddr* cl_addr2;
-			recv_message(sd, &m_response, &cl_addr2, FALSE, 0); //c'era (struct sockaddr*)&cl_addr
+			recv_message(sd, &m_response, &cl_addr2, FALSE, 0); //c'era (struct sockaddr*)&cl_addr //
 			printf("\nCu: %d", m_response.nonce);
 			printf("Sign len. %d\n", m_response.sign_len);
 			/*for(uint32_t i=0; i<m_response.sign_len; i++){
@@ -392,7 +392,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 		
 			size_t *secret_len = 64;
 			//costante magica
-    		unsigned char* secret = "0123456789";//get_secret_ec(secret_len, cl_addr, sd);
+    		unsigned char* secret = get_secret_ec(secret_len, cl_addr, sd);  //"0123456789";//
 			// Hashing to increase entropy
 			unsigned char* digest= hash(secret);
 
