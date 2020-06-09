@@ -465,7 +465,7 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id)
 	EVP_PKEY_CTX *pctx, *kctx;
 	EVP_PKEY_CTX *ctx;
 	unsigned char *secret;
-	EVP_PKEY *pkey = NULL, *peerkey, *dh_params = NULL;
+	EVP_PKEY *pkey = NULL, *peerkey =NULL, *dh_params = NULL;
 	
     char str[32];
     char id[2];
@@ -495,6 +495,10 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id)
 	if(!EVP_PKEY_keygen_init(kctx)) handleErrors();
 	if (!EVP_PKEY_keygen(kctx, &pkey)) handleErrors();
 
+    // Create the context for the shared secret derivation 
+    printf("spostatooo\n");
+    if(NULL == (ctx = EVP_PKEY_CTX_new(pkey, NULL)))   printf("ERRORE 1\n");
+
     //invia
     FILE* p1w = fopen(str, "w");
     if(!p1w){ printf("Error: cannot open file %s\n", str); exit(1); }
@@ -514,8 +518,8 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id)
       return NULL;
     }
 
-    printf("BIO: \n"); // è uguale a bio1 , già controllato
-    BIO_dump_fp(stdout, bio, size);
+    //printf("BIO: \n"); // è uguale a bio1 , già controllato
+    //BIO_dump_fp(stdout, bio, size);
 
     char *pem = (char *) calloc(1, size + 1);
     BIO_read(bio, pem, size);
@@ -530,10 +534,10 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id)
     aux.pkey_len = size;
 	send_message(&aux, &sv_addr, sd, FALSE);
 
-
+    /*
     printf("YEEE: \n"); // è uguale a bio1 , già controllato
     BIO_dump_fp(stdout, pkey, size);
-    
+    */
     //ricevi 
     struct message ack;
     printf("Attendo messaggio\n");
@@ -559,12 +563,9 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id)
 
     //BIO_dump_fp(stdout, ack.peerkey, ack.pkey_len);
     
-    // Create the context for the shared secret derivation 
-    //if(NULL == (ctx = EVP_PKEY_CTX_new(pkey, NULL)))   printf("ERRORE 1\n");
-
     // Initialise 
-	//if(EVP_PKEY_derive_init(ctx)<=0) handleErrors();
-    /*
+	if(EVP_PKEY_derive_init(ctx)<=0) handleErrors();
+    
 	// Provide the peer public key 
 	if(EVP_PKEY_derive_set_peer(ctx, peerkey)<=0) handleErrors();
 
@@ -586,7 +587,7 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id)
 	EVP_PKEY_CTX_free(pctx);
     printf("SEGRETO: \t");
 	BIO_dump_fp(stdout, (const char*)secret, secret_len);
-    */
+    
 	return secret;
 }
 
@@ -706,7 +707,7 @@ int main(int argc, char* argv[]){
 
     size_t *secret_len = 64;
     printf("Ehiii");
-    unsigned char* secret = "0123456789";; //get_secret_ec(secret_len, cl_id);
+    unsigned char* secret = get_secret_ec(secret_len, cl_id); //"0123456789"; //
     unsigned char* digest = hash(secret);
 
 
