@@ -1,7 +1,7 @@
 
 #include<stdint.h> 
 
-#define LOGIN_OPCODE 1
+#define LOGIN_OPCODE 1 //a.ka. AUTH1_OPCODE
 #define LIST_OPCODE 2
 #define MATCH_OPCODE 3
 #define ACK_OPCODE 4
@@ -12,11 +12,18 @@
 #define ACCEPT_OPCODE 9
 #define REPLY_OPCODE 10
 #define MATCH_MOVE_OPCODE 11
+#define KEY_OPCODE 12
+#define AUTH2_OPCODE 13
+#define AUTH3_OPCODE 14
+#define AUTH4_OPCODE 15
 
 #define MAX_USERS 2000
 
 #define TRUE 1
 #define FALSE 0
+
+#define MAX_BUFFER_SIZE 4096
+#define TAG_SIZE 16
 
 struct message{
 	uint16_t opcode;
@@ -33,4 +40,13 @@ struct message{
     uint16_t column; 
     uint16_t flag; // 1 accept 0 deny
     uint32_t nonce;
+    char* peerkey;
+    uint16_t pkey_len;
+    unsigned char* sign;
+    uint16_t sign_len;
+    unsigned char* cert;
+    uint16_t cert_len;
+    unsigned char *cphtBuffer;
+    int ptLen; //plain text length
+    unsigned char *tagBuffer;
 };
