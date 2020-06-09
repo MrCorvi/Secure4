@@ -458,7 +458,6 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			
 			dest_ip = get_column_by_id(filename, aux->dest_id, 2);
 			dest_port = (short)atoi(get_column_by_id(filename, aux->dest_id, 3));
-			printf("												DEST IP: %s\n", dest_ip);
 
 			struct message aux_risp;
 			int req = recv_message(sd_listen, &aux_risp, (struct sockaddr*)&listen_addr, FALSE, 0); //3000 receive port and then pass message to others
@@ -474,9 +473,10 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				printf("Errore: il nonce ricevuto dal reciver non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 				break;
 			}
-			uint32_t new_nonce_reciver = nonce_reciver + 2;
-			printf("											%d\n", new_nonce_reciver);
+
+			dest_ip = get_column_by_id(filename, aux->dest_id, 2);
 			update_row(filename, aux->dest_id, dest_ip, dest_port, nonce_reciver + 2);
+			printf("												DEST IP: %s\n", dest_ip);
 
 
 			struct message risp;
