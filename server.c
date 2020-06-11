@@ -1,23 +1,24 @@
-#include<sys/types.h>
-#include<sys/socket.h>
-#include<netinet/in.h>
 #include<arpa/inet.h>
+#include<errno.h>
+#include<netinet/in.h>
 #include<openssl/evp.h>
 #include<openssl/ec.h>
 #include<openssl/crypto.h>
 #include<openssl/pem.h>
 #include<stdio.h>
-#include<unistd.h>
-#include<string.h>
+#include<signal.h>
+#include<sys/types.h>
+#include<sys/socket.h>
 #include<stdlib.h>
-#include<errno.h>
+#include<string.h>
+#include<unistd.h>
 #ifndef MESSAGE_H
 	#define MESSAGE_H
 	#include "header/message.h"
 #endif
 #include "header/send.h"
-#include "header/receive.h"
 #include "header/list.h"
+#include "header/receive.h"
 #include "header/utilityFile.h"
 
 #define BUFLEN 1024
@@ -26,6 +27,7 @@ char* filename = "loggedUser.csv";
 struct sockaddr_in my_addr, listen_addr;
 int num_bind =0;
 int sv_port;
+int sd_listen; //each process use one to answer a request
 
 int socket_creation(){
 	struct sockaddr_in my_addr;
@@ -311,13 +313,37 @@ int checkNonce(uint32_t id, uint32_t nonce_recived, int inc){
 	return 1;
 }
 
+
+
+
+
+volatile int timeout = 0, waitingId;
+void  ALARMhandler(int sig){
+	signal(SIGALRM, SIG_IGN);          /* ignore this signal       */
+	printf("TIME OUT: 1 minute of no responce \nThe user is now delited\n");
+	timeout = 1;
+	int ret = remove_row_by_id(filename, waitingId);
+	printf("The user %d is now delited from the online players\n", waitingId);
+	//if not pack err
+	if(ret==-1){
+		printf("ID non presente!\n");
+		return -1;
+	}
+	shutdown(sd_listen, SHUT_RDWR);
+	signal(SIGALRM, ALARMhandler);     /* reinstall the handler    */
+}
+
+
+
 int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 
     uint16_t opcode = (uint16_t) aux->opcode;   
 	char *dest_ip;
 	uint16_t dest_port;   
 	char str[INET_ADDRSTRLEN];
-	int sd_listen = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
+	sd_listen = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
+
+	signal(SIGALRM, ALARMhandler);
 
 	printf("opcode: %d\n", opcode);
 
@@ -456,14 +482,22 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			inet_pton(AF_INET, dest_ip , &listen_addr.sin_addr);
 
             send_message(aux, &listen_addr, sd_listen, TRUE);
-			printf("waiting reply\n");
 
 			
+			printf("waiting reply\n");
 			dest_ip = get_column_by_id(filename, aux->dest_id, 2);
 			dest_port = (short)atoi(get_column_by_id(filename, aux->dest_id, 3));
 
 			struct message aux_risp;
+			alarm(TIMEOUT_TIME);
+			waitingId = aux->dest_id;
 			int req = recv_message(sd_listen, &aux_risp, (struct sockaddr*)&listen_addr, FALSE, 0); //3000 receive port and then pass message to others
+			if(timeout == 1){
+				timeout = 0;
+				printf("Closing the comunication\n");
+				break;
+			}
+			
 			if(req!=1){
 				printf("Errore (andra' implementato ERR_OPCODE)\n");
 				close(sd_listen);
@@ -516,9 +550,6 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 
 			//send responce to the sender
 			printf("sending to %d public key of %d\n", aux->my_id, aux->dest_id);
-			//pkSize = getPublicKeySize(aux->dest_id);
-			//unsigned char *pk = (unsigned char *) malloc(pkSize + 1);
-			//getPublicKey(pk, aux->dest_id);
 			unsigned char pk[5000];
 			 pkSize = getPublicKey(pk, aux->dest_id);
 
@@ -573,11 +604,19 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 	return 1;
 }
 
+
+
+
+
+
+
 int main(int argc, char* argv[]){
 
 	int ret,sd;
 	struct sockaddr_in cl_addr;
 	struct message m;	
+
+	
 
 	// argument check
 	if(argc < 2){
