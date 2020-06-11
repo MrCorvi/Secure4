@@ -227,6 +227,18 @@ struct message pack_list_ack(uint32_t nonce){
 	return aux;
 }
 
+struct message pack_reply_message(uint16_t flag, uint32_t cl_id, uint16_t dest_id_aux, uint32_t nonce){
+	struct message aux;
+    aux.opcode = REPLY_OPCODE;
+    aux.my_id = cl_id;
+    aux.dest_id = dest_id_aux;
+    aux.flag = flag;
+    aux.nonce = nonce;
+    aux.pkey_len = 0;
+
+	return aux;
+}
+
 struct message packCertificateAndSign(unsigned char* signed_challange,int sign_len, char* certserver_file_name){
 
 	FILE* cert_file = fopen(certserver_file_name, "r");
@@ -492,11 +504,6 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			alarm(TIMEOUT_TIME);
 			waitingId = aux->dest_id;
 			int req = recv_message(sd_listen, &aux_risp, (struct sockaddr*)&listen_addr, FALSE, 0); //3000 receive port and then pass message to others
-			if(timeout == 1){
-				timeout = 0;
-				printf("Closing the comunication\n");
-				break;
-			}
 			
 			if(req!=1){
 				printf("Errore (andra' implementato ERR_OPCODE)\n");
@@ -504,71 +511,79 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				exit(1);
 			}
 
-			//Check corret nonce
-			printf("Nonce 			recived: %d		Nonce stored: %d\n", aux_risp.nonce, nonce_reciver);
-			if( aux_risp.nonce != (nonce_reciver + 2)){
-				printf("Errore: il nonce ricevuto dal reciver non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-				break;
+			if(timeout == 1){
+				timeout = 0;
+
+				//struct message resp = pack_reply_message(0, aux->dest_id, aux->my_id, nonce_stored + 2);
+				printf("Closing the comunication\n");
+				aux_risp.flag = 0;
+				//break;
+			}else{
+				//Check corret nonce
+				printf("Nonce 			recived: %d		Nonce stored: %d\n", aux_risp.nonce, nonce_reciver);
+				if( aux_risp.nonce != (nonce_reciver + 2)){
+					printf("Errore: il nonce ricevuto dal reciver non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+					break;
+				}
+
+
+
+				//send responce and public key of sender to the reciver
+				printf("sending to %d public key of %d\n", aux->dest_id, aux->my_id);
+				//uint16_t pkSize = getPublicKeySize(aux->my_id);
+				//unsigned char pk_dest = (unsigned char *) malloc(pkSize + 1);
+				unsigned char pk_dest[5000];
+				uint16_t pkSize = getPublicKey(pk_dest, aux->my_id);
+
+				printf("Public key:      %s\n", pk_dest);
+				source_ip   = get_column_by_id(filename, aux->my_id, 2);
+				source_port = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
+
+				struct message risp;
+				risp.opcode = REPLY_OPCODE;
+				risp.dest_ip = source_ip;
+				risp.dest_port = source_port;
+				risp.flag = aux_risp.flag;
+				risp.nonce = nonce_reciver + 3;
+				risp.pkey_len = pkSize;
+				risp.pubKey = pk_dest;
+
+				//reciver publick key
+				
+				printf("Public key:      \n%s\n", pk_dest);
+				
+				send_message(&risp, &listen_addr, sd_listen, TRUE);
+
+				//free(pk_dest);
+
+				dest_ip = get_column_by_id(filename, aux->dest_id, 2);
+				update_row(filename, aux->dest_id, dest_ip, dest_port, nonce_reciver + 3);
+				printf("												DEST IP: %s\n", dest_ip);
 			}
-
-
-
-			//send responce and public key of sender to the reciver
-			printf("sending to %d public key of %d\n", aux->dest_id, aux->my_id);
-			//uint16_t pkSize = getPublicKeySize(aux->my_id);
-			//unsigned char pk_dest = (unsigned char *) malloc(pkSize + 1);
-			unsigned char pk_dest[5000];
-			uint16_t pkSize = getPublicKey(pk_dest, aux->my_id);
-
-    		printf("Public key:      %s\n", pk_dest);
-			source_ip   = get_column_by_id(filename, aux->my_id, 2);
-			source_port = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
-
-			struct message risp;
-			risp.opcode = REPLY_OPCODE;
-			risp.dest_ip = source_ip;
-			risp.dest_port = source_port;
-			risp.flag = aux_risp.flag;
-			risp.nonce = nonce_reciver + 3;
-			risp.pkey_len = pkSize;
-			risp.pubKey = pk_dest;
-
-			//reciver publick key
-			
-			printf("Public key:      \n%s\n", pk_dest);
-			
-			send_message(&risp, &listen_addr, sd_listen, TRUE);
-
-			//free(pk_dest);
-
-			dest_ip = get_column_by_id(filename, aux->dest_id, 2);
-			update_row(filename, aux->dest_id, dest_ip, dest_port, nonce_reciver + 3);
-			printf("												DEST IP: %s\n", dest_ip);
-
-
 
 
 			//send responce to the sender
 			printf("sending to %d public key of %d\n", aux->my_id, aux->dest_id);
 			unsigned char pk[5000];
-			 pkSize = getPublicKey(pk, aux->dest_id);
+			uint16_t pkSizeSender = getPublicKey(pk, aux->dest_id);
 
     		//printf("Public key:      %s\n", pk);
 
-			risp.opcode = REPLY_OPCODE;
-			risp.dest_ip = dest_ip;
-			risp.dest_port = dest_port;
-			risp.flag = aux_risp.flag;
-			risp.nonce = nonce_stored + 2;
-			risp.pkey_len = pkSize;
-			risp.pubKey = pk;
+			struct message rispSender;
+			rispSender.opcode = REPLY_OPCODE;
+			rispSender.dest_ip = dest_ip;
+			rispSender.dest_port = dest_port;
+			rispSender.flag = aux_risp.flag;
+			rispSender.nonce = nonce_stored + 2;
+			rispSender.pkey_len = pkSizeSender;
+			rispSender.pubKey = pk;
 
 			//reciver publick key
 			
 			printf("Public key:      \n%s\n", pk);
 			
 			
-			send_message(&risp, cl_addr, sd, TRUE);
+			send_message(&rispSender, cl_addr, sd, TRUE);
 
 			//free(pk);
 
