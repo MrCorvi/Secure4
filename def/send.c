@@ -113,12 +113,22 @@ int serialize_message(void* buffer, struct message *msg){
 			pos+=sizeof(aux.dest_port);
 			memcpy(buffer+pos, &aux.nonce, sizeof(aux.nonce));
 			pos+=sizeof(aux.nonce);
-			printf("AUX FLAG INVIATO: %u <--> %d\n ", aux.flag, aux.flag );
+			memcpy(buffer+pos, &aux.pkey_len, sizeof(aux.pkey_len));
+			pos+=sizeof(aux.pkey_len);
+			//printf("\n\n%d  %d\n----Buffer Writing-----\n", msg->pkey_len, ntohs(msg->pkey_len));
+			for (uint16_t i = 0; i < msg->pkey_len; i++){
+				//printf("%d", i);
+				char tempC = msg->pubKey[i];
+				memcpy(buffer+pos, &tempC, sizeof(tempC));
+				pos+= sizeof(tempC);
+				//printf("%c", tempC);
+			}
+			//printf("\nAUX FLAG INVIATO: %u <--> %d\n ", aux.flag, aux.flag );
 			break;
 		case KEY_OPCODE:
 			memcpy(buffer+pos, &aux.pkey_len, sizeof(aux.pkey_len));
 			pos+=sizeof(aux.pkey_len);
-			printf("KEY OPCODE e chiave lunga %d \n", aux.pkey_len);
+			//printf("KEY OPCODE e chiave lunga %d \n", aux.pkey_len);
 			for(int i = 0; i < msg->pkey_len; i++){
 				unsigned char temp1 = aux.peerkey[i];
 				memcpy(buffer+pos, &temp1, sizeof(temp1));
@@ -179,6 +189,7 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
 	int ret;
 
 
+
 	// packet creation
 	//printf("ptLen: %d\n", m->ptLen); 
 	int len = 1 + MAX_BUFFER_SIZE + TAG_SIZE + 12;
@@ -196,6 +207,9 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
 		unsigned char pt[MAX_BUFFER_SIZE];
 		int ptLen = MAX_BUFFER_SIZE;
 		int pos = 0;
+
+		//printf("PlainTaxt: \n");
+    	//BIO_dump_fp(stdout, (const char *)pt, 256);
 
 		RAND_poll();
 

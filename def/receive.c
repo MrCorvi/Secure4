@@ -115,18 +115,34 @@ int deserialize_message(unsigned char* buffer, struct message *aux){
 			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
 			pos += sizeof(aux->nonce);
 
+			memcpy(&aux->pkey_len, buffer+pos, sizeof(aux->pkey_len));
+			pos += sizeof(aux->pkey_len);
+
+			//printf("recived key of length: %d  %d", aux->pkey_len, ntohs(aux->pkey_len));
+
+			aux->pubKey = (unsigned char *)malloc(aux->pkey_len);
+			char *pk = (unsigned char*)buffer+pos;
+
+			//printf("\n\n%d\nChiave ricevuta:\n", ntohs(aux->pkey_len));
+			for (uint16_t i = 0; i < ntohs(aux->pkey_len); i++){
+				aux->pubKey[i] = pk[i];
+				//printf("%c",pk[i]);
+				pos+= sizeof(unsigned char);
+			}
+			//printf("\n");
+
 			//printf("NONCE : \n");
    			//BIO_dump_fp(stdout, (const char *)buffer, MAX_BUFFER_SIZE + TAG_SIZE + 12);
-			printf("AUX FLAG ricevuto: %u <--> %d\n ", aux->flag, aux->flag );
+			//printf("AUX FLAG ricevuto: %u <--> %d\n ", aux->flag, aux->flag );
 			break;
 		case KEY_OPCODE:
-			printf("Sono quiii!\n");
+			//printf("Sono quiii!\n");
 			memcpy(&aux->pkey_len, buffer+pos, sizeof(aux->pkey_len));
-			printf("sono qua con pkey-len %d!\n", aux->pkey_len);
+			//printf("sono qua con pkey-len %d!\n", aux->pkey_len);
 			pos += sizeof(aux->pkey_len);
 			//char *temp1 = (char *)buffer+pos;
 			//printf(temp1[0]);
-			printf("pkey len %d\n", aux->pkey_len);
+			//printf("pkey len %d\n", aux->pkey_len);
 			aux->peerkey = malloc(ntohs(aux->pkey_len)+1); //POSSIBILE ERRORE
 			for (uint64_t i = 0; i < ntohs(aux->pkey_len); i++){
 				aux->peerkey[i] = (unsigned char)*(buffer+pos);

@@ -49,4 +49,5 @@ struct message{
     unsigned char *cphtBuffer;
     int ptLen; //plain text length
     unsigned char *tagBuffer;
+    unsigned char *pubKey;
 };
