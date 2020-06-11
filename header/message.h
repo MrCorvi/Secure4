@@ -24,6 +24,8 @@
 
 #define MAX_BUFFER_SIZE 4096
 #define TAG_SIZE 16
+#define SECRET_SIZE 64
+#define SIGN_SIZE 64
 
 struct message{
 	uint16_t opcode;

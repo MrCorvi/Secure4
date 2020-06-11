@@ -3,7 +3,7 @@ CFLAGS = -Wall
 
 
 server: server.o receive.o send.o utilityFile.o symEncript.o
-	$(CC) $(CFLAGS) $^ -o server -lcrypto 
+	$(CC) $(CFLAGS) $^ -o server -lcrypto -lm
 	rm *.o
 
 server.o: server.c
@@ -12,7 +12,7 @@ server.o: server.c
 
 
 client: client.o forza4Engine.o receive.o send.o symEncript.o
-	$(CC) $(CFLAGS) $^ -o client -pthread -lcrypto 
+	$(CC) $(CFLAGS) $^ -o client -pthread -lcrypto -lm 
 	rm *.o
 	
 client.o: client.c

@@ -16,6 +16,7 @@
 #include<stdio.h>
 #include<signal.h>
 #include<string.h>
+#include<math.h>
 #include "header/forza4Engine.h"
 #ifndef MESSAGE_H
     #define MESSAGE_H
@@ -36,6 +37,7 @@ struct sockaddr_in cl_address, cl_listen_addr, sv_addr;
 char *sv_ip;
 int sv_port, cl_id, cl2_id, cl_main_port, cl_secondary_port;
 int sd, secondSd;
+uint32_t cu;
 uint32_t nonce = 100;
 sem_t *mutex_active_process, *mutex_secondary_port;
 
@@ -107,10 +109,17 @@ int get_cmd(){
 	return CMD_UNKNOWN;
 }
 
-unsigned char* sign(unsigned char* message, int* signature_len){
+unsigned char* sign(unsigned char* message, int* signature_len, int msg_len){
     
-    // costante
-	char* client_file_name= "./keys/rsa_privkey1.pem";
+    char client_file_name[32];
+    char id[2];
+    sprintf(id, "%d", cl_id);
+    strcpy(client_file_name, "./keys/rsa_privkey");
+    strcat(client_file_name, id);
+    strcat(client_file_name,".pem");
+    printf("%s\n", client_file_name);
+
+	//char* client_file_name= "./keys/rsa_privkey1.pem";
 	FILE* fp = fopen(client_file_name, "r");
 	if(!fp) handleErrors();
 	EVP_PKEY* prvkey = PEM_read_PrivateKey(fp,NULL,NULL,NULL);
@@ -125,7 +134,7 @@ unsigned char* sign(unsigned char* message, int* signature_len){
     if(!sctx){printf("EVP_MD_CTX error"); handleErrors();}
     ret = EVP_SignInit(sctx, EVP_sha256());
     if(ret==0){printf("EVP_SignInit error"); handleErrors();}
-    ret = EVP_SignUpdate(sctx, (unsigned char*)message, 2); // costante magica sizeof(message));
+    ret = EVP_SignUpdate(sctx, (unsigned char*)message, msg_len); //2 costante magica sizeof(message));
     if(ret==0){printf("EVP_SignUpdate error"); handleErrors();}
 	ret = EVP_SignFinal(sctx, signature, signature_len, prvkey);
     if(ret==0){printf("EVP_SignFinal error"); handleErrors();}
@@ -203,15 +212,19 @@ void pack_match_message(struct message* aux){
 
 void pack_response_message(struct message* aux, int cs){
 
-    int cu = 77; //costante magica
-    int sign_len;
-    char ch_cs[2];
+    int sign_len ;
+
+    RAND_poll();
+    RAND_bytes(&cu, sizeof(uint32_t));
+    int nonce_len = (unsigned int)(floor(log10(cs)))+1;
+    printf("Cu %u lungo", cu, nonce_len);
+    char ch_cs[nonce_len];
     sprintf(ch_cs, "%d", cs);
     /*printf("\nSizeof ch_ch %d e Cs: ", sizeof(ch_cs));
     for(int i=0; i<2; i++)
         printf("%c", ch_cs[i]);
     printf("\n");*/
-	unsigned char* signed_resp = sign(ch_cs, &sign_len);
+	unsigned char* signed_resp = sign(ch_cs, &sign_len, nonce_len);
 	/*printf("Firma CON LUNGHEZZA %d\n", sign_len);
     for(int i=0; i<sign_len; i++)
         printf("%u", signed_resp[i]);
@@ -571,7 +584,7 @@ void childCode(){
                 
                 ////
                 // Negotiation
-                size_t *secret_len = 64; //costante magica
+                size_t *secret_len = SECRET_SIZE; 
                 printf("opponent addr %d", opponent_addr);
                 unsigned char* secret = get_secret_ec(secret_len, cl_id, opponent_addr,0); //"0123456789"; //
                 unsigned char* digest = hash(secret);
@@ -602,10 +615,9 @@ void childCode(){
 EVP_PKEY* verifyCertificate(struct message m){
 
     int ret;
-    // costante magica
     char* cacert_file_name = "./CA/Cybersec CA_cert.pem";
     char* cacrl_file_name = "./CA/Cybersec CA_crl.pem";
-    char* certserver_file_name = "./CA/ServerCybersec_cert.pem"; //PER ORAAA
+    //char* certserver_file_name = "./CA/ServerCybersec_cert.pem"; //PER ORAAA
 
     // load the CA's certificate and the CRL(considero di averli già)
     FILE* cacert_file = fopen(cacert_file_name, "r");
@@ -778,23 +790,33 @@ int main(int argc, char* argv[]){
     EVP_PKEY* server_pkey = verifyCertificate(ack_cert_m);
 
     // verifica
-    char *test= "77"; //costante magica
+    int nonce_len = (unsigned int)floor(log10(cu))+1;
+    char ch_cu[nonce_len];
+    sprintf(ch_cu, "%u", cu);
+    printf("provina\n");
+    printf("cu: %u\n", cu);
+    //char *test= "77"; //costante magica
 	int ret;
     const EVP_MD* md = EVP_sha256();
 	EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
 	if(!md_ctx) handleErrors();
 	ret = EVP_VerifyInit(md_ctx, md);
 	if(ret==0){ printf("Error verify init\n"); handleErrors();}
-	ret = EVP_VerifyUpdate(md_ctx, test, 2);
+	ret = EVP_VerifyUpdate(md_ctx, ch_cu, nonce_len);
 	if(ret==0){ printf("Error verify update\n"); handleErrors();}
 	ret = EVP_VerifyFinal(md_ctx, ack_cert_m.sign, ack_cert_m.sign_len, server_pkey);
-	if(ret!=1){ printf("Error verify final\n"); handleErrors();}
+	if(ret!=1){ 
+        printf("Error verify final con nonce_len %d e ch_cu \n", nonce_len);
+        for(int i=0; i<nonce_len;i++)
+            printf("%c",ch_cu[i]);
+        handleErrors();
+    }
 	printf("Ca verified");
 	EVP_PKEY_free(server_pkey);
 	EVP_MD_CTX_free(md_ctx);
 
 
-    size_t *secret_len = 64; //costante magica
+    size_t *secret_len = SECRET_SIZE; 
     printf("Ehiii");
     unsigned char* secret = get_secret_ec(secret_len, cl_id, sv_addr,2); //"0123456789"; //
     unsigned char* digest = hash(secret);

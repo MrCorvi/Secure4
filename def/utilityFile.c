@@ -182,7 +182,7 @@ const char* get_column_by_id(char* filename, int id,int col){
         free(tmp);
     }
     fclose(file1);
-
+    
     return NULL;
 }
 
