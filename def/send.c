@@ -113,12 +113,12 @@ int serialize_message(void* buffer, struct message *msg){
 			pos+=sizeof(aux.dest_port);
 			memcpy(buffer+pos, &aux.nonce, sizeof(aux.nonce));
 			pos+=sizeof(aux.nonce);
-			printf("AUX FLAG INVIATO: %u <--> %d\n ", aux.flag, aux.flag );
+			//printf("AUX FLAG INVIATO: %u <--> %d\n ", aux.flag, aux.flag );
 			break;
 		case KEY_OPCODE:
 			memcpy(buffer+pos, &aux.pkey_len, sizeof(aux.pkey_len));
 			pos+=sizeof(aux.pkey_len);
-			printf("KEY OPCODE e chiave lunga %d \n", aux.pkey_len);
+			//printf("KEY OPCODE e chiave lunga %d \n", aux.pkey_len);
 			for(int i = 0; i < msg->pkey_len; i++){
 				unsigned char temp1 = aux.peerkey[i];
 				memcpy(buffer+pos, &temp1, sizeof(temp1));

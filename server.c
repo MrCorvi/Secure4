@@ -271,11 +271,15 @@ struct sockaddr_in setupAddress(char *ip, int port){
 
 unsigned char* sign(char* message, int* signature_len){
 
-	unsigned char* signature;        
+	unsigned char* signature;   
+	char buf[64];
+	void* pwd=NULL;   
 	char* serverpkey_file_name= "./CA/serverprvkey.pem"; //costante magica
 	FILE* fp = fopen(serverpkey_file_name, "r");
 	if(!fp) handleErrors();
-	EVP_PKEY* prvkey = PEM_read_PrivateKey(fp,NULL,NULL,NULL); //costante magica
+	EVP_PKEY* prvkey = PEM_read_PrivateKey(fp,NULL,
+	NULL ,"server01"); //costante magica
+	//EVP_PKEY* prvkey = PEM_read_PrivateKey(fp,NULL, NULL,NULL); //costante magica
 	if(!prvkey){printf("Errore prvkey\n"); handleErrors();}
 	fclose(fp);
 	
