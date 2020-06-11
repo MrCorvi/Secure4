@@ -189,7 +189,6 @@ const char* get_column_by_id(char* filename, int id,int col){
 int update_row(char* filename, uint32_t my_id, char ip[], uint16_t cl_port, uint32_t nonce){
     char buffer[1024];
     int row_num;
-    
     //remove old row version
     row_num = get_row_by_id(filename, my_id);
     //if not pack err

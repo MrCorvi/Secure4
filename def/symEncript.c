@@ -112,3 +112,58 @@ int symDecrypt(unsigned char *dec_buf, int pt_len, unsigned char *key_gem, unsig
     */
     return 0;
 }
+
+
+
+int getPublicKey(unsigned char *pk, uint32_t id){
+    // verifica
+    char client_file_name[50];
+    sprintf(client_file_name,"./pubkeys/ec_pubkey%d.pem", id);
+    printf("File: %s\n", client_file_name);
+    FILE* fp = fopen(client_file_name, "r");
+    if(!fp) { 
+        printf("Can't open the file of the public key !\n"); 
+        return 0;
+    }
+
+    int i=0;
+    while(!feof(fp)){
+        pk[i] = fgetc(fp);
+        printf("%c",pk[i]);   
+        i++;
+    }
+    pk[i-1]='\0';
+
+    printf("\nPublic key:      %s\n", pk);
+    
+    fclose(fp);
+
+    return i - 1;
+}
+
+
+int getPublicKeySize(uint32_t id){
+    // verifica
+    char client_file_name[50];
+    sprintf(client_file_name,"./pubkeys/ec_pubkey%d.pem", id);
+    printf("File: %s\n", client_file_name);
+    FILE* fp = fopen(client_file_name, "r");
+    if(!fp) { 
+        printf("Can't open the file of the public key !\n"); 
+        return 0;
+    }
+
+    int i=0;
+    rewind(fp);
+    while(!feof(fp)){
+        printf("%d", i);
+        fgetc(fp);
+        i++;
+    }
+
+    printf("Public key len: %d   \n", i);
+    
+    fclose(fp);
+
+    return i-1;
+}

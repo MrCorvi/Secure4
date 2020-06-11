@@ -115,6 +115,22 @@ int deserialize_message(unsigned char* buffer, struct message *aux){
 			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
 			pos += sizeof(aux->nonce);
 
+			memcpy(&aux->pkey_len, buffer+pos, sizeof(aux->pkey_len));
+			pos += sizeof(aux->pkey_len);
+
+			//printf("recived key of length: %d  %d", aux->pkey_len, ntohs(aux->pkey_len));
+
+			aux->pubKey = (unsigned char *)malloc(aux->pkey_len);
+			char *pk = (unsigned char*)buffer+pos;
+
+			//printf("\n\n%d\nChiave ricevuta:\n", ntohs(aux->pkey_len));
+			for (uint16_t i = 0; i < ntohs(aux->pkey_len); i++){
+				aux->pubKey[i] = pk[i];
+				//printf("%c",pk[i]);
+				pos+= sizeof(unsigned char);
+			}
+			//printf("\n");
+
 			//printf("NONCE : \n");
    			//BIO_dump_fp(stdout, (const char *)buffer, MAX_BUFFER_SIZE + TAG_SIZE + 12);
 			printf("AUX FLAG ricevuto: %u <--> %d\n ", aux->flag, aux->flag );

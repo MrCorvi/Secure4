@@ -474,20 +474,71 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				break;
 			}
 
+
+
+			//send responce and public key of sender to the reciver
+			printf("sending to %d public key of %d\n", aux->dest_id, aux->my_id);
+			//uint16_t pkSize = getPublicKeySize(aux->my_id);
+			//unsigned char pk_dest = (unsigned char *) malloc(pkSize + 1);
+			unsigned char pk_dest[5000];
+			uint16_t pkSize = getPublicKey(pk_dest, aux->my_id);
+
+    		printf("Public key:      %s\n", pk_dest);
+			source_ip   = get_column_by_id(filename, aux->my_id, 2);
+			source_port = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
+
+			struct message risp;
+			risp.opcode = REPLY_OPCODE;
+			risp.dest_ip = source_ip;
+			risp.dest_port = source_port;
+			risp.flag = aux_risp.flag;
+			risp.nonce = nonce_reciver + 3;
+			risp.pkey_len = pkSize;
+			risp.pubKey = pk_dest;
+
+			//reciver publick key
+			
+			printf("Public key:      \n%s\n", pk_dest);
+			
+			send_message(&risp, &listen_addr, sd_listen, TRUE);
+
+			//free(pk_dest);
+
 			dest_ip = get_column_by_id(filename, aux->dest_id, 2);
-			update_row(filename, aux->dest_id, dest_ip, dest_port, nonce_reciver + 2);
+			update_row(filename, aux->dest_id, dest_ip, dest_port, nonce_reciver + 3);
 			printf("												DEST IP: %s\n", dest_ip);
 
 
-			struct message risp;
+
+
+			//send responce to the sender
+			printf("sending to %d public key of %d\n", aux->my_id, aux->dest_id);
+			//pkSize = getPublicKeySize(aux->dest_id);
+			//unsigned char *pk = (unsigned char *) malloc(pkSize + 1);
+			//getPublicKey(pk, aux->dest_id);
+			unsigned char pk[5000];
+			 pkSize = getPublicKey(pk, aux->dest_id);
+
+    		//printf("Public key:      %s\n", pk);
+
 			risp.opcode = REPLY_OPCODE;
 			risp.dest_ip = dest_ip;
 			risp.dest_port = dest_port;
 			risp.flag = aux_risp.flag;
 			risp.nonce = nonce_stored + 2;
+			risp.pkey_len = pkSize;
+			risp.pubKey = pk;
+
+			//reciver publick key
+			
+			printf("Public key:      \n%s\n", pk);
 			
 			
 			send_message(&risp, cl_addr, sd, TRUE);
+
+			//free(pk);
+
+
 
 			source_ip   = get_column_by_id(filename, aux->my_id, 2);
 			source_port = (short)atoi(get_column_by_id(filename, aux->my_id, 3));

@@ -169,6 +169,7 @@ void pack_match_move_message(struct message* aux, uint8_t column){
     aux->ptLen = 1;
     aux->cphtBuffer = (unsigned char*)malloc(aux->ptLen);
     aux->tagBuffer  = (unsigned char*)malloc(16);
+    aux->pkey_len = 0;
 }
 
 struct sockaddr_in setupAddress(char *ip, int port){
@@ -187,6 +188,7 @@ void pack_reply_message(struct message* aux, uint16_t flag, uint16_t dest_id_aux
     aux->dest_id = dest_id_aux;
     aux->flag = flag;
     aux->nonce = nonce;
+    aux->pkey_len = 0;
 }
 
 void pack_match_message(struct message* aux){
@@ -249,7 +251,7 @@ int nonceCheck(uint32_t nonceReceived, int incNonce, pid_t pid){
     //Nonce check
     //printf("\nNonce rec: %d       stored:%d\n", nonceReceived, nonce);
     if((nonce + 1) != nonceReceived){
-        printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        printf("Errore: recived nonce %d insted of %d\n", nonceReceived, nonce+1);//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         return 0;
     }
     nonce+=incNonce;
@@ -257,6 +259,11 @@ int nonceCheck(uint32_t nonceReceived, int incNonce, pid_t pid){
     //update other branch nonce
     kill(pid, SIGUSR1);
     return 1;
+}
+
+void nonceInc(pid_t pid){
+    nonce++;
+    kill(pid, SIGUSR1);
 }
 
 
@@ -282,7 +289,7 @@ void secondaryPortRequest(){
 }
 
 void updateNonce(){
-    nonce += 2;
+    nonce += 1;
 }
 
 //Codice del processo figlio
@@ -299,7 +306,7 @@ void childCode(){
         recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen, FALSE, nonce);
 
         //nonce check
-        if(nonceCheck(match_m.nonce, 2, getppid()) == 0)
+        if(nonceCheck(match_m.nonce, 1, getppid()) == 0)
             continue;
 
         //Sto sfidando io qualcuno o mi sta arrivando se hanno accettato la sfida o no ?
@@ -320,6 +327,7 @@ void childCode(){
             sem_post(mutex_active_process);
 
             //Rispondo se ho accettato la richista o meno
+            nonceInc(getppid());
             if(command == 'y'){
                 printf("Hai accettato\n");
                 pack_reply_message(&reply_m, 1, match_m.my_id);
@@ -334,8 +342,23 @@ void childCode(){
 
             //Richiesta accettata
             if(command == 'y'){
+                //Waiting from server the public key of who hasked for the match
+                struct message pubKey_m;
+                recv_message(secondSd, &pubKey_m, (struct sockaddr*)&sv_addr_listen, FALSE, nonce);
+
+                //nonce check
+                if(nonceCheck(pubKey_m.nonce, 1, getppid()) == 0)
+                    continue;
+
+                printf("                                nonce:%d\n", nonce);
+
+                //get sender public key
+                printf("Public key of who asked for the match:\n%s\n", pubKey_m.pubKey);
+                free(pubKey_m.pubKey);// Per ora lo cancelliamo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
                 printf("Waiting for Battle request on port %d...\n", ntohs(cl_secondary_port));
-                recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr, FALSE, nonce);
+                recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr, FALSE, 0);
                 printf("Recived Battle request !!!!\n");
                 pack_match_move_message(&m, 0);
                 send_message(&m, &opponent_addr, secondSd, TRUE);
@@ -763,13 +786,13 @@ int main(int argc, char* argv[]){
                 sv_addr = setupAddress("127.0.0.1", sv_port);
 
                 //nonce setup
-                nonce++;
+                nonceInc(pid);
                 pack_list_message(&m, cl_id);
     
                 printf("Getting list of online users from the server \n");
                 send_message(&m, &sv_addr, sd, TRUE);
-                printf("Waiting ACK...\n");
 
+                printf("Waiting ACK...\n");
                 struct message ack_list;
                 recv_message(sd, &ack_list, (struct sockaddr*)&sv_addr, TRUE, 0);
 
@@ -790,7 +813,7 @@ int main(int argc, char* argv[]){
                     printf("You can't rematch yourself!\n");
                     break;
                 }
-                nonce++;
+                nonceInc(pid);
                 //("Nonce: %d\n", nonce);
 
                 sv_addr = setupAddress("127.0.0.1", sv_port);
@@ -808,9 +831,11 @@ int main(int argc, char* argv[]){
                 if(nonceCheck(ack_match_m.nonce, 1, pid) == 0)
                     continue;
 
+                //get reciver publick key
+                printf("%s\n", ack_match_m.pubKey);
+                free(ack_match_m.pubKey);
 
                 int esito = (ack_match_m.flag==1)?ACCEPT_OPCODE:DENY_OPCODE;
-
                     
                 printf("ACK Match received... Esito\n");
                 if(esito== DENY_OPCODE){
@@ -858,7 +883,7 @@ int main(int argc, char* argv[]){
                 sv_addr.sin_port = htons(sv_port);
                 inet_pton(AF_INET, "127.0.0.1" , &sv_addr.sin_addr);
 
-                nonce++;
+                nonceInc(pid);
                 pack_logout_message(&m);
 
                 send_message(&m, &sv_addr, sd, TRUE);
