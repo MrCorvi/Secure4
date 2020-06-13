@@ -329,7 +329,7 @@ int checkNonce(uint32_t id, uint32_t nonce_recived, int inc){
 
 
 
-volatile int timeout = 0, waitingId;
+int timeout = 0, waitingId;
 void  ALARMhandler(int sig){
 	signal(SIGALRM, SIG_IGN);          /* ignore this signal       */
 	printf("TIME OUT: 1 minute of no responce \nThe user is now delited\n");
@@ -515,7 +515,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				timeout = 0;
 
 				//struct message resp = pack_reply_message(0, aux->dest_id, aux->my_id, nonce_stored + 2);
-				printf("Closing the comunication\n");
+				printf("[0;31mClosing the comunication[0m\n");
 				aux_risp.flag = 0;
 				//break;
 			}else{
