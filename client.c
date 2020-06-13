@@ -606,6 +606,8 @@ void childCode(){
 
                 sem_post(mutex_active_process);
             }
+        }else if(match_m.opcode == DENY_OPCODE){
+            printf("Sfida rifiutata (child process)\n");
         }else{
             printf("Errore OPCODE da gestire\n");
         }
