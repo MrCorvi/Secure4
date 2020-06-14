@@ -222,7 +222,7 @@ int remove_row_by_id(char* filename, uint32_t id){
 }
 
 
-int update_row(char* filename, uint32_t my_id, char ip[], uint16_t cl_port, uint32_t nonce){
+int update_row(char* filename, uint32_t my_id, const char ip[], uint16_t cl_port, uint32_t nonce){
     char buffer[1024], key[300];
     int row_num, ret = 1;
 

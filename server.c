@@ -91,7 +91,7 @@ unsigned char *get_secret_ec(size_t *secret_len, struct sockaddr_in *cl_addr,int
     // ricevi
    	struct message aux;
 	printf("Attendo chiave\n");
-    recv_message(sd, &aux, (struct sockaddr*)&cl_addr, FALSE, 0);
+    recv_message(sd, &aux, (struct sockaddr*)cl_addr, FALSE, 0);
 	printf("Chiave ricevuta\n");
 	printf("Di lunghezza %d\n", aux.pkey_len );
 	// peerkey è consistente, controllato
@@ -142,7 +142,7 @@ unsigned char *get_secret_ec(size_t *secret_len, struct sockaddr_in *cl_addr,int
     aux_ack.opcode = KEY_OPCODE;    
     aux_ack.peerkey = pem;
     aux_ack.pkey_len = size;
-	send_message(&aux_ack, &cl_addr, sd, FALSE);
+	send_message(&aux_ack, cl_addr, sd, FALSE);
 	printf("inviatooooU_Uxf\n");
 	
 	// Create the context for the shared secret derivation 
@@ -155,14 +155,14 @@ unsigned char *get_secret_ec(size_t *secret_len, struct sockaddr_in *cl_addr,int
 	if(EVP_PKEY_derive_set_peer(ctx, peerkey)<=0)  printf("ERRORE 3\n");//handleErrors();
 	
 	// Determine buffer length for shared secret 
-	if(EVP_PKEY_derive(ctx, NULL, &secret_len)<=0)  printf("ERRORE 4\n");//handleErrors();
+	if(EVP_PKEY_derive(ctx, NULL, secret_len)<=0)  printf("ERRORE 4\n");//handleErrors();
 	
 	// Create the buffer 
-	secret = (unsigned char*)(malloc((int)(secret_len)));
+	secret = (unsigned char*)(malloc((int)*secret_len));
 	if(!secret) handleErrors();
 	
 	// Derive the shared secret 
-	if(EVP_PKEY_derive(ctx, secret, &secret_len)<=0)  printf("ERRORE 6\n");//handleErrors();
+	if(EVP_PKEY_derive(ctx, secret, secret_len)<=0)  printf("ERRORE 6\n");//handleErrors();
 	
 	EVP_PKEY_CTX_free(ctx);
 	EVP_PKEY_free(peerkey);
@@ -172,7 +172,7 @@ unsigned char *get_secret_ec(size_t *secret_len, struct sockaddr_in *cl_addr,int
 	EVP_PKEY_CTX_free(pctx);
     
 	printf("SEGRETO: \t");
-	BIO_dump_fp(stdout, secret, secret_len);
+	BIO_dump_fp(stdout, (const char*)secret, *secret_len);
 	
 	return secret;
 }
@@ -188,10 +188,10 @@ unsigned char* hash(unsigned char* secret){
 
 	EVP_DigestInit(Hctx, EVP_sha256());
 	EVP_DigestUpdate(Hctx, secret, sizeof(secret));
-	EVP_DigestFinal(Hctx, digest, &digestlen);
+	EVP_DigestFinal(Hctx, digest, (unsigned int*)&digestlen);
 
 	printf("Digest:\n");
-	BIO_dump_fp(stdout, digest, digestlen);
+	BIO_dump_fp(stdout, (const char*)digest, digestlen);
 
 	return digest;
 }
@@ -247,13 +247,13 @@ struct message packCertificateAndSign(unsigned char* signed_challange,int sign_l
 
 	FILE* cert_file = fopen(certserver_file_name, "r");
     if(!cert_file) handleErrors();
-    X509* cert = PEM_read_X509(cert_file, NULL, "server01", NULL); //costante magica
+    X509* cert = PEM_read_X509(cert_file, NULL, (pem_password_cb *)"server01", NULL); //costante magica
 
 	unsigned char* cert_buf = NULL;
 	int cert_size = i2d_X509(cert, &cert_buf);
 	if(cert_size<0){printf("cert_size <0\n"); exit(1);}
 
-	printf("SIGN SIZEE %d e sizeof(int):%d\n", sign_len, sizeof(int));
+	printf("SIGN SIZEE %d e sizeof(int):%lu\n", sign_len, sizeof(int));
 
 	unsigned char *tmpPtr;		// because d2i_X509 moves the ptr 
 	tmpPtr = malloc(cert_size);
@@ -289,9 +289,7 @@ struct sockaddr_in setupAddress(char *ip, int port){
 
 unsigned char* sign(char* message, int* signature_len){
 
-	unsigned char* signature;   
-	char buf[64];
-	void* pwd=NULL;   
+	unsigned char* signature; 
 	char* serverpkey_file_name= "./CA/serverprvkey.pem"; //costante magica
 	FILE* fp = fopen(serverpkey_file_name, "r");
 	if(!fp) handleErrors();
@@ -305,7 +303,7 @@ unsigned char* sign(char* message, int* signature_len){
 	EVP_MD_CTX* sctx = EVP_MD_CTX_new();
 	EVP_SignInit(sctx, EVP_sha256());
 	EVP_SignUpdate(sctx, (unsigned char*)message, 2); // costante magica sizeof(message));
-	EVP_SignFinal(sctx, signature, signature_len, prvkey);
+	EVP_SignFinal(sctx, signature, (unsigned int*)signature_len, prvkey);
 	
 	return signature;
 }
@@ -323,7 +321,7 @@ int checkNonce(uint32_t id, uint32_t nonce_recived, int inc){
 	}
 
 	//update the nonce stored
-	char    *ip   = get_column_by_id(filename, id, 2);
+	const char *ip   = get_column_by_id(filename, id, 2);
 	uint16_t port = (short)atoi(get_column_by_id(filename, id, 3));
 	update_row(filename, id, ip, port, nonce_stored + inc);
 	return 1;
@@ -343,7 +341,7 @@ void  ALARMhandler(int sig){
 	//if not pack err
 	if(ret==-1){
 		printf("ID non presente!\n");
-		return -1;
+		return;
 	}
 	shutdown(sd_listen, SHUT_RDWR);
 	signal(SIGALRM, ALARMhandler);     /* reinstall the handler    */
@@ -388,7 +386,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			
 			struct message m_response;
 			struct sockaddr* cl_addr2;
-			recv_message(sd, &m_response, &cl_addr2, FALSE, 0); //c'era (struct sockaddr*)&cl_addr //
+			recv_message(sd, &m_response, cl_addr2, FALSE, 0); //c'era (struct sockaddr*)&cl_addr //
 			printf("\nCu: %d", m_response.nonce);
 			printf("Sign len. %d\n", m_response.sign_len);
 			/*for(uint32_t i=0; i<m_response.sign_len; i++){
@@ -432,9 +430,9 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			struct message aux_cert = packCertificateAndSign(signed_challange, sign_len, certserver_file_name);
 			send_message(&aux_cert, cl_addr, sd, FALSE);
 		
-			size_t *secret_len = 64;
+			size_t secret_len = 64;
 			//costante magica
-    		unsigned char* secret = get_secret_ec(secret_len, cl_addr, sd);  //"0123456789";//
+    		unsigned char* secret = get_secret_ec(&secret_len, cl_addr, sd);  //"0123456789";//
 			// Hashing to increase entropy
 			unsigned char* digest= hash(secret);
 
@@ -468,7 +466,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
             break;
 		case MATCH_OPCODE:
 
-			dest_ip = get_column_by_id(filename, aux->dest_id, 2);
+			dest_ip = (char*)get_column_by_id(filename, aux->dest_id, 2);
 			dest_port = (short)atoi(get_column_by_id(filename, aux->dest_id, 3));
 			uint32_t nonce_stored = atoi(get_column_by_id(filename, aux->my_id , 4));
 			uint32_t nonce_sender = aux->nonce;
