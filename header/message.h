@@ -27,7 +27,7 @@
 #define SECRET_SIZE 64
 #define SIGN_SIZE 64
 
-#define TIMEOUT_TIME 1
+#define TIMEOUT_TIME 60
 
 struct message{
 	uint16_t opcode;

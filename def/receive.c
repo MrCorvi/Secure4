@@ -214,7 +214,7 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 	if(isEncr != FALSE){
 
 		//create key
-		unsigned char key_gem[]= "1234567890123456";
+		unsigned char key_gem[]="1234567890123456";
 		//unsigned char iv_gcm[] = "123456789012" ;
 		unsigned char iv_gcm[12];
 		unsigned char *ct, *tag, pt[MAX_BUFFER_SIZE];

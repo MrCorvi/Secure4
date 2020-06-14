@@ -40,13 +40,14 @@ int sd, secondSd;
 uint32_t cu;
 uint32_t nonce = 100;
 sem_t *mutex_active_process, *mutex_secondary_port;
+char* client_pkey;
 
 void print_help(){
 
 	printf("Commands are the following:\n");
 	printf("!help --> show all available commands\n");
     printf("!list --> get IPs of all online clients\n");
-    printf("!match dest_ip -> request a challenge to the client corresponding to dest_ip\n");
+    printf("!match dest_id -> request a challenge to the client corresponding to dest_id\n");
 	printf("!logout --> logout by the server and stop the program\n");
     
 }
@@ -139,27 +140,20 @@ unsigned char* sign(unsigned char* message, int* signature_len, int msg_len){
 	ret = EVP_SignFinal(sctx, signature, signature_len, prvkey);
     if(ret==0){printf("EVP_SignFinal error"); handleErrors();}
 
-    /*
-    printf("firmaaa di lunghezza %d:  di un messaggio lungo%d\n", *signature_len, 2);
-    for(int i=0; i<*signature_len; i++){
-        printf("%u", signature[i]);
-    }
-    printf("fine \n");
-    */
-
 	return signature;
     
 }
 
 void pack_login_message(struct message* aux){
-
-	aux->opcode = LOGIN_OPCODE;
+	
+    aux->opcode = LOGIN_OPCODE;
     aux->my_id = cl_id;
     aux->my_listen_port = cl_secondary_port;
 }
 
 void pack_list_message(struct message* aux, uint32_t id){
-	aux->opcode = LIST_OPCODE;
+	
+    aux->opcode = LIST_OPCODE;
     aux->my_id = id;
     aux->nonce = nonce;
 }
@@ -246,8 +240,6 @@ int setupSocket(int port){
     cl_listen_addr.sin_addr.s_addr = INADDR_ANY;
     cl_listen_addr.sin_port = htons(port);
 
-    //int sd = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
-    //int ret = bind(sd, (struct sockaddr*)&cl_listen_addr, sizeof(cl_listen_addr));
     int secondSd = socket(AF_INET, SOCK_DGRAM, 0);
     int one = 1;
     setsockopt(secondSd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
@@ -268,9 +260,8 @@ int nonceCheck(uint32_t nonceReceived, int incNonce, pid_t pid){
         return 0;
     }
     nonce+=incNonce;
-
-    //update other branch nonce
-    kill(pid, SIGUSR1);
+    
+    kill(pid, SIGUSR1); //update other branch nonce
     return 1;
 }
 
@@ -279,15 +270,9 @@ void nonceInc(pid_t pid){
     kill(pid, SIGUSR1);
 }
 
-
-
 void battleRequest(){
-
     sem_wait(mutex_active_process);
-
 }
-
-
 
 //Signal per intrrompere l'esecuzione del processo figlio
 void secondaryPortRequest(){
@@ -307,21 +292,21 @@ void updateNonce(){
 
 unsigned char* hash(unsigned char* secret){
 	
-	unsigned char* digest;
+	unsigned char* dig;
 	int digestlen;
 	EVP_MD_CTX* Hctx;
 
-	digest = (unsigned char*)malloc(32);
+	dig = (unsigned char*)malloc(32);
 	Hctx = EVP_MD_CTX_new();
 
 	EVP_DigestInit(Hctx, EVP_sha256());
 	EVP_DigestUpdate(Hctx, secret, sizeof(secret));
-	EVP_DigestFinal(Hctx, digest, &digestlen);
+	EVP_DigestFinal(Hctx, dig, &digestlen);
 
-	printf("Digest:\n");
-	BIO_dump_fp(stdout, digest, digestlen);
+	printf("Digest:\n"); 
+	BIO_dump_fp(stdout, dig, digestlen);
 
-	return digest;
+	return dig;
 }
 
 unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in peer_addr, int flag_order){
@@ -366,124 +351,72 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
 	if (!EVP_PKEY_keygen(kctx, &pkey)) handleErrors();
 
     // Create the context for the shared secret derivation 
-    //printf("spostatooo\n");
    
-    //if(flag_order!=0){
-        if(NULL == (ctx = EVP_PKEY_CTX_new(pkey, NULL)))   printf("ERRORE 1\n");
-        //invia
-        FILE* p1w = fopen(str, "w");
-        if(!p1w){ printf("Error: cannot open file %s\n", str); exit(1); }
-        PEM_write_PUBKEY(p1w, pkey);
-        fseek(p1w, 0L, SEEK_END);
-        int size = ftell(p1w);
-        fseek(p1w, 0L, SEEK_SET);
-        fclose(p1w);
+    if(NULL == (ctx = EVP_PKEY_CTX_new(pkey, NULL)))   printf("ERRORE 1\n");
+    //invia
+    FILE* p1w = fopen(str, "w");
+    if(!p1w){ printf("Error: cannot open file %s\n", str); exit(1); }
+    PEM_write_PUBKEY(p1w, pkey);
+    fseek(p1w, 0L, SEEK_END);
+    int size = ftell(p1w);
+    fseek(p1w, 0L, SEEK_SET);
+    fclose(p1w);
 
-        BIO *bio = NULL;
-        if ((bio = BIO_new(BIO_s_mem())) == NULL) return NULL;
+    BIO *bio = NULL;
+    if ((bio = BIO_new(BIO_s_mem())) == NULL) return NULL;
 
-        if (0 == PEM_write_bio_PUBKEY(bio, pkey)){
-            BIO_free(bio);
-            return NULL;
-        }
-
-        char *pem = (char *) calloc(1, size + 1);
-        BIO_read(bio, pem, size);
-        //printf("sizeof %d\n", size);
-        for (int i = 0; i < size; i++)
-            printf("%c",  pem[i]);
-
-        struct message aux;
-        aux.opcode = KEY_OPCODE;    
-        aux.peerkey = pem;
-        aux.pkey_len = size;
-
-        struct message ack;
-        //printf("Peer addr6 %d", peer_addr);
-        if(flag_order==1){
-            printf("Attendo messaggio client\n");
-            struct sockaddr* peer_addr2;
-            recv_message(sdAux, &ack, (struct sockaddr*)&peer_addr, FALSE, 0);
-        }
-
-        printf("Inviooo a %d\n", peer_addr);
-        send_message(&aux, &peer_addr, sdAux, FALSE);
-
-        //ricevi 
-        if(flag_order!=1){
-            printf("Attendo messaggio client\n");
-            struct sockaddr* peer_addr2;
-            recv_message(sdAux, &ack, (struct sockaddr*)&peer_addr2, FALSE, 0);
-        }
-        printf("Chiave ricevuta\n");
-        printf("Di lunghezza :::%d\n", ack.pkey_len );
-        for (int ii = 0; ii < ack.pkey_len; ii++){
-                printf("%c", ack.peerkey[ii]);
-        }
-        BIO *bio2 = NULL;
-        if ((bio2 = BIO_new(BIO_s_mem())) == NULL)
-            return NULL;
-
-        BIO_write(bio2, ack.peerkey, ack.pkey_len);
-        PEM_read_bio_PUBKEY(bio2, &peerkey, NULL, NULL);
+    if (0 == PEM_write_bio_PUBKEY(bio, pkey)){
         BIO_free(bio);
-        BIO_free(bio2);
-    /*}
-    else{
-        // ricevi
-        struct message aux;
-        printf("Attendo chiave\n");
-        struct sockaddr_in peer_addr2 ;
-        recv_message(sdAux, &aux, (struct sockaddr*)&peer_addr2, FALSE, 0);
-        printf("Chiave ricevuta\n");
-        printf("Di lunghezza %d\n", aux.pkey_len );
-        // peerkey è consistente, controllato
-        for (int ii = 0; ii < aux.pkey_len; ii++){
-                printf("%c", aux.peerkey[ii]);
-        }
-        
-        BIO *bio = NULL;
-        if ((bio = BIO_new(BIO_s_mem())) == NULL)
+        return NULL;
+    }
+
+    char *pem = (char *) calloc(1, size + 1);
+    BIO_read(bio, pem, size);
+    //printf("sizeof %d\n", size);
+    for (int i = 0; i < size; i++)
+        printf("%c",  pem[i]);
+
+    struct message aux;
+    aux.opcode = KEY_OPCODE;    
+    aux.peerkey = pem;
+    aux.pkey_len = size;
+
+    struct message ack;
+    if(flag_order==1){
+        printf("Attendo messaggio client\n");
+        struct sockaddr* peer_addr2;
+        recv_message(sdAux, &ack, (struct sockaddr*)&peer_addr, FALSE, 0);
+    }
+
+    printf("Invio a %d\n", peer_addr);
+    send_message(&aux, &peer_addr, sdAux, FALSE);
+
+    //ricevi 
+    if(flag_order!=1){
+        printf("Attendo messaggio client\n");
+        struct sockaddr* peer_addr2;
+        recv_message(sdAux, &ack, (struct sockaddr*)&peer_addr2, FALSE, 0);
+
+    }
+    printf("Chiave ricevuta\n");
+    printf("Di lunghezza :::%d\n", ack.pkey_len );
+    for (int ii = 0; ii < ack.pkey_len; ii++){
+            printf("%c", ack.peerkey[ii]);
+    }
+    BIO *bio2 = NULL;
+    if ((bio2 = BIO_new(BIO_s_mem())) == NULL)
         return NULL;
 
-        BIO_write(bio, aux.peerkey, aux.pkey_len);
-        PEM_read_bio_PUBKEY(bio, &peerkey, NULL, NULL);
-        BIO_free(bio);
-
-        // invia
-        FILE* p1w = fopen(str, "w");
-        if(!p1w){ printf("Error: cannot open file %s\n", str); exit(1); }
-        PEM_write_PUBKEY(p1w, pkey);
-        fseek(p1w, 0L, SEEK_END);
-        int size = ftell(p1w);
-        fseek(p1w, 0L, SEEK_SET);
-        fclose(p1w);
-
-        BIO *bio2 = NULL;
-        if ((bio2 = BIO_new(BIO_s_mem())) == NULL) return NULL;
-        if (0 == PEM_write_bio_PUBKEY(bio2, pkey)){
-            BIO_free(bio2);
-            return NULL;
+    if(flag_order!=2){
+        if(strcmp(ack.peerkey,client_pkey)!=0){
+            printf("Matching error nella chiave\n");
+            //exit(1);
         }
-
-        char *pem = (char *) calloc(1, size + 1);
-        BIO_read(bio2, pem, size);
-        BIO_free(bio2);
-        printf("sizeof %d\n", size);
-        for (int i = 0; i < size; i++){
-            printf("%c",  pem[i]);
-        }
-
-        struct message aux_ack;
-        aux_ack.opcode = KEY_OPCODE;    
-        aux_ack.peerkey = pem;
-        aux_ack.pkey_len = size;
-        send_message(&aux_ack, &peer_addr, sdAux, FALSE);
-        printf("inviatooooU_Uxf\n");
-        
-        // Create the context for the shared secret derivation 
-        if(NULL == (ctx = EVP_PKEY_CTX_new(pkey, NULL)))   printf("ERRORE 1\n");// handleErrors();
-    }*/
+    }
+    BIO_write(bio2, ack.peerkey, ack.pkey_len);
+    PEM_read_bio_PUBKEY(bio2, &peerkey, NULL, NULL);
+    BIO_free(bio);
+    BIO_free(bio2);
     
     // Initialise 
 	if(EVP_PKEY_derive_init(ctx)<=0) handleErrors();
@@ -558,7 +491,6 @@ void childCode(){
                 pack_reply_message(&reply_m, 0, match_m.my_id);
             }
 
-
             send_message(&reply_m, &sv_addr_listen, secondSd, TRUE);
 
             //Richiesta accettata
@@ -575,21 +507,23 @@ void childCode(){
 
                 //get sender public key
                 printf("Public key of who asked for the match:\n%s\n", pubKey_m.pubKey);
-                free(pubKey_m.pubKey);// Per ora lo cancelliamo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+                BIO *bio = NULL;
+                if ((bio = BIO_new(BIO_s_mem())) == NULL)
+                    return NULL;
+                BIO_write(bio, pubKey_m.pubKey, pubKey_m.pkey_len);
+                PEM_read_bio_PUBKEY(bio, &client_pkey, NULL, NULL);
+                //free(pubKey_m.pubKey);// Per ora lo cancelliamo !!!!!!! costante
+                BIO_free(bio);
 
                 printf("Waiting for Battle request on port %d...\n", ntohs(cl_secondary_port));
                 recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr, FALSE, 0);
                 printf("Recived Battle request !!!!\n");
                 
-                ////
                 // Negotiation
                 size_t *secret_len = SECRET_SIZE; 
                 printf("opponent addr %d", opponent_addr);
                 unsigned char* secret = get_secret_ec(secret_len, cl_id, opponent_addr,0); //"0123456789"; //
                 unsigned char* digest = hash(secret);
-                //printf("Digest: %s\n", digest);
-                ////
 
                 pack_match_move_message(&m, 0);
                 send_message(&m, &opponent_addr, secondSd, TRUE);
@@ -619,7 +553,6 @@ EVP_PKEY* verifyCertificate(struct message m){
     int ret;
     char* cacert_file_name = "./CA/Cybersec CA_cert.pem";
     char* cacrl_file_name = "./CA/Cybersec CA_crl.pem";
-    //char* certserver_file_name = "./CA/ServerCybersec_cert.pem"; //PER ORAAA
 
     // load the CA's certificate and the CRL(considero di averli già)
     FILE* cacert_file = fopen(cacert_file_name, "r");
@@ -645,13 +578,6 @@ EVP_PKEY* verifyCertificate(struct message m){
     if(ret != 1){ printf("set flag error\n") ; handleErrors();}
 
     // get server's certificate:
- 
-   /* printf("m_sign_len %d e firmaaaa\n", m.sign_len);
-    for(int i=0; i<m.sign_len; i++){
-        printf("%c", m.sign[i]);
-    }
-    printf("\n");
-    */
     unsigned char *tmpPtr;		//because d2i_X509 moves the ptr 
 	tmpPtr = m.cert;
     int cert_len = m.cert_len;
@@ -675,18 +601,11 @@ EVP_PKEY* verifyCertificate(struct message m){
     free(tmp2);
 
     EVP_PKEY* server_pubkey = X509_get_pubkey(cert);
-    if(server_pubkey==NULL) handleErrors();
-    // riceve firmato
-    // verifica 
 
     // deallocate data:
-    //EVP_MD_CTX_free(md_ctx);
     X509_free(cert);
     X509_STORE_free(store);
     X509_STORE_CTX_free(certvfy_ctx);
-    
-    
-    printf("fine store :)");
     return server_pubkey;
 }
 
@@ -734,10 +653,8 @@ int main(int argc, char* argv[]){
 	sv_ip = argv[1];
 	sv_port = atoi(argv[2]); 
     cl_id = atoi(argv[3]);
-    cl_main_port = atoi(argv[4]);
-    
+    cl_main_port = atoi(argv[4]);    
     cl_secondary_port = (argc>=6)? atoi(argv[5]): cl_main_port+100;
-
 
     // socket creation
 	sd = socket(AF_INET, SOCK_DGRAM,0);	
@@ -746,7 +663,6 @@ int main(int argc, char* argv[]){
 		exit(1);
 	}
     
-
 	// Client address creation
 	memset(&cl_address,0, sizeof(cl_address)); // cleaning
 	cl_address.sin_family = AF_INET;
@@ -778,6 +694,7 @@ int main(int argc, char* argv[]){
     printf("Cs = %d\n", ack_login_m.nonce);
 
     struct message m_response;
+    nonce = ack_login_m.nonce;
     pack_response_message(&m_response, ack_login_m.nonce);
     send_message(&m_response, &sv_addr, sd, FALSE);
 
@@ -795,7 +712,7 @@ int main(int argc, char* argv[]){
     int nonce_len = (unsigned int)floor(log10(cu))+1;
     char ch_cu[nonce_len];
     sprintf(ch_cu, "%u", cu);
-    printf("provina\n");
+    //printf("provina\n");
     printf("cu: %u\n", cu);
     //char *test= "77"; //costante magica
 	int ret;
@@ -819,12 +736,8 @@ int main(int argc, char* argv[]){
 
 
     size_t *secret_len = SECRET_SIZE; 
-    printf("Ehiii");
     unsigned char* secret = get_secret_ec(secret_len, cl_id, sv_addr,2); //"0123456789"; //
-    unsigned char* digest = hash(secret);
-    //printf("Digest: %s\n", digest);
-
-    /* Use digest of secret instead of secret to increase the entropy */
+    unsigned char* digest = hash(secret); // Use digest (not secret) to increase the entropy 
 
     printf("\033[1;32m");
 	printf("Welcome to Forza4");
@@ -922,7 +835,13 @@ int main(int argc, char* argv[]){
                     continue;
 
                 //get reciver publick key
+                BIO *bio = NULL;
+                if ((bio = BIO_new(BIO_s_mem())) == NULL)
+                    return NULL;
+                BIO_write(bio, ack_match_m.pubKey, ack_match_m.pkey_len);
+                PEM_read_bio_PUBKEY(bio, &client_pkey, NULL, NULL);
                 printf("%s\n", ack_match_m.pubKey);
+                BIO_free(bio);
                 free(ack_match_m.pubKey);
 
                 int esito = (ack_match_m.flag==1)?ACCEPT_OPCODE:DENY_OPCODE;
@@ -976,7 +895,6 @@ int main(int argc, char* argv[]){
                 
             case CMD_LOGOUT:
 
-                //DA MODULARIZZARE
                 //creazione indirizzo server
                 memset(&sv_addr,0, sizeof(sv_addr)); //pulizia
                 sv_addr.sin_family= AF_INET;

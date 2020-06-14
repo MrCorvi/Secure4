@@ -178,21 +178,21 @@ unsigned char *get_secret_ec(size_t *secret_len, struct sockaddr_in *cl_addr,int
 
 unsigned char* hash(unsigned char* secret){
 	
-	unsigned char* digest;
+	unsigned char* dig;
 	int digestlen;
 	EVP_MD_CTX* Hctx;
 
-	digest = (unsigned char*)malloc(32);
+	dig = (unsigned char*)malloc(32);
 	Hctx = EVP_MD_CTX_new();
 
 	EVP_DigestInit(Hctx, EVP_sha256());
 	EVP_DigestUpdate(Hctx, secret, sizeof(secret));
-	EVP_DigestFinal(Hctx, digest, &digestlen);
+	EVP_DigestFinal(Hctx, dig, &digestlen);
 
 	printf("Digest:\n");
-	BIO_dump_fp(stdout, digest, digestlen);
+	BIO_dump_fp(stdout, dig, digestlen);
 
-	return digest;
+	return dig;
 }
 
 struct message pack_ack(uint32_t id, uint32_t nonce){
@@ -456,7 +456,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			char buffer[MAX_BUFFER_SIZE];
 			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);
 			int cl_port = aux->my_listen_port;
-			sprintf(buffer,"%d,%s,%d,%d", aux->my_id, str, cl_port,100); 
+			sprintf(buffer,"%d,%s,%d,%d", aux->my_id, str, cl_port,cs); //costante
 			append_row(filename, buffer);
             //struct message m = pack_ack(aux->my_id);
 
