@@ -211,7 +211,7 @@ struct message pack_ack(uint32_t id, uint32_t nonce){
 struct message pack_challenge(){
 
 	RAND_poll();
-	RAND_bytes(&cs, sizeof(uint32_t));
+	RAND_bytes((unsigned char *)&cs, sizeof(uint32_t));
 	printf("CS: %d\n", cs);
 	//cs = 66; // costante
 
@@ -224,9 +224,10 @@ struct message pack_challenge(){
 struct message pack_err(uint32_t id, u_int32_t nonce){
 
     struct message aux;
-    aux.opcode = ERR_OPCODE;
+    aux.opcode = REPLY_OPCODE;
     aux.my_id = id;
 	aux.nonce = nonce;
+    aux.flag = 2;
     return aux;
 }
 
@@ -365,7 +366,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 	uint16_t dest_port;   
 	char str[INET_ADDRSTRLEN];
 	sd_listen = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
-	int nonce_len_cs = (unsigned int)floor(log10(cs))+1;
+	//int nonce_len_cs = (unsigned int)floor(log10(cs))+1;
 	char *ch_ca, *ch_cs;
 
 	setIsServerReciver();
@@ -501,14 +502,14 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				//update nonce
 				char source_ip_err[50];
 				get_buf_column_by_id(filename, aux->my_id, 2, source_ip_err);
-				uint16_t source_port_err = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
+				uint16_t source_port_err = (uint16_t)atoi(get_column_by_id(filename, aux->my_id, 3));
 				update_row(filename, aux->my_id, source_ip_err, source_port_err, nonce_stored + 2);
 
 				struct message m = pack_err(aux->my_id, nonce_stored + 2);
-				printf("				---		---		nonce:  %d", nonce_stored + 2);
+				printf("				---		---		nonce:  %d\n", m.nonce);
 				//set symmetric key to talk with reciver
-				get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 5, symKey);
-            	send_message(&m, cl_addr, sd, FALSE);
+				get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 5, (char*)symKey);
+            	send_message(&m, cl_addr, sd, TRUE);
 				close(sd_listen);
 				break;
 			} 
@@ -532,7 +533,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			}
 
 			//update the nonce stored
-			char    *source_ip   = get_column_by_id(filename, aux->my_id, 2);
+			char    *source_ip   = (char*)get_column_by_id(filename, aux->my_id, 2);
 			uint16_t source_port = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
 			update_row(filename, aux->my_id, source_ip, source_port, nonce_stored + 1);
 
@@ -550,12 +551,12 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 
 
 			//set symmetric key to talk with reciver
-			get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 5, symKey);
+			get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 5, (char*)symKey);
             send_message(aux, &listen_addr, sd_listen, TRUE);
 
 			
 			printf("waiting reply\n");
-			dest_ip = get_column_by_id(filename, aux->dest_id, 2);
+			dest_ip = (char*)get_column_by_id(filename, aux->dest_id, 2);
 			dest_port = (short)atoi(get_column_by_id(filename, aux->dest_id, 3));
 
 			struct message aux_risp;
@@ -594,12 +595,12 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				uint16_t pkSize = getPublicKey(pk_dest, aux->my_id);
 
 				printf("Public key:      %s\n", pk_dest);
-				source_ip   = get_column_by_id(filename, aux->my_id, 2);
+				source_ip   = (char*)get_column_by_id(filename, aux->my_id, 2);
 				source_port = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
 
 				struct message risp;
 				risp.opcode = REPLY_OPCODE;
-				risp.dest_ip = source_ip;
+				risp.dest_ip = (uint32_t)*source_ip;
 				risp.dest_port = source_port;
 				risp.flag = aux_risp.flag;
 				risp.nonce = nonce_reciver + 3;
@@ -611,12 +612,12 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				printf("Public key:      \n%s\n", pk_dest);
 				
 				//set symmetric key to talk with reciver
-				get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 5, symKey);
+				get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 5, (char*)symKey);
 				send_message(&risp, &listen_addr, sd_listen, TRUE);
 
 				//free(pk_dest);
 
-				dest_ip = get_column_by_id(filename, aux->dest_id, 2);
+				dest_ip = (char*)get_column_by_id(filename, aux->dest_id, 2);
 				update_row(filename, aux->dest_id, dest_ip, dest_port, nonce_reciver + 3);
 				printf("												DEST IP: %s\n", dest_ip);
 			}
@@ -631,7 +632,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 
 			struct message rispSender;
 			rispSender.opcode = REPLY_OPCODE;
-			rispSender.dest_ip = dest_ip;
+			rispSender.dest_ip = (uint32_t)*dest_ip;
 			rispSender.dest_port = dest_port;
 			rispSender.flag = aux_risp.flag;
 			rispSender.nonce = nonce_stored + 2;
@@ -643,14 +644,14 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			printf("Public key:      \n%s\n", pk);
 			
 			//set symmetric key to talk with reciver
-			get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 5, symKey);
+			get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 5, (char*)symKey);
 			send_message(&rispSender, cl_addr, sd, TRUE);
 
 			//free(pk);
 
 
 
-			source_ip   = get_column_by_id(filename, aux->my_id, 2);
+			source_ip   = (char*)get_column_by_id(filename, aux->my_id, 2);
 			source_port = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
 			update_row(filename, aux->my_id, source_ip, source_port, nonce_stored + 2);
 

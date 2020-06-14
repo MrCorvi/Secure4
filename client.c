@@ -219,7 +219,7 @@ void pack_response_message(struct message* aux, uint32_t cs){
     int sign_len ;
 
     RAND_poll();
-    RAND_bytes(&cu, sizeof(uint32_t));
+    RAND_bytes((unsigned char*)&cu, sizeof(uint32_t));
     int nonce_len = (unsigned int)(floor(log10(cs)))+1;
     printf("Cu %u lungo %d", cu, nonce_len);
     printf("Cs %u lungo %d", cs, nonce_len);
@@ -395,17 +395,17 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
     struct message ack;
     if(flag_order==1){
         printf("Attendo messaggio client flag 1\n");
-        struct sockaddr* peer_addr2;
         recv_message(sdAux, &ack, (struct sockaddr*)&peer_addr, FALSE, 0);
     }
 
-    printf("Invio a %d\n", peer_addr);
+    char bufferAddr[INET_ADDRSTRLEN];
+    inet_ntop( AF_INET, &peer_addr.sin_addr, bufferAddr, sizeof( bufferAddr ));
+    printf("Invio a %s\n", bufferAddr);
     send_message(&aux, &peer_addr, sdAux, FALSE);
 
     //ricevi 
     if(flag_order!=1){
         printf("Attendo messaggio client flag diverso da 1\n");
-        struct sockaddr* peer_addr2;
         recv_message(sdAux, &ack, (struct sockaddr*)&peer_addr, FALSE, 0);
 
     }
@@ -530,9 +530,9 @@ void childCode(){
                 printf("Public key of who asked for the match:\n%s\n", pubKey_m.pubKey);
                 BIO *bio = NULL;
                 if ((bio = BIO_new(BIO_s_mem())) == NULL)
-                    return NULL;
+                    continue;
                 BIO_write(bio, pubKey_m.pubKey, pubKey_m.pkey_len);
-                PEM_read_bio_PUBKEY(bio, &client_pkey, NULL, NULL);
+                PEM_read_bio_PUBKEY(bio, (EVP_PKEY **)&client_pkey, NULL, NULL);
                 //free(pubKey_m.pubKey);// Per ora lo cancelliamo !!!!!!! costante
                 BIO_free(bio);
 
@@ -893,9 +893,9 @@ int main(int argc, char* argv[]){
                 //get reciver publick key
                 BIO *bio = NULL;
                 if ((bio = BIO_new(BIO_s_mem())) == NULL)
-                    return NULL;
+                    break;
                 BIO_write(bio, ack_match_m.pubKey, ack_match_m.pkey_len);
-                PEM_read_bio_PUBKEY(bio, &client_pkey, NULL, NULL);
+                PEM_read_bio_PUBKEY(bio, (EVP_PKEY**)&client_pkey, NULL, NULL);
                 printf("%s\n", ack_match_m.pubKey);
                 BIO_free(bio);
                 free(ack_match_m.pubKey);
@@ -903,12 +903,14 @@ int main(int argc, char* argv[]){
                 int esito = (ack_match_m.flag==1)?ACCEPT_OPCODE:DENY_OPCODE;
                     
                 printf("ACK Match received... Esito\n");
-                if(esito== DENY_OPCODE){
+                if(ack_match_m.flag == 2){
+                    printf("The selected user in not online right now\n");
+                }else if(esito== DENY_OPCODE){
                     printf("Partita rifiutata (main thread)\n");
                 }else if(esito == ACCEPT_OPCODE){
 
                     kill(pid, SIGUSR2);
-                    //aspetto che il porcesso figlio chouda il socket secondario
+                    //aspetto che il porcesso figlio chioda il socket secondario
                     sem_wait(mutex_active_process);
                     secondSd = setupSocket(cl_secondary_port);
 
