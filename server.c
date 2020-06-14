@@ -146,8 +146,8 @@ unsigned char *get_secret_ec(size_t *secret_len, struct sockaddr_in *cl_addr,int
     aux_ack.opcode = KEY_OPCODE;    
     aux_ack.peerkey = pem;
     aux_ack.pkey_len = size;
-	send_message(&aux_ack, &cl_addr, sd, FALSE);
-	
+	send_message(&aux_ack, cl_addr, sd, FALSE);
+
 	// Create the context for the shared secret derivation 
 	if(NULL == (ctx = EVP_PKEY_CTX_new(pkey, NULL)))   printf("ERRORE 1\n");// handleErrors();
 	
@@ -397,7 +397,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			struct message m_response;
 			struct sockaddr* cl_addr2;
 			recv_message(sd, &m_response, cl_addr2, FALSE, 0); //c'era (struct sockaddr*)&cl_addr //
-			printf("\nCu: %d", m_response.nonce);
+			printf("\nCu: %u", m_response.nonce);
 			printf("Sign len. %d\n", m_response.sign_len);
 			/*for(uint32_t i=0; i<m_response.sign_len; i++){
 				printf("%u", m_response.sign[i]);

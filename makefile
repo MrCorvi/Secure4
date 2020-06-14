@@ -12,7 +12,7 @@ server.o: server.c
 
 
 client: client.o forza4Engine.o receive.o send.o symEncript.o utilityFile.o
-	$(CC) $(CFLAGS) $^ -o client -pthread -lcrypto 
+	$(CC) $(CFLAGS) $^ -o client -pthread -lcrypto -lm 
 	rm *.o
 	
 client.o: client.c

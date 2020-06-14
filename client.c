@@ -393,7 +393,7 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
 
     struct message ack;
     if(flag_order==1){
-        printf("Attendo messaggio client\n");
+        printf("Attendo messaggio client flag 1\n");
         struct sockaddr* peer_addr2;
         recv_message(sdAux, &ack, (struct sockaddr*)&peer_addr, FALSE, 0);
     }
@@ -403,9 +403,9 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
 
     //ricevi 
     if(flag_order!=1){
-        printf("Attendo messaggio client\n");
+        printf("Attendo messaggio client flag diverso da 1\n");
         struct sockaddr* peer_addr2;
-        recv_message(sdAux, &ack, (struct sockaddr*)&peer_addr2, FALSE, 0);
+        recv_message(sdAux, &ack, (struct sockaddr*)&peer_addr, FALSE, 0);
 
     }
     printf("Chiave ricevuta\n");
