@@ -512,6 +512,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				close(sd_listen);
 				break;
 			} 
+
 			dest_port = (short)atoi(get_column_by_id(filename, aux->dest_id, 3));
 
 			//check nonce
