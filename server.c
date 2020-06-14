@@ -221,11 +221,12 @@ struct message pack_challenge(){
 	return aux;
 }
 
-struct message pack_err(uint32_t id){
+struct message pack_err(uint32_t id, u_int32_t nonce){
 
     struct message aux;
     aux.opcode = ERR_OPCODE;
     aux.my_id = id;
+	aux.nonce = nonce;
     return aux;
 }
 
@@ -384,7 +385,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			if(ret!=-1){
 				printf("ERRORE GIA' LOGGATO, da gestire con Err pack");
 				// per ora inserisce comunque per agevolare testing
-				struct message m = pack_err(aux->my_id);
+				struct message m = pack_err(aux->my_id, aux->nonce+1);
             	send_message(&m, cl_addr, sd, FALSE);
 				close(sd_listen);
 				break;
@@ -491,14 +492,27 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 		case MATCH_OPCODE:
 
 			dest_ip = (char*)get_column_by_id(filename, aux->dest_id, 2);
-			if(dest_ip==NULL){
-				struct message m = pack_err(aux->my_id);
-            	send_message(&m, cl_addr, sd, FALSE);
-				close(sd_listen);
-			} 
-			dest_port = (short)atoi(get_column_by_id(filename, aux->dest_id, 3));
 			uint32_t nonce_stored = atoi(get_column_by_id(filename, aux->my_id , 4));
 			uint32_t nonce_sender = aux->nonce;
+
+			//check if the id required is online
+			if(dest_ip==NULL){
+				printf("The id %u is not online\n", aux->dest_id);
+				//update nonce
+				char source_ip_err[50];
+				get_buf_column_by_id(filename, aux->my_id, 2, source_ip_err);
+				uint16_t source_port_err = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
+				update_row(filename, aux->my_id, source_ip_err, source_port_err, nonce_stored + 2);
+
+				struct message m = pack_err(aux->my_id, nonce_stored + 2);
+				printf("				---		---		nonce:  %d", nonce_stored + 2);
+				//set symmetric key to talk with reciver
+				get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 5, symKey);
+            	send_message(&m, cl_addr, sd, FALSE);
+				close(sd_listen);
+				break;
+			} 
+			dest_port = (short)atoi(get_column_by_id(filename, aux->dest_id, 3));
 
 			//check nonce
 			if(!checkNonce(aux->my_id, nonce_sender, 1))
