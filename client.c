@@ -21,8 +21,11 @@
     #define MESSAGE_H
     #include"header/message.h"
 #endif
-#include "header/send.h"
-#include "header/receive.h"
+#ifndef COMUNICATION_H
+    #define COMUNICATION_H
+    #include "header/send.h"
+    #include "header/receive.h"
+#endif
 
 #define CMD_UNKNOWN 0
 #define CMD_HELP 1
@@ -38,6 +41,8 @@ int sv_port, cl_id, cl2_id, cl_main_port, cl_secondary_port;
 int sd, secondSd;
 uint32_t nonce = 100;
 sem_t *mutex_active_process, *mutex_secondary_port;
+unsigned char symKey[300];
+
 
 void print_help(){
 
@@ -107,6 +112,12 @@ int get_cmd(){
 	return CMD_UNKNOWN;
 }
 
+
+int handleErrors(){
+    printf("[0;31mError as occured!!!![0m");
+    exit(1);
+}
+
 unsigned char* sign(unsigned char* message, int* signature_len){
     
     // costante
@@ -127,7 +138,7 @@ unsigned char* sign(unsigned char* message, int* signature_len){
     if(ret==0){printf("EVP_SignInit error"); handleErrors();}
     ret = EVP_SignUpdate(sctx, (unsigned char*)message, 2); // costante magica sizeof(message));
     if(ret==0){printf("EVP_SignUpdate error"); handleErrors();}
-	ret = EVP_SignFinal(sctx, signature, signature_len, prvkey);
+	ret = EVP_SignFinal(sctx, signature, (unsigned int*)signature_len, prvkey);
     if(ret==0){printf("EVP_SignFinal error"); handleErrors();}
 
     /*
@@ -211,7 +222,7 @@ void pack_response_message(struct message* aux, int cs){
     for(int i=0; i<2; i++)
         printf("%c", ch_cs[i]);
     printf("\n");*/
-	unsigned char* signed_resp = sign(ch_cs, &sign_len);
+	unsigned char* signed_resp = sign((unsigned char*)ch_cs, &sign_len);
 	/*printf("Firma CON LUNGHEZZA %d\n", sign_len);
     for(int i=0; i<sign_len; i++)
         printf("%u", signed_resp[i]);
@@ -295,7 +306,7 @@ void updateNonce(){
 unsigned char* hash(unsigned char* secret){
 	
 	unsigned char* digest;
-	int digestlen;
+	uint32_t digestlen;
 	EVP_MD_CTX* Hctx;
 
 	digest = (unsigned char*)malloc(32);
@@ -306,7 +317,7 @@ unsigned char* hash(unsigned char* secret){
 	EVP_DigestFinal(Hctx, digest, &digestlen);
 
 	printf("Digest:\n");
-	BIO_dump_fp(stdout, digest, digestlen);
+	BIO_dump_fp(stdout, (const char *)digest, (int)digestlen);
 
 	return digest;
 }
@@ -389,11 +400,10 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
         //printf("Peer addr6 %d", peer_addr);
         if(flag_order==1){
             printf("Attendo messaggio client\n");
-            struct sockaddr* peer_addr2;
             recv_message(sdAux, &ack, (struct sockaddr*)&peer_addr, FALSE, 0);
         }
 
-        printf("Inviooo a %d\n", peer_addr);
+        printf("Inviooo a %d\n", peer_addr.sin_port);
         send_message(&aux, &peer_addr, sdAux, FALSE);
 
         //ricevi 
@@ -479,7 +489,7 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
 	if(EVP_PKEY_derive_set_peer(ctx, peerkey)<=0) handleErrors();
 
 	// Determine buffer length for shared secret 
-	if(EVP_PKEY_derive(ctx, NULL, &secret_len)<=0) handleErrors();
+	if(EVP_PKEY_derive(ctx, NULL, (size_t*)&secret_len)<=0) handleErrors();
 
 	// Create the buffer 
     secret = (unsigned char*)(malloc((int)(secret_len)));
@@ -573,10 +583,20 @@ void childCode(){
                 // Negotiation
                 size_t *secret_len = 64; //costante magica
                 printf("opponent addr %d", opponent_addr);
-                unsigned char* secret = get_secret_ec(secret_len, cl_id, opponent_addr,0); //"0123456789"; //
-                unsigned char* digest = hash(secret);
+                unsigned char* secretCtoCrec = get_secret_ec(secret_len, cl_id, opponent_addr,0); //"0123456789"; //
+                unsigned char* digestCtoCRec = hash(secretCtoCrec);
                 //printf("Digest: %s\n", digest);
                 ////
+
+
+                printf("--- Digest --- \n");
+                BIO_dump_fp(stdout, (const char *)digestCtoCRec, 32);
+                //save key to talk with server and set client-client key
+                unsigned char servKey[300];
+                strcpy(servKey, symKey);
+                makeSymKey(symKey, digestCtoCRec);
+                chaneKeySend(symKey, 65);
+                chaneKeyReciver(symKey, 65);
 
                 pack_match_move_message(&m, 0);
                 send_message(&m, &opponent_addr, secondSd, TRUE);
@@ -588,6 +608,11 @@ void childCode(){
                 
                 kill(getppid(), SIGUSR2);
                 forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE, 100);
+
+                //reset key to talk with server
+                strcpy(symKey, servKey);
+                chaneKeySend(symKey, 65);
+                chaneKeyReciver(symKey, 65);
                 
                 printf("Press Enter to return to the main console ...\n");
 
@@ -598,6 +623,7 @@ void childCode(){
         }
     }
 }
+
 
 EVP_PKEY* verifyCertificate(struct message m){
 
@@ -676,10 +702,16 @@ EVP_PKEY* verifyCertificate(struct message m){
     return server_pubkey;
 }
 
-int handleErrors(){
-    printf("An error occourred \n");
-    exit(1);
+void makeSymKey(unsigned char *key, unsigned char *digest){
+    for(int i=0; i<32; i++){
+        char tempC[5];
+        sprintf(tempC,"%02x", digest[i]);
+        memcpy(key + 2*i,tempC, 2);
+    }
+    key[65] = '\0';
+    printf("%s\n", key);
 }
+
 
 int main(int argc, char* argv[]){
 
@@ -724,6 +756,8 @@ int main(int argc, char* argv[]){
     
     cl_secondary_port = (argc>=6)? atoi(argv[5]): cl_main_port+100;
 
+    //set up the id to identifie with the server
+    setMyId((uint32_t)cl_id);
 
     // socket creation
 	sd = socket(AF_INET, SOCK_DGRAM,0);	
@@ -798,6 +832,12 @@ int main(int argc, char* argv[]){
     printf("Ehiii");
     unsigned char* secret = get_secret_ec(secret_len, cl_id, sv_addr,2); //"0123456789"; //
     unsigned char* digest = hash(secret);
+
+
+    //set key to talk with server
+    makeSymKey(symKey, digest);
+    chaneKeySend(symKey, 65);
+    chaneKeyReciver(symKey, 65);
     //printf("Digest: %s\n", digest);
 
     /* Use digest of secret instead of secret to increase the entropy */
@@ -925,19 +965,35 @@ int main(int argc, char* argv[]){
                     ////
                     // Negoziazione
                     printf("opponent addr %d", opponent_addr);
-                    unsigned char* secret = get_secret_ec(secret_len, cl_id, opponent_addr,1); //"0123456789"; //
-                    unsigned char* digest = hash(secret);
+                    unsigned char* secretCtoC = get_secret_ec(secret_len, cl_id, opponent_addr,1); //"0123456789"; //
+                    unsigned char* digestCtoC = hash(secretCtoC);
                     //printf("Digest: %s\n", digest);
 
                     ////
+
+                    //save key to talk with server and set client-client key
+                    unsigned char servKey[300];
+                    strcpy(servKey, symKey);
+                    makeSymKey(symKey, digestCtoC);
+                    chaneKeySend(symKey, 65);
+                    chaneKeyReciver(symKey, 65);
 
                     printf("Waiting for confirm !!!!\n");
                     struct sockaddr* opponent_addr2;
                     recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr2, FALSE, nonce);
 
+
+                    printf("--- Digest --- \n");
+                    BIO_dump_fp(stdout, (const char *)digest, 32);
+
                     forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, TRUE, 100);
                     close(secondSd);
                     sem_post(mutex_secondary_port);
+
+                    //reset key to talk with server
+                    strcpy(symKey, servKey);
+                    chaneKeySend(symKey, 65);
+                    chaneKeyReciver(symKey, 65);
 
                     printf("Returning to the main console ...\n");
                     char temp[5];

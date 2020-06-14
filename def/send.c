@@ -1,10 +1,26 @@
-
 #include "../header/send.h"
-#include<openssl/evp.h>
-#include<openssl/ec.h>
-#include<openssl/crypto.h>
-#include<openssl/pem.h>
 
+
+//create key
+unsigned char key_gem[]= "123456789012345678901234567890123456789012345678901234567890123456";
+int isServer = FALSE;
+uint32_t id = 0;
+
+void chaneKeySend(unsigned char *newKey, int size){
+	memcpy(symKey, newKey, size);
+	printf("New key seted up: \n");
+    BIO_dump_fp(stdout, (const char *)symKey, 17);
+}
+
+void setMyId(uint32_t setId){
+	id = setId;
+	printf("Set up id: %d\n", id);
+}
+
+void setIsServerSend(){
+	isServer = TRUE;
+	//printf("dknwndwndbwndnwlkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk\n");
+}
 
 struct message toNet(struct message* msg){
 
@@ -185,19 +201,17 @@ int serialize_message(void* buffer, struct message *msg){
 void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, uint8_t encrypt){
 
 	void *buf;
-	buf = malloc(1 + MAX_BUFFER_SIZE + TAG_SIZE + 12);	
+	int len = 1 + sizeof(id) + MAX_BUFFER_SIZE + TAG_SIZE + 12;
+	buf = malloc(len);	
 	int ret;
 
 
 
 	// packet creation
 	//printf("ptLen: %d\n", m->ptLen); 
-	int len = 1 + MAX_BUFFER_SIZE + TAG_SIZE + 12;
 	serialize_message(buf, m);
 
 	if(encrypt == TRUE){
-		//create key
-		unsigned char key_gem[]= "1234567890123456";
 		//unsigned char iv_gcm[] = "123456789012" ;
 		unsigned char iv_gcm[12];
 		
@@ -208,9 +222,6 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
 		int ptLen = MAX_BUFFER_SIZE;
 		int pos = 0;
 
-		//printf("PlainTaxt: \n");
-    	//BIO_dump_fp(stdout, (const char *)pt, 256);
-
 		RAND_poll();
 
 		//sprintf(iv_gcm, "%-12d", m->nonce - 1);
@@ -219,11 +230,21 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
 
 		memcpy(pt, buf, MAX_BUFFER_SIZE);
 
-		symEncrypt(pt, MAX_BUFFER_SIZE, key_gem, iv_gcm, ct, tag);
+		//printf("PlainTaxt: \n");
+    	//BIO_dump_fp(stdout, (const char *)pt, 256);
+
+
+		printf("Sending with key: %s\n", symKey);
+		symEncrypt(pt, MAX_BUFFER_SIZE, symKey, iv_gcm, ct, tag);
 
 
 		memcpy(buf, &encrypt, 1);
 		pos+= 1;
+
+		//set sender id
+		printf("Set up id: %d\n", id);
+		memcpy(buf + pos, &id, sizeof(id));
+		pos+= sizeof(id);
 
 		memcpy(buf+pos, (const char *) iv_gcm, 12);
 		pos+= 12;
@@ -235,7 +256,7 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
 		pos+= TAG_SIZE;
 
 		//printf("Buffer : \n");
-   		// BIO_dump_fp(stdout, (const char *)buf, 1 + MAX_BUFFER_SIZE + TAG_SIZE + 12);
+   		//BIO_dump_fp(stdout, (const char *)buf, 64);
 
 
 		free(ct);

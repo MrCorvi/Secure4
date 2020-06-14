@@ -6,6 +6,10 @@
 #include<unistd.h>
 #include<string.h>
 #include<stdlib.h>
+#include<openssl/evp.h>
+#include<openssl/ec.h>
+#include<openssl/crypto.h>
+#include<openssl/pem.h>
 #include <openssl/rand.h>
 
 #ifndef MESSAGE_H
@@ -13,8 +17,17 @@
     #include"../header/message.h"
 #endif
 
+
 #include "../header/symEncript.h"
 
+extern unsigned char symKey[300];
+
+
+void setMyId(uint32_t setId);
+
+void setIsServerSend();
+
+void chaneKeySend(unsigned char *newKey, int size);
 
 int serialize_message(void* buffer, struct message *aux);
 

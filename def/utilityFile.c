@@ -186,6 +186,28 @@ const char* get_column_by_id(char* filename, int id,int col){
     return NULL;
 }
 
+void get_buf_column_by_id(char* filename, int id,int col, char* retBuffer){
+
+    FILE* file1 = fopen(filename,"r");
+    char buffer[1024];
+    char snum[5];
+
+    sprintf(snum, "%d", id);
+    printf("SNUM: %s ID:%d\n", snum, id);
+
+    while(fgets(buffer, 1024, file1)){
+        char* tmp = strdup(buffer);
+        if(strcmp(get_field(tmp,1),snum)==0){
+            strcpy(retBuffer, get_field(buffer,col));
+            return;
+        }
+        free(tmp);
+    }
+    fclose(file1);
+
+    return NULL;
+}
+
 
 int remove_row_by_id(char* filename, uint32_t id){
     char buffer[1024];
@@ -203,21 +225,27 @@ int remove_row_by_id(char* filename, uint32_t id){
 
 
 int update_row(char* filename, uint32_t my_id, char ip[], uint16_t cl_port, uint32_t nonce){
-    char buffer[1024];
-    int row_num;
+    char buffer[1024], key[300];
+    int row_num, ret = 1;
+
+    //get key
+    sprintf(key, get_column_by_id(filename, my_id, 5));
+    
     //remove old row version
     row_num = get_row_by_id(filename, my_id);
     //if not pack err
     if(row_num==-1){
         printf("ID non presente!\n");
-        return 0;
+        ret = 0;
     }
     printf("rimuovo riga %d \n", row_num);
     remove_row(filename, row_num);
 
+
     //append new row version
-    sprintf(buffer,"%d,%s,%d,%d", my_id, ip, cl_port, nonce);
+    sprintf(buffer,"%d,%s,%d,%d,%s", my_id, ip, cl_port, nonce, key);
+    printf("                %s\n",buffer);
     append_row(filename, buffer);
-    return 1;
+    return ret;
 }
 

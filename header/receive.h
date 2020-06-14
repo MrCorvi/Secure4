@@ -12,9 +12,18 @@
     #include"../header/message.h"
 #endif
 
+
 #include "../header/symEncript.h"
+#include "../header/utilityFile.h"
+
+extern unsigned char symKey[300];
 
 
+void setKeyFilename(char *fn);
+
+void setIsServerReciver();
+
+void chaneKeyReciver(unsigned char *newKey, int size);
 
 int deserialize_message(unsigned char* buffer, struct message *aux);
 

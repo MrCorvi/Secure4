@@ -16,8 +16,11 @@
 	#define MESSAGE_H
 	#include "header/message.h"
 #endif
-#include "header/send.h"
-#include "header/list.h"
+#ifndef COMUNICATION_H
+    #define COMUNICATION_H
+    #include "header/send.h"
+    #include "header/receive.h"
+#endif
 #include "header/receive.h"
 #include "header/utilityFile.h"
 
@@ -28,6 +31,7 @@ struct sockaddr_in my_addr, listen_addr;
 int num_bind =0;
 int sv_port;
 int sd_listen; //each process use one to answer a request
+unsigned char symKey[300];
 
 int socket_creation(){
 	struct sockaddr_in my_addr;
@@ -355,6 +359,9 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 	char str[INET_ADDRSTRLEN];
 	sd_listen = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
 
+	setIsServerReciver();
+	setIsServerSend();
+
 	signal(SIGALRM, ALARMhandler);
 
 	printf("opcode: %d\n", opcode);
@@ -431,10 +438,16 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			// Hashing to increase entropy
 			unsigned char* digest= hash(secret);
 
+
 			char buffer[MAX_BUFFER_SIZE];
 			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);
 			int cl_port = aux->my_listen_port;
-			sprintf(buffer,"%d,%s,%d,%d", aux->my_id, str, cl_port,100); //costante magica
+			sprintf(buffer,"%d,%s,%d,%d,", aux->my_id, str, cl_port, 100); //costante magica
+			for(int i=0; i<32; i++){
+				char tempC[5];
+				sprintf(tempC,"%02x", digest[i]);
+				strcat(buffer,tempC);
+			}
 			append_row(filename, buffer);
             //struct message m = pack_ack(aux->my_id);
 
@@ -493,6 +506,9 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			listen_addr.sin_port = htons(dest_port);
 			inet_pton(AF_INET, dest_ip , &listen_addr.sin_addr);
 
+
+			//set symmetric key to talk with reciver
+			get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 5, symKey);
             send_message(aux, &listen_addr, sd_listen, TRUE);
 
 			
@@ -552,6 +568,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				
 				printf("Public key:      \n%s\n", pk_dest);
 				
+				//set symmetric key to talk with reciver
+				get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 5, symKey);
 				send_message(&risp, &listen_addr, sd_listen, TRUE);
 
 				//free(pk_dest);
@@ -582,7 +600,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			
 			printf("Public key:      \n%s\n", pk);
 			
-			
+			//set symmetric key to talk with reciver
+			get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 5, symKey);
 			send_message(&rispSender, cl_addr, sd, TRUE);
 
 			//free(pk);
@@ -631,7 +650,9 @@ int main(int argc, char* argv[]){
 	struct sockaddr_in cl_addr;
 	struct message m;	
 
-	
+	setIsServerReciver();
+	setIsServerSend();
+	setKeyFilename(filename);
 
 	// argument check
 	if(argc < 2){

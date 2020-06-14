@@ -2,6 +2,30 @@
 
 #include "../header/receive.h"
 
+
+
+//create key
+unsigned char key_gem_recive[]= "123456789012345678901234567890123456789012345678901234567890123456";
+int isServerRecive = FALSE;
+char filenameReciver[200];
+
+void setKeyFilename(char *fn){
+	sprintf(filenameReciver, "../%s", fn);
+}
+
+void chaneKeyReciver(unsigned char *newKey, int size){
+	memcpy(key_gem_recive, newKey, size);
+	printf("New key seted up: \n");
+    BIO_dump_fp(stdout, (const char *)key_gem_recive, 17);
+}
+
+
+void setIsServerReciver(){
+	isServerRecive = TRUE;
+	//printf("dknwndwndbwndnwlkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk\n");
+}
+
+
 void toHost(struct message* msg){
 
 	msg->opcode = (msg->opcode!=0)?ntohs(msg->opcode):0;
@@ -196,7 +220,8 @@ int deserialize_message(unsigned char* buffer, struct message *aux){
 
 int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr, int dec, uint32_t nonce){
   	int ret;
-  	void *buffer = malloc(1 + MAX_BUFFER_SIZE + TAG_SIZE + 12);
+	uint32_t senderId;
+  	void *buffer = malloc(1 + sizeof(senderId) + MAX_BUFFER_SIZE + TAG_SIZE + 12);
   	int buffersize = 1 + MAX_BUFFER_SIZE + TAG_SIZE + 12;
 	socklen_t addrlen = sizeof(struct sockaddr_in);
 
@@ -205,7 +230,7 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
   	ret = recvfrom(socket, buffer, buffersize, 0, (struct sockaddr*)mitt_addr, &addrlen);
 	//printf("New message!!!\n");
 
-   	//BIO_dump_fp(stdout, (const char *)buffer, 1 + MAX_BUFFER_SIZE + TAG_SIZE + 12);
+   	//BIO_dump_fp(stdout, (const char *)buffer, 64);
 	
 	u_int8_t isEncr;
 	memcpy(&isEncr, buffer, 1);
@@ -213,8 +238,6 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 
 	if(isEncr != FALSE){
 
-		//create key
-		unsigned char key_gem[]= "1234567890123456";
 		//unsigned char iv_gcm[] = "123456789012" ;
 		unsigned char iv_gcm[12];
 		unsigned char *ct, *tag, pt[MAX_BUFFER_SIZE];
@@ -225,6 +248,10 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 
 		//printf("Buffer : \n");
    		//BIO_dump_fp(stdout, (const char *)buffer, MAX_BUFFER_SIZE + TAG_SIZE + 12);
+
+		memcpy(&senderId, buffer+pos, sizeof(senderId));
+		pos += sizeof(senderId);
+		printf("Id ricevuto :%d\n", senderId);
 
 		memcpy(iv_gcm, buffer+pos, 12);
 		pos += 12;
@@ -244,7 +271,21 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 		BIO_dump_fp(stdout, (const char *)ct, TAG_SIZE);
 		*/
 
-		symDecrypt(pt, MAX_BUFFER_SIZE, key_gem, iv_gcm, ct, tag);
+		//get the sender key
+		unsigned char k[300];
+		strcpy(k, key_gem_recive);
+		if(isServerRecive == TRUE){
+			printf("Sono in un server !!!!!!!!!!\n");
+			get_buf_column_by_id("loggedUser.csv", (int)senderId, 5, k);
+			printf("R-----------------------------------------------------------------------------------------\n");
+		}
+		printf("%s\n", k);
+		sprintf(symKey, (char*)k);
+
+		symDecrypt(pt, MAX_BUFFER_SIZE, k, iv_gcm, ct, tag);
+
+		//printf("PlainText: \n");
+		//BIO_dump_fp(stdout, (const char *)pt, 200);
 
 		memcpy(buffer, pt, MAX_BUFFER_SIZE);
 

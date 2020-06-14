@@ -12,3 +12,4 @@ void remove_row(char* filename, int row);
 int get_row_by_id(char* filename, int id);
 const char* get_column_by_id(char* filename, int id,int col);
 int remove_row_by_id(char* filename, uint32_t id);
+void get_buf_column_by_id(char* filename, int id,int col, char* buffer);
