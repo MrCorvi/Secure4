@@ -280,7 +280,7 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 			printf("R-----------------------------------------------------------------------------------------\n");
 		}
 		printf("%s\n", k);
-		sprintf(symKey, (char*)k);
+		sprintf(symKey, "%s", k);
 
 		symDecrypt(pt, MAX_BUFFER_SIZE, k, iv_gcm, ct, tag);
 

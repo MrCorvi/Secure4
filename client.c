@@ -489,14 +489,14 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
 	if(EVP_PKEY_derive_set_peer(ctx, peerkey)<=0) handleErrors();
 
 	// Determine buffer length for shared secret 
-	if(EVP_PKEY_derive(ctx, NULL, (size_t*)&secret_len)<=0) handleErrors();
+	if(EVP_PKEY_derive(ctx, NULL, secret_len)<=0) handleErrors();
 
 	// Create the buffer 
-    secret = (unsigned char*)(malloc((int)(secret_len)));
+    secret = (unsigned char*)(malloc(*secret_len));
 	if(!secret) handleErrors();
 
 	// Derive the shared secret 
-	if(EVP_PKEY_derive(ctx, secret, &secret_len)<=0) handleErrors();
+	if(EVP_PKEY_derive(ctx, secret, secret_len)<=0) handleErrors();
     
 	EVP_PKEY_CTX_free(ctx);
 	EVP_PKEY_free(peerkey);
@@ -505,9 +505,19 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
 	EVP_PKEY_free(dh_params);
 	EVP_PKEY_CTX_free(pctx);
     printf("SEGRETO: \t");
-	BIO_dump_fp(stdout, (const char*)secret, secret_len);
+	BIO_dump_fp(stdout, (const char*)secret, (int)*secret_len);
     
 	return secret;
+}
+
+void makeSymKey(unsigned char *key, unsigned char *digest){
+    for(int i=0; i<32; i++){
+        char tempC[5];
+        sprintf(tempC,"%02x", digest[i]);
+        memcpy(key + 2*i,tempC, 2);
+    }
+    key[65] = '\0';
+    printf("%s\n", key);
 }
 
 //Codice del processo figlio
@@ -581,9 +591,11 @@ void childCode(){
                 
                 ////
                 // Negotiation
-                size_t *secret_len = 64; //costante magica
-                printf("opponent addr %d", opponent_addr);
-                unsigned char* secretCtoCrec = get_secret_ec(secret_len, cl_id, opponent_addr,0); //"0123456789"; //
+                size_t secret_len = 64; //costante magica
+                char bufferAddr[INET_ADDRSTRLEN];
+                inet_ntop( AF_INET, &opponent_addr.sin_addr, bufferAddr, sizeof( bufferAddr ));
+                printf("opponent addr: %s", bufferAddr); 
+                unsigned char* secretCtoCrec = get_secret_ec(&secret_len, cl_id, opponent_addr,0); //"0123456789"; //
                 unsigned char* digestCtoCRec = hash(secretCtoCrec);
                 //printf("Digest: %s\n", digest);
                 ////
@@ -593,7 +605,7 @@ void childCode(){
                 BIO_dump_fp(stdout, (const char *)digestCtoCRec, 32);
                 //save key to talk with server and set client-client key
                 unsigned char servKey[300];
-                strcpy(servKey, symKey);
+                strcpy((char*)servKey, (char*)symKey);
                 makeSymKey(symKey, digestCtoCRec);
                 chaneKeySend(symKey, 65);
                 chaneKeyReciver(symKey, 65);
@@ -610,7 +622,7 @@ void childCode(){
                 forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE, 100);
 
                 //reset key to talk with server
-                strcpy(symKey, servKey);
+                strcpy((char*)symKey, (char*)servKey);
                 chaneKeySend(symKey, 65);
                 chaneKeyReciver(symKey, 65);
                 
@@ -631,7 +643,7 @@ EVP_PKEY* verifyCertificate(struct message m){
     // costante magica
     char* cacert_file_name = "./CA/Cybersec CA_cert.pem";
     char* cacrl_file_name = "./CA/Cybersec CA_crl.pem";
-    char* certserver_file_name = "./CA/ServerCybersec_cert.pem"; //PER ORAAA
+    //char* certserver_file_name = "./CA/ServerCybersec_cert.pem"; //PER ORAAA
 
     // load the CA's certificate and the CRL(considero di averli già)
     FILE* cacert_file = fopen(cacert_file_name, "r");
@@ -669,7 +681,7 @@ EVP_PKEY* verifyCertificate(struct message m){
     int cert_len = m.cert_len;
 
     X509* cert = d2i_X509(NULL, (const unsigned char **)&tmpPtr, cert_len);
-    if(!cert){printf("d2i error with code %d\n", ERR_get_error());} //handleErrors();}
+    if(!cert){printf("d2i error with code %lu\n", ERR_get_error());} //handleErrors();}
     
     // verify the certificate:
     X509_STORE_CTX* certvfy_ctx = X509_STORE_CTX_new();
@@ -700,16 +712,6 @@ EVP_PKEY* verifyCertificate(struct message m){
     
     printf("fine store :)");
     return server_pubkey;
-}
-
-void makeSymKey(unsigned char *key, unsigned char *digest){
-    for(int i=0; i<32; i++){
-        char tempC[5];
-        sprintf(tempC,"%02x", digest[i]);
-        memcpy(key + 2*i,tempC, 2);
-    }
-    key[65] = '\0';
-    printf("%s\n", key);
 }
 
 
@@ -828,9 +830,9 @@ int main(int argc, char* argv[]){
 	EVP_MD_CTX_free(md_ctx);
 
 
-    size_t *secret_len = 64; //costante magica
+    size_t secret_len = 64; //costante magica
     printf("Ehiii");
-    unsigned char* secret = get_secret_ec(secret_len, cl_id, sv_addr,2); //"0123456789"; //
+    unsigned char* secret = get_secret_ec(&secret_len, cl_id, sv_addr,2); //"0123456789"; //
     unsigned char* digest = hash(secret);
 
 
@@ -964,8 +966,10 @@ int main(int argc, char* argv[]){
 
                     ////
                     // Negoziazione
-                    printf("opponent addr %d", opponent_addr);
-                    unsigned char* secretCtoC = get_secret_ec(secret_len, cl_id, opponent_addr,1); //"0123456789"; //
+                    char bufferAddr[INET_ADDRSTRLEN];
+                    inet_ntop( AF_INET, &opponent_addr.sin_addr, bufferAddr, sizeof( bufferAddr ));
+                    printf("opponent addr: %s", bufferAddr); 
+                    unsigned char* secretCtoC = get_secret_ec(&secret_len, cl_id, opponent_addr,1); //"0123456789"; //
                     unsigned char* digestCtoC = hash(secretCtoC);
                     //printf("Digest: %s\n", digest);
 
@@ -973,7 +977,7 @@ int main(int argc, char* argv[]){
 
                     //save key to talk with server and set client-client key
                     unsigned char servKey[300];
-                    strcpy(servKey, symKey);
+                    strcpy((char*)servKey, (char*)symKey);
                     makeSymKey(symKey, digestCtoC);
                     chaneKeySend(symKey, 65);
                     chaneKeyReciver(symKey, 65);
@@ -991,7 +995,7 @@ int main(int argc, char* argv[]){
                     sem_post(mutex_secondary_port);
 
                     //reset key to talk with server
-                    strcpy(symKey, servKey);
+                    strcpy((char*)symKey, (char*)servKey);
                     chaneKeySend(symKey, 65);
                     chaneKeyReciver(symKey, 65);
 

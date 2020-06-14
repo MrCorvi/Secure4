@@ -204,8 +204,6 @@ void get_buf_column_by_id(char* filename, int id,int col, char* retBuffer){
         free(tmp);
     }
     fclose(file1);
-
-    return NULL;
 }
 
 
@@ -229,7 +227,7 @@ int update_row(char* filename, uint32_t my_id, char ip[], uint16_t cl_port, uint
     int row_num, ret = 1;
 
     //get key
-    sprintf(key, get_column_by_id(filename, my_id, 5));
+    sprintf(key, "%s", get_column_by_id(filename, my_id, 5));
     
     //remove old row version
     row_num = get_row_by_id(filename, my_id);
