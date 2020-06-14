@@ -214,16 +214,17 @@ void pack_match_message(struct message* aux){
 
 }
 
-void pack_response_message(struct message* aux, int cs){
+void pack_response_message(struct message* aux, uint32_t cs){
 
     int sign_len ;
 
     RAND_poll();
     RAND_bytes(&cu, sizeof(uint32_t));
     int nonce_len = (unsigned int)(floor(log10(cs)))+1;
-    printf("Cu %u lungo", cu, nonce_len);
+    printf("Cu %u lungo %d", cu, nonce_len);
+    printf("Cs %u lungo %d", cs, nonce_len);
     char ch_cs[nonce_len];
-    sprintf(ch_cs, "%d", cs);
+    sprintf(ch_cs, "%u", cs);
     /*printf("\nSizeof ch_ch %d e Cs: ", sizeof(ch_cs));
     for(int i=0; i<2; i++)
         printf("%c", ch_cs[i]);
@@ -730,16 +731,23 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-    printf("Cs = %d\n", ack_login_m.nonce);
+    printf("Cs = %u\n", ack_login_m.nonce);
 
     struct message m_response;
     nonce = ack_login_m.nonce;
     pack_response_message(&m_response, ack_login_m.nonce);
     send_message(&m_response, &sv_addr, sd, FALSE);
+    printf("INVIATO PER CERT M\n");
+    printf("opcode %d\n", m_response.opcode);
+    printf("nonce %u\n", m_response.nonce);
+    int n = m_response.sign_len;
+    printf("sig len %d\n",n);
+    for(int i=0; i<n; i++)
+        printf("%c", m_response.sign[i]);
 
 
     struct message ack_cert_m;
-    printf("Waiting Cert and Response...\n");
+    printf("\nWaiting Cert and Response...\n");
     recv_message(sd, &ack_cert_m, (struct sockaddr*)&sv_addr, FALSE, 0);
     if(ack_cert_m.opcode != AUTH4_OPCODE){
         printf("Login Opcode Error %d\n", ack_cert_m.opcode);

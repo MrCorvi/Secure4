@@ -490,12 +490,13 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
             break;
 		case MATCH_OPCODE:
 
-			dest_ip = (char*)get_column_by_id(filename, aux->dest_id, 2);
+			dest_ip = get_column_by_id(filename, aux->dest_id, 2);
 			if(dest_ip==NULL){
 				struct message m = pack_err(aux->my_id);
             	send_message(&m, cl_addr, sd, FALSE);
 				close(sd_listen);
 			} 
+
 			dest_port = (short)atoi(get_column_by_id(filename, aux->dest_id, 3));
 			uint32_t nonce_stored = atoi(get_column_by_id(filename, aux->my_id , 4));
 			uint32_t nonce_sender = aux->nonce;
