@@ -409,7 +409,7 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
         return NULL;
 
     if(flag_order!=2){
-        if(strcmp(ack.peerkey,client_pkey)==0){
+        if(strcmp(ack.peerkey,client_pkey)!=0){
             printf("Matching error nella chiave\n%sm\n%s\n", ack.peerkey, client_pkey);
             //exit(1);
         }

@@ -193,8 +193,8 @@ unsigned char* hash(unsigned char* secret){
 	EVP_DigestUpdate(Hctx, secret, sizeof(secret));
 	EVP_DigestFinal(Hctx, dig, (unsigned int*)&digestlen);
 
-	printf("Digest:\n");
-	BIO_dump_fp(stdout, (const char*)dig, digestlen);
+	//printf("Digest:\n");
+	//BIO_dump_fp(stdout, (const char*)dig, digestlen);
 
 	return dig;
 }
@@ -212,7 +212,7 @@ struct message pack_challenge(){
 
 	RAND_poll();
 	RAND_bytes((unsigned char *)&cs, sizeof(uint32_t));
-	printf("CS: %d\n", cs);
+	//printf("CS: %d\n", cs);
 	//cs = 66; // costante
 
 	struct message aux;
@@ -263,7 +263,7 @@ struct message packCertificateAndSign(unsigned char* signed_challange,int sign_l
 	int cert_size = i2d_X509(cert, &cert_buf);
 	if(cert_size<0){printf("cert_size <0\n"); exit(1);}
 
-	printf("SIGN SIZEE %d e sizeof(int):%lu\n", sign_len, sizeof(int));
+	//printf("SIGN SIZE %d e sizeof(int):%lu\n", sign_len, sizeof(int));
 
 	unsigned char *tmpPtr;		// because d2i_X509 moves the ptr 
 	tmpPtr = malloc(cert_size);
@@ -323,10 +323,10 @@ unsigned char* sign(char* message, int* signature_len, int msg_len){
 int checkNonce(uint32_t id, uint32_t nonce_recived, int inc){
 	uint32_t nonce_stored = atoi(get_column_by_id(filename, id , 4));
 
-	printf("Nonce recived: %d		Nonce stored: %d\n", nonce_recived, nonce_stored);
 	//check if the nonce received is 1 more of the one stored
 	if((nonce_stored+1) != nonce_recived){
 		printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		printf("Nonce recived: %d		Nonce stored: %d\n", nonce_recived, nonce_stored);
 		return 0;
 	}
 
@@ -344,7 +344,7 @@ int checkNonce(uint32_t id, uint32_t nonce_recived, int inc){
 int timeout = 0, waitingId;
 void  ALARMhandler(int sig){
 	signal(SIGALRM, SIG_IGN);          /* ignore this signal       */
-	printf("TIME OUT: 1 minute of no responce \nThe user is now delited\n");
+	printf("TIME OUT: 1 minute of no responce from the user\nThe user is now delited\n");
 	timeout = 1;
 	int ret = remove_row_by_id(filename, waitingId);
 	printf("The user %d is now delited from the online players\n", waitingId);
@@ -379,7 +379,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
     switch(opcode){
 
         case LOGIN_OPCODE:
-            printf("Placeholder controllo ID.....\n");
+
+            printf("Login request\n");
 			
 			int ret = get_row_by_id(filename, aux->my_id);
 			printf("row : %d\n", ret);
@@ -399,8 +400,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			struct message m_response;
 			struct sockaddr* cl_addr2;
 			recv_message(sd, &m_response, cl_addr2, FALSE, 0); //c'era (struct sockaddr*)&cl_addr //
-			printf("\nCu: %u", m_response.nonce);
-			printf("Sign len. %d\n", m_response.sign_len);
+			//printf("\nCu: %u", m_response.nonce);
+			//printf("Sign len. %d\n", m_response.sign_len);
 			/*for(uint32_t i=0; i<m_response.sign_len; i++){
 				printf("%u", m_response.sign[i]);
 			}*/
@@ -440,12 +441,12 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			EVP_MD_CTX_free(md_ctx);
 		
 			// firma ca e certificato
-			printf("Noncee\n");
+			printf("Nonce\n");
 			int nonce_len_ca = (unsigned int)floor(log10(m_response.nonce))+1;
 			ch_ca = malloc(nonce_len_ca);
     		sprintf(ch_ca, "%u", m_response.nonce );
-			for(int i=0; i<nonce_len_ca;i++)
-				printf("%c", ch_ca[i]);
+			//for(int i=0; i<nonce_len_ca;i++)
+			//	printf("%c", ch_ca[i]);
 			int sign_len;
 			unsigned char* signed_challange = sign(ch_ca, &sign_len, nonce_len_ca);
 			//for(int i=0; i<sign_len; i++)
