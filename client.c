@@ -116,7 +116,7 @@ int get_cmd(){
 
 
 int handleErrors(){
-    printf("[0;31mError as occured!!!![0m");
+    printf("\033[0;31mError as occurred!!!!\033[0m");
     exit(1);
 }
 
@@ -128,7 +128,7 @@ unsigned char* sign(unsigned char* message, int* signature_len, int msg_len){
     strcpy(client_file_name, "./keys/rsa_privkey");
     strcat(client_file_name, id);
     strcat(client_file_name,".pem");
-    printf("%s\n", client_file_name);
+    //printf("%s\n", client_file_name);
 
 	//char* client_file_name= "./keys/rsa_privkey1.pem";
 	FILE* fp = fopen(client_file_name, "r");
@@ -210,7 +210,7 @@ void pack_match_message(struct message* aux){
     aux->my_id = cl_id;
     aux->nonce = nonce;
     aux->dest_id = dest_id;
-    printf("Dest id pack match: %u, %u\n", dest_id, aux->dest_id);
+    //printf("Dest id pack match: %u, %u\n", dest_id, aux->dest_id);
 
 }
 
@@ -221,19 +221,11 @@ void pack_response_message(struct message* aux, uint32_t cs){
     RAND_poll();
     RAND_bytes((unsigned char*)&cu, sizeof(uint32_t));
     int nonce_len = (unsigned int)(floor(log10(cs)))+1;
-    printf("Cu %u lungo %d", cu, nonce_len);
-    printf("Cs %u lungo %d", cs, nonce_len);
+    //printf("Cu %u lungo %d", cu, nonce_len);
+    //printf("Cs %u lungo %d", cs, nonce_len);
     char ch_cs[nonce_len];
     sprintf(ch_cs, "%u", cs);
-    /*printf("\nSizeof ch_ch %d e Cs: ", sizeof(ch_cs));
-    for(int i=0; i<2; i++)
-        printf("%c", ch_cs[i]);
-    printf("\n");*/
 	unsigned char* signed_resp = sign((unsigned char*)ch_cs, &sign_len, nonce_len);
-	/*printf("Firma CON LUNGHEZZA %d\n", sign_len);
-    for(int i=0; i<sign_len; i++)
-        printf("%u", signed_resp[i]);
-    printf("\n\n");*/
 
     aux->opcode = AUTH3_OPCODE;
     aux->nonce = cu;
@@ -314,9 +306,6 @@ unsigned char* hash(unsigned char* secret){
 	EVP_DigestUpdate(Hctx, secret, sizeof(secret));
 	EVP_DigestFinal(Hctx, dig, &digestlen);
 
-	//printf("Digest:\n");
-	//BIO_dump_fp(stdout, (const char *)dig, (int)digestlen);
-
 	return dig;
 }
 
@@ -328,10 +317,12 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
 	EVP_PKEY *pkey = NULL, *peerkey =NULL, *dh_params = NULL;
     int sdAux;
     if(flag_order==2){
-        printf("sd\n"); sdAux=sd;
+        //printf("sd\n"); 
+        sdAux=sd;
     }
     else{
-        printf("second sd\n"); sdAux=secondSd;
+        //printf("second sd\n"); 
+        sdAux=secondSd;
     }
 
     char str[32];
@@ -340,7 +331,6 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
     strcpy(str, "./pubkeys/ecc_pubkey");
     strcat(str, id);
     strcat(str,".pem");
-    printf("%s\n", str);
 
     // Create the context for parameter generation 
 	if(!(pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL))) handleErrors();
@@ -384,8 +374,8 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
     char *pem = (char *) calloc(1, size + 1);
     BIO_read(bio, pem, size);
     //printf("sizeof %d\n", size);
-    for (int i = 0; i < size; i++)
-        printf("%c",  pem[i]);
+    //for (int i = 0; i < size; i++)
+    //    printf("%c",  pem[i]);
 
     struct message aux;
     aux.opcode = KEY_OPCODE;    
@@ -394,33 +384,33 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
 
     struct message ack;
     if(flag_order==1){
-        printf("Attendo messaggio client flag 1\n");
+        //printf("Attendo messaggio client flag 1\n");
         recv_message(sdAux, &ack, (struct sockaddr*)&peer_addr, FALSE, 0);
     }
 
-    char bufferAddr[INET_ADDRSTRLEN];
-    inet_ntop( AF_INET, &peer_addr.sin_addr, bufferAddr, sizeof( bufferAddr ));
-    printf("Invio a %s\n", bufferAddr);
+    //char bufferAddr[INET_ADDRSTRLEN];
+    //inet_ntop( AF_INET, &peer_addr.sin_addr, bufferAddr, sizeof( bufferAddr ));
+    //printf("Invio a %s\n", bufferAddr);
     send_message(&aux, &peer_addr, sdAux, FALSE);
 
     //ricevi 
     if(flag_order!=1){
-        printf("Attendo messaggio client flag diverso da 1\n");
+        //printf("Attendo messaggio client flag diverso da 1\n");
         recv_message(sdAux, &ack, (struct sockaddr*)&peer_addr, FALSE, 0);
 
     }
-    printf("Chiave ricevuta\n");
-    printf("Di lunghezza :::%d\n", ack.pkey_len );
-    for (int ii = 0; ii < ack.pkey_len; ii++){
-            printf("%c", ack.peerkey[ii]);
-    }
+    //printf("Chiave ricevuta\n");
+    //printf("Di lunghezza :::%d\n", ack.pkey_len );
+    //for (int ii = 0; ii < ack.pkey_len; ii++){
+    //        printf("%c", ack.peerkey[ii]);
+    //}
     BIO *bio2 = NULL;
     if ((bio2 = BIO_new(BIO_s_mem())) == NULL)
         return NULL;
 
     if(flag_order!=2){
-        if(strcmp(ack.peerkey,client_pkey)!=0){
-            printf("Matching error nella chiave\n");
+        if(strcmp(ack.peerkey,client_pkey)==0){
+            printf("Matching error nella chiave\n%sm\n%s\n", ack.peerkey, client_pkey);
             //exit(1);
         }
     }
@@ -451,8 +441,8 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
 	EVP_PKEY_CTX_free(kctx);
 	EVP_PKEY_free(dh_params);
 	EVP_PKEY_CTX_free(pctx);
-    printf("SEGRETO: \t");
-	BIO_dump_fp(stdout, (const char*)secret, (int)*secret_len);
+    //printf("SEGRETO: \t");
+	//BIO_dump_fp(stdout, (const char*)secret, (int)*secret_len);
     
 	return secret;
 }
@@ -464,7 +454,7 @@ void makeSymKey(unsigned char *key, unsigned char *digest){
         memcpy(key + 2*i,tempC, 2);
     }
     key[65] = '\0';
-    printf("%s\n", key);
+    //printf("%s\n", key);
 }
 
 //Codice del processo figlio
@@ -486,7 +476,7 @@ void childCode(){
 
         //Sto sfidando io qualcuno o mi sta arrivando se hanno accettato la sfida o no ?
         if(match_m.opcode == ACCEPT_OPCODE){
-            printf("Sfida accettata (child process)\n");
+            printf("The other player was online and accepted to join a match!!!\n");
         }else if(match_m.opcode == MATCH_OPCODE){
             
             struct message reply_m;
@@ -524,10 +514,8 @@ void childCode(){
                 if(nonceCheck(pubKey_m.nonce, 1, getppid()) == 0)
                     continue;
 
-                printf("                                nonce:%d\n", nonce);
-
                 //get sender public key
-                printf("Public key of who asked for the match:\n%s\n", pubKey_m.pubKey);
+                //printf("Public key of who asked for the match:\n%s\n", pubKey_m.pubKey);
                 BIO *bio = NULL;
                 if ((bio = BIO_new(BIO_s_mem())) == NULL)
                     continue;
@@ -536,23 +524,20 @@ void childCode(){
                 //free(pubKey_m.pubKey);// Per ora lo cancelliamo !!!!!!! costante
                 BIO_free(bio);
 
-                printf("Waiting for Battle request on port %d...\n", ntohs(cl_secondary_port));
+                printf("Waiting for Battle request confirm on port %d...\n", ntohs(cl_secondary_port));
                 recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr, FALSE, 0);
                 printf("Recived Battle request !!!!\n");
                 
                 // Negotiation
                 size_t secret_len = SECRET_SIZE; //costante magica
-                char bufferAddr[INET_ADDRSTRLEN];
-                inet_ntop( AF_INET, &opponent_addr.sin_addr, bufferAddr, sizeof( bufferAddr ));
-                printf("opponent addr: %s", bufferAddr); 
+                //char bufferAddr[INET_ADDRSTRLEN];
+                //inet_ntop( AF_INET, &opponent_addr.sin_addr, bufferAddr, sizeof( bufferAddr ));
+                //printf("opponent addr: %s", bufferAddr); 
                 unsigned char* secretCtoCrec = get_secret_ec(&secret_len, cl_id, opponent_addr,0); //"0123456789"; //
                 unsigned char* digestCtoCRec = hash(secretCtoCrec);
                 //printf("Digest: %s\n", digest);
                 ////
 
-
-                printf("--- Digest --- \n");
-                BIO_dump_fp(stdout, (const char *)digestCtoCRec, 32);
                 //save key to talk with server and set client-client key
                 unsigned char servKey[300];
                 strcpy((char*)servKey, (char*)symKey);
@@ -566,7 +551,7 @@ void childCode(){
                 free(m.tagBuffer);
 
                 //Game start !!!
-                printf("\nAdversary port: %d\n", ntohs(opponent_addr.sin_port));
+                //printf("\nAdversary port: %d\n", ntohs(opponent_addr.sin_port));
                 
                 kill(getppid(), SIGUSR2);
                 forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE, 100);
@@ -581,9 +566,11 @@ void childCode(){
                 sem_post(mutex_active_process);
             }
         }else if(match_m.opcode == DENY_OPCODE){
-            printf("Sfida rifiutata (child process)\n");
+            printf("You denied to join the match\n");
+            printf("Press Enter to return to the main console ...\n");
         }else{
             printf("Errore OPCODE da gestire\n");
+            printf("Press Enter to return to the main console ...\n");
         }
     }
 }
@@ -637,7 +624,7 @@ EVP_PKEY* verifyCertificate(struct message m){
     // print the successful verification to screen:
     char* tmp = X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
     char* tmp2 = X509_NAME_oneline(X509_get_issuer_name(cert), NULL, 0);
-    printf("Certificate of %s released by %s verified successfully", tmp , tmp2);
+    //printf("Certificate of %s released by %s verified successfully", tmp , tmp2);
     free(tmp);
     free(tmp2);
 
@@ -722,32 +709,32 @@ int main(int argc, char* argv[]){
 	send_message(&m, &sv_addr, sd, FALSE);
 
     struct message ack_login_m;
-    printf("Waiting ACK...\n");
+    //printf("Waiting ACK...\n");
     recv_message(sd, &ack_login_m, (struct sockaddr*)&sv_addr, FALSE, nonce);
 
-    printf("ACK received... Login Completed\n");
     if(ack_login_m.opcode != AUTH2_OPCODE){
-        printf("Login Opcode Error %d\n", ack_login_m.opcode);
+        printf("Login Opcode Error %d\n\033[0;31mThis user is already online\033[0m\n", ack_login_m.opcode);
         exit(1);
     }
+    printf("ACK received... Login Completed\n");
 
-    printf("Cs = %u\n", ack_login_m.nonce);
+    //printf("Cs = %u\n", ack_login_m.nonce);
 
     struct message m_response;
     nonce = ack_login_m.nonce;
     pack_response_message(&m_response, ack_login_m.nonce);
     send_message(&m_response, &sv_addr, sd, FALSE);
-    printf("INVIATO PER CERT M\n");
-    printf("opcode %d\n", m_response.opcode);
-    printf("nonce %u\n", m_response.nonce);
-    int n = m_response.sign_len;
-    printf("sig len %d\n",n);
-    for(int i=0; i<n; i++)
-        printf("%c", m_response.sign[i]);
+    //printf("INVIATO PER CERT M\n");
+    //printf("opcode %d\n", m_response.opcode);
+    //printf("nonce %u\n", m_response.nonce);
+    //int n = m_response.sign_len;
+    //printf("sig len %d\n",n);
+    //for(int i=0; i<n; i++)
+    //    printf("%c", m_response.sign[i]);
 
 
     struct message ack_cert_m;
-    printf("\nWaiting Cert and Response...\n");
+    //printf("\nWaiting Cert and Response...\n");
     recv_message(sd, &ack_cert_m, (struct sockaddr*)&sv_addr, FALSE, 0);
     if(ack_cert_m.opcode != AUTH4_OPCODE){
         printf("Login Opcode Error %d\n", ack_cert_m.opcode);
@@ -759,9 +746,6 @@ int main(int argc, char* argv[]){
     int nonce_len = (unsigned int)floor(log10(cu))+1;
     char ch_cu[nonce_len];
     sprintf(ch_cu, "%u", cu);
-    //printf("provina\n");
-    printf("cu: %u\n", cu);
-    //char *test= "77"; //costante magica
 	int ret;
     const EVP_MD* md = EVP_sha256();
 	EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
@@ -777,7 +761,7 @@ int main(int argc, char* argv[]){
             printf("%c",ch_cu[i]);
         handleErrors();
     }
-	printf("Ca verified");
+	//printf("Ca verified");
 	EVP_PKEY_free(server_pkey);
 	EVP_MD_CTX_free(md_ctx);
 
@@ -795,10 +779,7 @@ int main(int argc, char* argv[]){
 
     /* Use digest of secret instead of secret to increase the entropy */
 
-    printf("\033[1;32m");
-	printf("Welcome to Forza4");
-	printf("\033[0m"); 
-    printf(": Enjoy with your friends! ");
+    printf("\033[1;32mWelcome to Forza4\033[0m: Enjoy it with your friends! ");
     print_help();
 
     //to increse the other porcess nonce
@@ -848,10 +829,10 @@ int main(int argc, char* argv[]){
                 nonceInc(pid);
                 pack_list_message(&m, cl_id);
     
-                printf("Getting list of online users from the server \n");
+                //printf("Getting list of online users from the server \n");
                 send_message(&m, &sv_addr, sd, TRUE);
 
-                printf("Waiting ACK...\n");
+                //printf("Waiting ACK...\n");
                 struct message ack_list;
                 recv_message(sd, &ack_list, (struct sockaddr*)&sv_addr, TRUE, 0);
 
@@ -859,9 +840,9 @@ int main(int argc, char* argv[]){
                 if(nonceCheck(ack_list.nonce, 1, pid) == 0)
                     continue;
 
-                printf("ACK received");
+                //printf("ACK received");
 
-                printf("List of the logged users:\n");
+                printf("List of the online users:\n");
                 for (int i = 0; i < ack_list.nOnlinePlayers; i++){
                     printf("- %d \n", ack_list.onlinePlayers[i]);
                 }
@@ -883,7 +864,7 @@ int main(int argc, char* argv[]){
 
                 //Waiting request replay
                 struct message ack_match_m;
-                printf("Waiting Match ACK....\n");
+                //printf("Waiting Match ACK....\n");
                 recv_message(sd, &ack_match_m, (struct sockaddr*)&sv_addr, FALSE, nonce);
 
                 //nonce check
@@ -896,17 +877,17 @@ int main(int argc, char* argv[]){
                     break;
                 BIO_write(bio, ack_match_m.pubKey, ack_match_m.pkey_len);
                 PEM_read_bio_PUBKEY(bio, (EVP_PKEY**)&client_pkey, NULL, NULL);
-                printf("%s\n", ack_match_m.pubKey);
+                //printf("%s\n", ack_match_m.pubKey);
                 BIO_free(bio);
                 free(ack_match_m.pubKey);
 
                 int esito = (ack_match_m.flag==1)?ACCEPT_OPCODE:DENY_OPCODE;
                     
-                printf("ACK Match received... Esito\n");
+                //printf("ACK Match received... Esito\n");
                 if(ack_match_m.flag == 2){
                     printf("The selected user in not online right now\n");
                 }else if(esito== DENY_OPCODE){
-                    printf("Partita rifiutata (main thread)\n");
+                    printf("The other user didn't want to join a match\n");
                 }else if(esito == ACCEPT_OPCODE){
 
                     kill(pid, SIGUSR2);
@@ -914,8 +895,8 @@ int main(int argc, char* argv[]){
                     sem_wait(mutex_active_process);
                     secondSd = setupSocket(cl_secondary_port);
 
-                    printf("Partita accettata (main thread)\n");
-                    printf("Sending to port: %d\n", ack_match_m.dest_port);
+                    printf("The match request was accepted !\n");
+                    //printf("Sending to port: %d\n", ack_match_m.dest_port);
                     opponent_addr = setupAddress("127.0.0.1", (int)ack_match_m.dest_port);
 
                     pack_match_move_message(&m, 0);
@@ -927,7 +908,7 @@ int main(int argc, char* argv[]){
                     // Negoziazione
                     char bufferAddr[INET_ADDRSTRLEN];
                     inet_ntop( AF_INET, &opponent_addr.sin_addr, bufferAddr, sizeof( bufferAddr ));
-                    printf("opponent addr: %s", bufferAddr); 
+                    //printf("opponent addr: %s", bufferAddr); 
                     unsigned char* secretCtoC = get_secret_ec(&secret_len, cl_id, opponent_addr,1); //"0123456789"; //
                     unsigned char* digestCtoC = hash(secretCtoC);
                     //printf("Digest: %s\n", digest);
@@ -941,13 +922,9 @@ int main(int argc, char* argv[]){
                     chaneKeySend(symKey, 65);
                     chaneKeyReciver(symKey, 65);
 
-                    printf("Waiting for confirm !!!!\n");
+                    printf("Waiting for other player...\n");
                     struct sockaddr* opponent_addr2;
                     recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr2, FALSE, nonce);
-
-
-                    printf("--- Digest --- \n");
-                    BIO_dump_fp(stdout, (const char *)digest, 32);
 
                     forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, TRUE, 100);
                     close(secondSd);
@@ -963,7 +940,7 @@ int main(int argc, char* argv[]){
                     fgets(temp, 5, stdin);
                 }
                 else{
-                    printf("OPCODE Error da gestire\n");
+                    printf("OPCODE of the responce wasn't valid\n");
                 }
                 
                 fflush(stdin);
@@ -982,10 +959,9 @@ int main(int argc, char* argv[]){
 
                 send_message(&m, &sv_addr, sd, TRUE);
 
-                printf("Waiting Logout ACK....\n");
+                //printf("Waiting Logout ACK....\n");
                 struct message ack_logout_m;
                 recv_message(sd, &ack_logout_m, (struct sockaddr*)&sv_addr, FALSE, nonce);
-                printf("Logout ACK received... Login Completed\n");
                 if(ack_logout_m.opcode != ACK_OPCODE){
                     printf("Logout Opcode Error: %d\n", ack_logout_m.opcode);
                     exit(1);
@@ -994,6 +970,8 @@ int main(int argc, char* argv[]){
                 //nonce check
                 if(!nonceCheck(ack_logout_m.nonce, 1, pid))
                     continue;
+
+                printf("Logout Completed !\nHave a nice day!\n");
 
                 close(sd);
                 close(secondSd);

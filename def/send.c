@@ -8,8 +8,8 @@ uint32_t id = 0;
 
 void chaneKeySend(unsigned char *newKey, int size){
 	memcpy(symKey, newKey, size);
-	printf("New key seted up: \n");
-    BIO_dump_fp(stdout, (const char *)symKey, 17);
+	//printf("New key seted up: \n");
+    //BIO_dump_fp(stdout, (const char *)symKey, 17);
 }
 
 void setMyId(uint32_t setId){
@@ -234,7 +234,7 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
     	//BIO_dump_fp(stdout, (const char *)pt, 256);
 
 
-		printf("Sending with key: %s\n", symKey);
+		//printf("Sending with key: %s\n", symKey);
 		symEncrypt(pt, MAX_BUFFER_SIZE, symKey, iv_gcm, ct, tag);
 
 
@@ -242,7 +242,7 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
 		pos+= 1;
 
 		//set sender id
-		printf("Set up id: %d\n", id);
+		//printf("Set up id: %d\n", id);
 		memcpy(buf + pos, &id, sizeof(id));
 		pos+= sizeof(id);
 

@@ -15,8 +15,8 @@ void setKeyFilename(char *fn){
 
 void chaneKeyReciver(unsigned char *newKey, int size){
 	memcpy(key_gem_recive, newKey, size);
-	printf("New key seted up: \n");
-    BIO_dump_fp(stdout, (const char *)key_gem_recive, 17);
+	//printf("New key seted up: \n");
+    //BIO_dump_fp(stdout, (const char *)key_gem_recive, 17);
 }
 
 
@@ -251,7 +251,7 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 
 		memcpy(&senderId, buffer+pos, sizeof(senderId));
 		pos += sizeof(senderId);
-		printf("Id ricevuto :%d\n", senderId);
+		//printf("Id ricevuto :%d\n", senderId);
 
 		memcpy(iv_gcm, buffer+pos, 12);
 		pos += 12;
@@ -275,11 +275,9 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 		unsigned char k[300];
 		strcpy(k, key_gem_recive);
 		if(isServerRecive == TRUE){
-			printf("Sono in un server !!!!!!!!!!\n");
 			get_buf_column_by_id("loggedUser.csv", (int)senderId, 5, k);
-			printf("R-----------------------------------------------------------------------------------------\n");
 		}
-		printf("%s\n", k);
+		//printf("%s\n", k);
 		sprintf(symKey, "%s", k);
 
 		symDecrypt(pt, MAX_BUFFER_SIZE, k, iv_gcm, ct, tag);
