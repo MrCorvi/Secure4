@@ -355,23 +355,38 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
    
     if(NULL == (ctx = EVP_PKEY_CTX_new(pkey, NULL)))   printf("ERRORE 1\n");
     //invia
-    FILE* p1w = fopen(str, "w");
-    if(!p1w){ printf("Error: cannot open file %s\n", str); exit(1); }
-    PEM_write_PUBKEY(p1w, pkey);
-    fseek(p1w, 0L, SEEK_END);
-    int size = ftell(p1w);
-    fseek(p1w, 0L, SEEK_SET);
-    fclose(p1w);
-
     BIO *bio = NULL;
     if ((bio = BIO_new(BIO_s_mem())) == NULL) return NULL;
+    char* pem;
+    int size;
+    if(flag_order==2){
+        FILE* p1w = fopen(str, "w");
+        if(!p1w){ printf("Error: cannot open file %s\n", str); exit(1); }
+        PEM_write_PUBKEY(p1w, pkey);
+
+        fseek(p1w, 0L, SEEK_END);
+        size = ftell(p1w);
+        fseek(p1w, 0L, SEEK_SET);
+        fclose(p1w);
+    }
+    else{
+        FILE* p1w = fopen(str, "r");
+        if(!p1w){ printf("Error: cannot open file %s\n", str); exit(1); }
+        pkey = PEM_read_PUBKEY(p1w, NULL, NULL,NULL);
+        if(pkey==NULL) printf("NULL Pkey\n");
+
+        fseek(p1w, 0L, SEEK_END);
+        size = ftell(p1w);
+        fseek(p1w, 0L, SEEK_SET);
+        fclose(p1w);
+    }
 
     if (0 == PEM_write_bio_PUBKEY(bio, pkey)){
         BIO_free(bio);
         return NULL;
     }
 
-    char *pem = (char *) calloc(1, size + 1);
+    pem = (char *) calloc(1, size + 1);
     BIO_read(bio, pem, size);
     //printf("sizeof %d\n", size);
     //for (int i = 0; i < size; i++)
@@ -410,9 +425,11 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
 
     if(flag_order!=2){
         if(strcmp(ack.peerkey,client_pkey)!=0){
-            printf("Matching error nella chiave\n%sm\n%s\n", ack.peerkey, client_pkey);
+            printf("Matching error nella chiave\n%smm:\n%s\n", ack.peerkey, client_pkey);
             //exit(1);
         }
+        else
+            printf("Chiavi coincidenti\n");
     }
     BIO_write(bio2, ack.peerkey, ack.pkey_len);
     PEM_read_bio_PUBKEY(bio2, &peerkey, NULL, NULL);
@@ -519,8 +536,10 @@ void childCode(){
                 BIO *bio = NULL;
                 if ((bio = BIO_new(BIO_s_mem())) == NULL)
                     continue;
-                BIO_write(bio, pubKey_m.pubKey, pubKey_m.pkey_len);
-                PEM_read_bio_PUBKEY(bio, (EVP_PKEY **)&client_pkey, NULL, NULL);
+                //commentato
+                client_pkey = (char*)pubKey_m.pubKey;
+                //BIO_write(bio, pubKey_m.pubKey, pubKey_m.pkey_len);
+                //PEM_read_bio_PUBKEY(bio, (EVP_PKEY **)&client_pkey, NULL, NULL);
                 //free(pubKey_m.pubKey);// Per ora lo cancelliamo !!!!!!! costante
                 BIO_free(bio);
 
@@ -569,7 +588,6 @@ void childCode(){
             printf("You denied to join the match\n");
             printf("Press Enter to return to the main console ...\n");
         }else{
-            printf("Errore OPCODE da gestire\n");
             printf("Press Enter to return to the main console ...\n");
         }
     }
@@ -875,11 +893,16 @@ int main(int argc, char* argv[]){
                 BIO *bio = NULL;
                 if ((bio = BIO_new(BIO_s_mem())) == NULL)
                     break;
-                BIO_write(bio, ack_match_m.pubKey, ack_match_m.pkey_len);
-                PEM_read_bio_PUBKEY(bio, (EVP_PKEY**)&client_pkey, NULL, NULL);
+                printf("CIAO BIO\n");
+                for(int i=0; i<ack_match_m.pkey_len; i++)
+                    printf("%c", ack_match_m.pubKey[i]);
+                client_pkey = (char*) ack_match_m.pubKey;
+                // commento
+                //BIO_write(bio, ack_match_m.pubKey, ack_match_m.pkey_len);
+                //PEM_read_bio_PUBKEY(bio, (EVP_PKEY**)&client_pkey, NULL, NULL);
                 //printf("%s\n", ack_match_m.pubKey);
                 BIO_free(bio);
-                free(ack_match_m.pubKey);
+                //free(ack_match_m.pubKey);
 
                 int esito = (ack_match_m.flag==1)?ACCEPT_OPCODE:DENY_OPCODE;
                     

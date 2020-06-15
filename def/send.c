@@ -117,6 +117,7 @@ int serialize_message(void* buffer, struct message *msg){
 			pos+=sizeof(aux.nonce);
 			break;
 		case REPLY_OPCODE:
+		
 			memcpy(buffer+pos, &aux.my_id, sizeof(aux.my_id));
 			pos+=sizeof(aux.my_id);
 			memcpy(buffer+pos, &aux.dest_id, sizeof(aux.dest_id));
@@ -233,10 +234,8 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
 		//printf("PlainTaxt: \n");
     	//BIO_dump_fp(stdout, (const char *)pt, 256);
 
-
 		//printf("Sending with key: %s\n", symKey);
 		symEncrypt(pt, MAX_BUFFER_SIZE, symKey, iv_gcm, ct, tag);
-
 
 		memcpy(buf, &encrypt, 1);
 		pos+= 1;

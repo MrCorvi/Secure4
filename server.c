@@ -456,7 +456,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			char* certserver_file_name = "./CA/ServerCybersec_cert.pem";
 			struct message aux_cert = packCertificateAndSign(signed_challange, sign_len, certserver_file_name);
 			send_message(&aux_cert, cl_addr, sd, FALSE);
-		
+
 			size_t secret_len = SECRET_SIZE;
 			//costante magica
     		unsigned char* secret = get_secret_ec(&secret_len, cl_addr, sd);  //"0123456789";//
@@ -623,12 +623,10 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				printf("												DEST IP: %s\n", dest_ip);
 			}
 
-
 			//send responce to the sender
 			printf("sending to %d public key of %d\n", aux->my_id, aux->dest_id);
 			unsigned char pk[5000];
 			uint16_t pkSizeSender = getPublicKey(pk, aux->dest_id);
-
     		//printf("Public key:      %s\n", pk);
 
 			struct message rispSender;
@@ -641,21 +639,16 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			rispSender.pubKey = pk;
 
 			//reciver publick key
-			
-			printf("Public key:      \n%s\n", pk);
-			
+			printf("Public key::      \n%s\n", pk);
 			//set symmetric key to talk with reciver
 			get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 5, (char*)symKey);
+
 			send_message(&rispSender, cl_addr, sd, TRUE);
-
 			//free(pk);
-
-
 
 			source_ip   = (char*)get_column_by_id(filename, aux->my_id, 2);
 			source_port = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
 			update_row(filename, aux->my_id, source_ip, source_port, nonce_stored + 2);
-
 			break;
 			
 		case LOGOUT_OPCODE:
