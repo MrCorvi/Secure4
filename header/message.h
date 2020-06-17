@@ -45,6 +45,7 @@ struct message{
     uint16_t column; 
     uint16_t flag; // 1 accept 0 deny
     uint32_t nonce;
+    uint32_t shared_nonce;
     char* peerkey;
     uint16_t pkey_len;
     unsigned char* sign;

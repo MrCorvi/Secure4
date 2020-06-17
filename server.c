@@ -224,7 +224,7 @@ struct message pack_challenge(){
 struct message pack_err(uint32_t id, u_int32_t nonce){
 
     struct message aux;
-    aux.opcode = REPLY_OPCODE;
+    aux.opcode = ERR_OPCODE;
     aux.my_id = id;
 	aux.nonce = nonce;
     aux.flag = 2;
@@ -241,6 +241,7 @@ struct message pack_list_ack(uint32_t nonce){
 	return aux;
 }
 
+// mai usata
 struct message pack_reply_message(uint16_t flag, uint32_t cl_id, uint16_t dest_id_aux, uint32_t nonce){
 	struct message aux;
     aux.opcode = REPLY_OPCODE;
@@ -571,6 +572,10 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				exit(1);
 			}
 
+			uint32_t n_ab;
+			RAND_poll();
+			RAND_bytes(&n_ab, sizeof(uint32_t));
+
 			if(timeout == 1){
 				timeout = 0;
 
@@ -585,8 +590,6 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 					printf("Errore: il nonce ricevuto dal reciver non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 					break;
 				}
-
-
 
 				//send responce and public key of sender to the reciver
 				printf("sending to %d public key of %d\n", aux->dest_id, aux->my_id);
@@ -607,6 +610,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				risp.nonce = nonce_reciver + 3;
 				risp.pkey_len = pkSize;
 				risp.pubKey = pk_dest;
+				risp.shared_nonce = n_ab;
 
 				//reciver publick key
 				
@@ -639,6 +643,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			rispSender.nonce = nonce_stored + 2;
 			rispSender.pkey_len = pkSizeSender;
 			rispSender.pubKey = pk;
+			rispSender.shared_nonce = n_ab;
 
 			//reciver publick key
 			

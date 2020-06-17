@@ -38,6 +38,7 @@ void toHost(struct message* msg){
 	msg->flag = (msg->flag)?ntohs(msg->flag):0;
 	msg->addColumn = (msg->addColumn)?ntohs(msg->addColumn):0;
 	msg->nonce = (msg->nonce)?ntohl(msg->nonce):0;
+	msg->shared_nonce = (msg->shared_nonce)?ntohl(msg->shared_nonce):0;
 	msg->sign_len = (msg->sign_len)?ntohs(msg->sign_len):0;
 	msg->cert_len = (msg->cert_len)?ntohs(msg->cert_len):0;
 	msg->pkey_len = (msg->pkey_len)?ntohs(msg->pkey_len):0;
@@ -153,7 +154,8 @@ int deserialize_message(unsigned char* buffer, struct message *aux){
 				//printf("%c",pk[i]);
 				pos+= sizeof(unsigned char);
 			}
-			//printf("\n");
+			memcpy(&aux->shared_nonce, buffer+pos, sizeof(aux->shared_nonce));
+			pos += sizeof(aux->shared_nonce);
 
 			//printf("NONCE : \n");
    			//BIO_dump_fp(stdout, (const char *)buffer, MAX_BUFFER_SIZE + TAG_SIZE + 12);
@@ -298,7 +300,6 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 	}
 
 	// decifra buf (magari con flag)
-
 	ret = deserialize_message(buffer, message);
 	return ret;
 }

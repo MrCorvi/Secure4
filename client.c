@@ -509,7 +509,6 @@ void childCode(){
                 //Waiting from server the public key of who hasked for the match
                 struct message pubKey_m;
                 recv_message(secondSd, &pubKey_m, (struct sockaddr*)&sv_addr_listen, FALSE, nonce);
-
                 //nonce check
                 if(nonceCheck(pubKey_m.nonce, 1, getppid()) == 0)
                     continue;
@@ -554,7 +553,7 @@ void childCode(){
                 //printf("\nAdversary port: %d\n", ntohs(opponent_addr.sin_port));
                 
                 kill(getppid(), SIGUSR2);
-                forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE, 100);
+                forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE, pubKey_m.shared_nonce);
 
                 //reset key to talk with server
                 strcpy((char*)symKey, (char*)servKey);
@@ -879,7 +878,7 @@ int main(int argc, char* argv[]){
                 PEM_read_bio_PUBKEY(bio, (EVP_PKEY**)&client_pkey, NULL, NULL);
                 //printf("%s\n", ack_match_m.pubKey);
                 BIO_free(bio);
-                free(ack_match_m.pubKey);
+                //free(ack_match_m.pubKey);
 
                 int esito = (ack_match_m.flag==1)?ACCEPT_OPCODE:DENY_OPCODE;
                     
@@ -926,7 +925,7 @@ int main(int argc, char* argv[]){
                     struct sockaddr* opponent_addr2;
                     recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr2, FALSE, nonce);
 
-                    forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, TRUE, 100);
+                    forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, TRUE,  ack_match_m.shared_nonce);
                     close(secondSd);
                     sem_post(mutex_secondary_port);
 

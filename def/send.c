@@ -36,6 +36,7 @@ struct message toNet(struct message* msg){
 	aux.flag = htons(msg->flag);
 	aux.addColumn = htons(msg->addColumn);
 	aux.nonce = htonl(msg->nonce);
+	aux.shared_nonce = htonl(msg->shared_nonce);
 	aux.peerkey = msg->peerkey;
 	aux.pkey_len = htons(msg->pkey_len); //da rivedere
 	aux.cert = msg->cert;
@@ -139,6 +140,8 @@ int serialize_message(void* buffer, struct message *msg){
 				pos+= sizeof(tempC);
 				//printf("%c", tempC);
 			}
+			memcpy(buffer+pos, &aux.shared_nonce, sizeof(aux.shared_nonce));
+			pos+=sizeof(aux.shared_nonce);
 			//printf("\nAUX FLAG INVIATO: %u <--> %d\n ", aux.flag, aux.flag );
 			break;
 		case KEY_OPCODE:

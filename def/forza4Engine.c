@@ -172,7 +172,7 @@ int waitMove(){
 
     //Is the nonce correct ?
      //Nonce check
-    printf("\nNonce rec: %d       stored:%d\n", m.nonce, nonceCl_to_Cl);
+    printf("\nNonce rec: %u       stored:%u\n", m.nonce, nonceCl_to_Cl);
     if((nonceCl_to_Cl + 1) != m.nonce){
         printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         return 0;
@@ -274,14 +274,13 @@ int update(int first){
 
 
 
-void forza4Engine(char *_destIp, int _destPort , int _sendSd, int _reciveSd, int first, int nonceCtoc){
+void forza4Engine(char *_destIp, int _destPort , int _sendSd, int _reciveSd, int first, uint32_t nonceCtoc){
     int goOn = TRUE;
     destIp = _destIp;
     destPort = _destPort;
     sendSd = _sendSd;
     reciveSd = _reciveSd;
     nonceCl_to_Cl = nonceCtoc;
-
 
     int firstTurn = first;
     //printf("\n%s\n", destIp);
