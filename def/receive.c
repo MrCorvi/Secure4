@@ -240,7 +240,7 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 
 		//unsigned char iv_gcm[] = "123456789012" ;
 		unsigned char iv_gcm[12];
-		unsigned char *ct, *tag, pt[MAX_BUFFER_SIZE], aad[5];
+		unsigned char *ct, *tag, pt[MAX_BUFFER_SIZE], aad[17];
 		int pos = 1;
 		
 		//sprintf(iv_gcm, "%-12d", nonce);
@@ -282,8 +282,8 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 		sprintf(symKey, "%s", k);
 
 
-		memcpy(aad, buffer, 5);
-		symDecrypt(pt, MAX_BUFFER_SIZE, k, iv_gcm, ct, tag, aad, 5);
+		memcpy(aad, buffer, 17);
+		symDecrypt(pt, MAX_BUFFER_SIZE, k, iv_gcm, ct, tag, aad, 17);
 
 		//printf("PlainText: \n");
 		//BIO_dump_fp(stdout, (const char *)pt, 200);

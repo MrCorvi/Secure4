@@ -218,7 +218,7 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
 		//Cypher
 		unsigned char *ct   = (unsigned char*)malloc(MAX_BUFFER_SIZE);	
 		unsigned char *tag  = (unsigned char*)malloc(TAG_SIZE);
-		unsigned char pt[MAX_BUFFER_SIZE], aad[5];
+		unsigned char pt[MAX_BUFFER_SIZE], aad[17];
 		int ptLen = MAX_BUFFER_SIZE;
 		int pos = 0;
 
@@ -241,12 +241,13 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
 		memcpy(buf + pos, &id, sizeof(id));
 		pos+= sizeof(id);
 
-		//printf("Sending with key: %s\n", symKey);
-		memcpy(aad, buf, 5);
-		symEncrypt(pt, MAX_BUFFER_SIZE, symKey, iv_gcm, ct, tag, aad, 5);
-
 		memcpy(buf+pos, (const char *) iv_gcm, 12);
 		pos+= 12;
+
+		//printf("Sending with key: %s\n", symKey);
+		memcpy(aad, buf, 17);
+		symEncrypt(pt, MAX_BUFFER_SIZE, symKey, iv_gcm, ct, tag, aad, 17);
+
 
 		memcpy(buf+pos, (const char *) ct, MAX_BUFFER_SIZE);
 		pos+= MAX_BUFFER_SIZE;
