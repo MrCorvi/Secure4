@@ -240,13 +240,14 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 
 		//unsigned char iv_gcm[] = "123456789012" ;
 		unsigned char iv_gcm[12];
-		unsigned char *ct, *tag, pt[MAX_BUFFER_SIZE];
+		unsigned char *ct, *tag, pt[MAX_BUFFER_SIZE], aad[5];
 		int pos = 1;
 		
 		//sprintf(iv_gcm, "%-12d", nonce);
 		//printf("									iv: |%s|", iv_gcm);
 
-		//printf("Buffer : \n");
+		//printf("Buffmemcpy(buf + pos, &id, sizeof(id));
+		//pos+= sizeof(id);er : \n");
    		//BIO_dump_fp(stdout, (const char *)buffer, MAX_BUFFER_SIZE + TAG_SIZE + 12);
 
 		memcpy(&senderId, buffer+pos, sizeof(senderId));
@@ -280,7 +281,9 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 		//printf("%s\n", k);
 		sprintf(symKey, "%s", k);
 
-		symDecrypt(pt, MAX_BUFFER_SIZE, k, iv_gcm, ct, tag);
+
+		memcpy(aad, buffer, 5);
+		symDecrypt(pt, MAX_BUFFER_SIZE, k, iv_gcm, ct, tag, aad, 5);
 
 		//printf("PlainText: \n");
 		//BIO_dump_fp(stdout, (const char *)pt, 200);

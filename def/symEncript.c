@@ -89,9 +89,9 @@ unsigned char *plaintext){
 }
 
 
-int symEncrypt(unsigned char *msg, int pt_len, unsigned char *key_gem, unsigned char *iv_gcm, unsigned char *cphr_buf, unsigned char *tag_buf){
+int symEncrypt(unsigned char *msg, int pt_len, unsigned char *key_gem, unsigned char *iv_gcm, unsigned char *cphr_buf, unsigned char *tag_buf, unsigned char *aad, int aadLen){
     //Use Encryption
-    gcm_encrypt(msg, pt_len, iv_gcm, 12, key_gem, iv_gcm, 12, cphr_buf, tag_buf);
+    gcm_encrypt(msg, pt_len, aad, aadLen, key_gem, iv_gcm, 12, cphr_buf, tag_buf);
     /*
     printf("CypherText: \n");
     BIO_dump_fp(stdout, (const char *)cphr_buf, pt_len);
@@ -103,7 +103,7 @@ int symEncrypt(unsigned char *msg, int pt_len, unsigned char *key_gem, unsigned 
 }
 
 
-int symDecrypt(unsigned char *dec_buf, int pt_len, unsigned char *key_gem, unsigned char *iv_gcm, unsigned char *cphr_buf, unsigned char *tag_buf){
+int symDecrypt(unsigned char *dec_buf, int pt_len, unsigned char *key_gem, unsigned char *iv_gcm, unsigned char *cphr_buf, unsigned char *tag_buf, unsigned char *aad, int aadLen){
     //use Decription
     gcm_decrypt(cphr_buf, pt_len, iv_gcm, 12, tag_buf, key_gem, iv_gcm, 12, dec_buf);
     /*

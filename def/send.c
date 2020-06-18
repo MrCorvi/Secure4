@@ -42,7 +42,6 @@ struct message toNet(struct message* msg){
 	aux.cert_len = htons(msg->cert_len);
 	aux.sign =msg->sign;
 	aux.sign_len = htons(msg->sign_len);
-
 	aux.ptLen = htonl(msg->ptLen);
 	
 	return aux;
@@ -117,6 +116,7 @@ int serialize_message(void* buffer, struct message *msg){
 			pos+=sizeof(aux.nonce);
 			break;
 		case REPLY_OPCODE:
+		
 			memcpy(buffer+pos, &aux.my_id, sizeof(aux.my_id));
 			pos+=sizeof(aux.my_id);
 			memcpy(buffer+pos, &aux.dest_id, sizeof(aux.dest_id));
@@ -218,7 +218,7 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
 		//Cypher
 		unsigned char *ct   = (unsigned char*)malloc(MAX_BUFFER_SIZE);	
 		unsigned char *tag  = (unsigned char*)malloc(TAG_SIZE);
-		unsigned char pt[MAX_BUFFER_SIZE];
+		unsigned char pt[MAX_BUFFER_SIZE], aad[5];
 		int ptLen = MAX_BUFFER_SIZE;
 		int pos = 0;
 
@@ -233,11 +233,6 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
 		//printf("PlainTaxt: \n");
     	//BIO_dump_fp(stdout, (const char *)pt, 256);
 
-
-		//printf("Sending with key: %s\n", symKey);
-		symEncrypt(pt, MAX_BUFFER_SIZE, symKey, iv_gcm, ct, tag);
-
-
 		memcpy(buf, &encrypt, 1);
 		pos+= 1;
 
@@ -245,6 +240,10 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
 		//printf("Set up id: %d\n", id);
 		memcpy(buf + pos, &id, sizeof(id));
 		pos+= sizeof(id);
+
+		//printf("Sending with key: %s\n", symKey);
+		memcpy(aad, buf, 5);
+		symEncrypt(pt, MAX_BUFFER_SIZE, symKey, iv_gcm, ct, tag, aad, 5);
 
 		memcpy(buf+pos, (const char *) iv_gcm, 12);
 		pos+= 12;

@@ -18,6 +18,7 @@
 #include<string.h>
 #include<math.h>
 #include "header/forza4Engine.h"
+#include "header/keyStore.h"
 #ifndef MESSAGE_H
     #define MESSAGE_H
     #include"header/message.h"
@@ -331,6 +332,7 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
     strcpy(str, "./pubkeys/ecc_pubkey");
     strcat(str, id);
     strcat(str,".pem");
+
 
     // Create the context for parameter generation 
 	if(!(pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL))) handleErrors();
@@ -793,14 +795,19 @@ int main(int argc, char* argv[]){
 		exit(1);		
 	}	
 
+
     //Child process
 	if(pid==0){
         //Setup signals to interupt the child process
         signal(SIGUSR2, secondaryPortRequest);
-
+        //writeKey(1);
+	    
         childCode();        
         return 0;
 	}
+
+    //sleep(10);
+    //readKey(1);
 
     //Setup signal to interupt the father process
     signal(SIGUSR2, battleRequest);

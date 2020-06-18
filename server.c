@@ -25,6 +25,7 @@
 #endif
 #include "header/receive.h"
 #include "header/utilityFile.h"
+#include "header/keyStore.h"
 
 #define BUFLEN 1024
 
