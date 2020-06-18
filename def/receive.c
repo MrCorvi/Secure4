@@ -26,6 +26,20 @@ void setIsServerReciver(){
 }
 
 
+int notBufferOverflow = TRUE;
+void incPos(int *pos, int inc){
+	if(notBufferOverflow == FALSE)
+		return;
+	
+	if((*pos + inc) > MAX_BUFFER_SIZE){
+		notBufferOverflow = FALSE;
+		return;
+	}
+	
+	*pos += inc;
+}
+
+
 void toHost(struct message* msg){
 
 	msg->opcode = (msg->opcode!=0)?ntohs(msg->opcode):0;
@@ -58,89 +72,75 @@ int deserialize_message(unsigned char* buffer, struct message *aux){
 
         case LOGIN_OPCODE:
             memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
-            pos += sizeof(aux->my_id);
+			incPos(&pos, sizeof(aux->my_id));
 			memcpy(&aux->my_listen_port, buffer+pos, sizeof(aux->my_listen_port));
-            pos += sizeof(aux->my_listen_port);
+			incPos(&pos, sizeof(aux->my_listen_port));
             break;
 		case ACK_OPCODE:
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
-			pos += sizeof(aux->my_id);
+			incPos(&pos, sizeof(aux->my_id));
 			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
-			pos += sizeof(aux->nonce);
+			incPos(&pos, sizeof(aux->nonce));
 			break;
 		case LIST_OPCODE:
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
-			pos += sizeof(aux->my_id);
+			incPos(&pos, sizeof(aux->my_id));
 			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
-			pos += sizeof(aux->nonce);
+			incPos(&pos, sizeof(aux->nonce));
 			break;
 		case ACK_LIST:
 			memcpy(&aux->nOnlinePlayers, buffer+pos, sizeof(aux->nOnlinePlayers));
-			pos += sizeof(aux->nOnlinePlayers);
+			incPos(&pos, sizeof(aux->nOnlinePlayers));
 			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
 			//pos += sizeof(aux->nonce);
 			
 			temp = (uint16_t*)buffer+pos;
 			for (int i = 0; i < ntohs(aux->nOnlinePlayers); i++){
 				aux->onlinePlayers[i] = ntohs(temp[i]);
-				pos+= sizeof(uint16_t);
+				incPos(&pos, sizeof(uint16_t));
 			}
 			//printf("\n");
 			break;
 		case LOGOUT_OPCODE:
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
-			pos += sizeof(aux->my_id);
+			incPos(&pos, sizeof(aux->my_id));
 			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
-			pos += sizeof(aux->nonce);
+			incPos(&pos, sizeof(aux->nonce));
 			break;
 
 		case MATCH_MOVE_OPCODE:
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
-			pos += sizeof(aux->my_id);
+			incPos(&pos, sizeof(aux->my_id));
 			memcpy(&aux->addColumn, buffer+pos, sizeof(aux->addColumn));
-			pos += sizeof(aux->addColumn);
+			incPos(&pos, sizeof(aux->addColumn));
 			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
-			pos += sizeof(aux->nonce);
-
-			/*
-			//decipher
-			memcpy(&aux->ptLen, buffer+pos, sizeof(aux->ptLen));
-			pos += sizeof(aux->ptLen);
-
-			aux->cphtBuffer = (unsigned char*)malloc(ntohl(aux->ptLen));
-			memcpy(aux->cphtBuffer, buffer+pos, ntohl(aux->ptLen));
-			pos += ntohl(aux->ptLen);
-
-    		aux->tagBuffer  = (unsigned char*)malloc(16);
-			memcpy(aux->tagBuffer, buffer+pos, 16);
-			pos += 16;
-			*/
+			incPos(&pos, sizeof(aux->nonce));
 			break;
 
 		case MATCH_OPCODE:
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
-			pos += sizeof(aux->my_id);
+			incPos(&pos, sizeof(aux->my_id));
 			memcpy(&aux->dest_id, buffer+pos, sizeof(aux->dest_id));
-			pos += sizeof(aux->dest_id);
+			incPos(&pos, sizeof(aux->dest_id));
 			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
-			pos += sizeof(aux->nonce);
+			incPos(&pos, sizeof(aux->nonce));
 			break;
 		case REPLY_OPCODE:
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
-			pos += sizeof(aux->my_id);
+			incPos(&pos, sizeof(aux->my_id));
 			memcpy(&aux->dest_id, buffer+pos, sizeof(aux->dest_id));
-			pos += sizeof(aux->dest_id);
+			incPos(&pos, sizeof(aux->dest_id));
 			memcpy(&aux->flag, buffer+pos, sizeof(aux->flag));
-			pos += sizeof(aux->flag);
+			incPos(&pos, sizeof(aux->flag));
 			memcpy(&aux->dest_ip, buffer+pos, sizeof(aux->dest_ip));
-			pos += sizeof(aux->dest_ip);
+			incPos(&pos, sizeof(aux->dest_ip));
 			memcpy(&aux->dest_port, buffer+pos, sizeof(aux->dest_port));
-			pos += sizeof(aux->dest_port);
+			incPos(&pos, sizeof(aux->dest_port));
 			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
-			pos += sizeof(aux->nonce);
+			incPos(&pos, sizeof(aux->nonce));
 
 			memcpy(&aux->pkey_len, buffer+pos, sizeof(aux->pkey_len));
-			pos += sizeof(aux->pkey_len);
+			incPos(&pos, sizeof(aux->pkey_len));
 
 			//printf("recived key of length: %d  %d", aux->pkey_len, ntohs(aux->pkey_len));
 
@@ -151,61 +151,53 @@ int deserialize_message(unsigned char* buffer, struct message *aux){
 			for (uint16_t i = 0; i < ntohs(aux->pkey_len); i++){
 				aux->pubKey[i] = pk[i];
 				//printf("%c",pk[i]);
-				pos+= sizeof(unsigned char);
+				incPos(&pos, sizeof(unsigned char));
 			}
 			//printf("\n");
-
-			//printf("NONCE : \n");
-   			//BIO_dump_fp(stdout, (const char *)buffer, MAX_BUFFER_SIZE + TAG_SIZE + IV_SIZE);
-			//printf("AUX FLAG ricevuto: %u <--> %d\n ", aux->flag, aux->flag );
 			break;
 		case KEY_OPCODE:
 			//printf("Sono quiii!\n");
 			memcpy(&aux->pkey_len, buffer+pos, sizeof(aux->pkey_len));
-			//printf("sono qua con pkey-len %d!\n", aux->pkey_len);
-			pos += sizeof(aux->pkey_len);
-			//char *temp1 = (char *)buffer+pos;
-			//printf(temp1[0]);
-			//printf("pkey len %d\n", aux->pkey_len);
+			incPos(&pos, sizeof(aux->pkey_len));
 			aux->peerkey = malloc(ntohs(aux->pkey_len)+1); //POSSIBILE ERRORE
 			for (uint64_t i = 0; i < ntohs(aux->pkey_len); i++){
 				aux->peerkey[i] = (unsigned char)*(buffer+pos);
 				//printf("%d,%c,%c", i, *(buffer+pos),aux->peerkey[i]);
-				pos+= sizeof(char);
+				incPos(&pos, sizeof(char));
 			}
 			break;
 		case AUTH2_OPCODE:
 			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
-			pos += sizeof(aux->nonce);
+			incPos(&pos, sizeof(aux->nonce));
 			break;
 		case AUTH3_OPCODE:
 			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
-			pos += sizeof(aux->nonce);
+			incPos(&pos, sizeof(aux->nonce));
 			memcpy(&aux->sign_len, buffer+pos, sizeof(aux->sign_len));
-			pos += sizeof(aux->sign_len);
+			incPos(&pos, sizeof(aux->sign_len));
 			aux->sign = malloc(ntohs(aux->sign_len)+1);
 			for (uint64_t i = 0; i < ntohs(aux->sign_len); i++){
 				aux->sign[i] = (unsigned char)*(buffer+pos);
-				pos+= sizeof(char);
+				incPos(&pos, sizeof(char));
 				//printf("%u", aux->sign[i]);
 			}
 			break;
 		case AUTH4_OPCODE:
 			memcpy(&aux->sign_len, buffer+pos, sizeof(aux->sign_len));
-			pos += sizeof(aux->sign_len);
+			incPos(&pos, sizeof(aux->sign_len));
 			aux->sign = malloc(ntohs(aux->sign_len)+1);
 			for (uint64_t i = 0; i < ntohs(aux->sign_len); i++){
 				aux->sign[i] = (unsigned char)*(buffer+pos);
-				pos+= sizeof(char);
+				incPos(&pos, sizeof(char));
 				//printf("%u", aux->sign[i]);
 			}
 			memcpy(&aux->cert_len, buffer+pos, sizeof(aux->cert_len));
-			pos += sizeof(aux->cert_len);
+			incPos(&pos, sizeof(aux->cert_len));
 			//printf("\n POS1 %d e DIM CERT LEN %d\n", pos, ntohs(aux->cert_len));
 			aux->cert = malloc(ntohs(aux->cert_len)+1);
 			for (uint64_t i = 0; i < ntohs(aux->cert_len); i++){
 				aux->cert[i] = (unsigned char)*(buffer+pos);
-				pos+= 1;
+				incPos(&pos, sizeof(char));
 				//printf("%u", aux->cert[i]);
 				//printf("%d",pos);
 			}
@@ -215,7 +207,7 @@ int deserialize_message(unsigned char* buffer, struct message *aux){
 			break;
 	}
 	toHost(aux);
-	return 1;
+	return notBufferOverflow;
 }
 
 int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr, int dec, uint32_t nonce){
