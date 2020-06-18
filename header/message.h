@@ -27,6 +27,7 @@
 #define SECRET_SIZE 64
 #define DIGEST_SIZE 32
 #define SIGN_SIZE 64
+#define IV_SIZE 32
 
 #define TIMEOUT_TIME 60
 

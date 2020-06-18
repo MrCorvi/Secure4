@@ -201,7 +201,7 @@ int serialize_message(void* buffer, struct message *msg){
 void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, uint8_t encrypt){
 
 	void *buf;
-	int len = 1 + sizeof(id) + MAX_BUFFER_SIZE + TAG_SIZE + 12;
+	int len = 1 + sizeof(id) + MAX_BUFFER_SIZE + TAG_SIZE + IV_SIZE;
 	buf = malloc(len);	
 	int ret;
 
@@ -213,19 +213,19 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
 
 	if(encrypt == TRUE){
 		//unsigned char iv_gcm[] = "123456789012" ;
-		unsigned char iv_gcm[12];
+		unsigned char iv_gcm[IV_SIZE];
 		
 		//Cypher
 		unsigned char *ct   = (unsigned char*)malloc(MAX_BUFFER_SIZE);	
 		unsigned char *tag  = (unsigned char*)malloc(TAG_SIZE);
-		unsigned char pt[MAX_BUFFER_SIZE], aad[17];
+		unsigned char pt[MAX_BUFFER_SIZE], aad[5 + IV_SIZE];
 		int ptLen = MAX_BUFFER_SIZE;
 		int pos = 0;
 
 		RAND_poll();
 
 		//sprintf(iv_gcm, "%-12d", m->nonce - 1);
-		RAND_bytes(iv_gcm, 12);
+		RAND_bytes(iv_gcm, IV_SIZE);
 		//printf("									iv: |%s|", iv_gcm);
 
 		memcpy(pt, buf, MAX_BUFFER_SIZE);
@@ -241,12 +241,12 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
 		memcpy(buf + pos, &id, sizeof(id));
 		pos+= sizeof(id);
 
-		memcpy(buf+pos, (const char *) iv_gcm, 12);
-		pos+= 12;
+		memcpy(buf+pos, (const char *) iv_gcm, IV_SIZE);
+		pos+= IV_SIZE;
 
 		//printf("Sending with key: %s\n", symKey);
-		memcpy(aad, buf, 17);
-		symEncrypt(pt, MAX_BUFFER_SIZE, symKey, iv_gcm, ct, tag, aad, 17);
+		memcpy(aad, buf, 5 + IV_SIZE);
+		symEncrypt(pt, MAX_BUFFER_SIZE, symKey, iv_gcm, ct, tag, aad, 5 + IV_SIZE);
 
 
 		memcpy(buf+pos, (const char *) ct, MAX_BUFFER_SIZE);

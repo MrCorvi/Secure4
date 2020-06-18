@@ -156,7 +156,7 @@ int deserialize_message(unsigned char* buffer, struct message *aux){
 			//printf("\n");
 
 			//printf("NONCE : \n");
-   			//BIO_dump_fp(stdout, (const char *)buffer, MAX_BUFFER_SIZE + TAG_SIZE + 12);
+   			//BIO_dump_fp(stdout, (const char *)buffer, MAX_BUFFER_SIZE + TAG_SIZE + IV_SIZE);
 			//printf("AUX FLAG ricevuto: %u <--> %d\n ", aux->flag, aux->flag );
 			break;
 		case KEY_OPCODE:
@@ -221,8 +221,8 @@ int deserialize_message(unsigned char* buffer, struct message *aux){
 int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr, int dec, uint32_t nonce){
   	int ret;
 	uint32_t senderId;
-  	void *buffer = malloc(1 + sizeof(senderId) + MAX_BUFFER_SIZE + TAG_SIZE + 12);
-  	int buffersize = 1 + MAX_BUFFER_SIZE + TAG_SIZE + 12;
+  	void *buffer = malloc(1 + sizeof(senderId) + MAX_BUFFER_SIZE + TAG_SIZE + IV_SIZE);
+  	int buffersize = 1 + MAX_BUFFER_SIZE + TAG_SIZE + IV_SIZE;
 	socklen_t addrlen = sizeof(struct sockaddr_in);
 
 
@@ -239,8 +239,8 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 	if(isEncr != FALSE){
 
 		//unsigned char iv_gcm[] = "123456789012" ;
-		unsigned char iv_gcm[12];
-		unsigned char *ct, *tag, pt[MAX_BUFFER_SIZE], aad[17];
+		unsigned char iv_gcm[IV_SIZE];
+		unsigned char *ct, *tag, pt[MAX_BUFFER_SIZE], aad[5 + IV_SIZE];
 		int pos = 1;
 		
 		//sprintf(iv_gcm, "%-12d", nonce);
@@ -248,14 +248,14 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 
 		//printf("Buffmemcpy(buf + pos, &id, sizeof(id));
 		//pos+= sizeof(id);er : \n");
-   		//BIO_dump_fp(stdout, (const char *)buffer, MAX_BUFFER_SIZE + TAG_SIZE + 12);
+   		//BIO_dump_fp(stdout, (const char *)buffer, MAX_BUFFER_SIZE + TAG_SIZE + IV_SIZE);
 
 		memcpy(&senderId, buffer+pos, sizeof(senderId));
 		pos += sizeof(senderId);
 		//printf("Id ricevuto :%d\n", senderId);
 
-		memcpy(iv_gcm, buffer+pos, 12);
-		pos += 12;
+		memcpy(iv_gcm, buffer+pos, IV_SIZE);
+		pos += IV_SIZE;
 
 		ct = (unsigned char*)malloc(MAX_BUFFER_SIZE);
 		memcpy(ct, buffer+pos, MAX_BUFFER_SIZE);
@@ -282,8 +282,8 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 		sprintf(symKey, "%s", k);
 
 
-		memcpy(aad, buffer, 17);
-		symDecrypt(pt, MAX_BUFFER_SIZE, k, iv_gcm, ct, tag, aad, 17);
+		memcpy(aad, buffer, 5 + IV_SIZE);
+		symDecrypt(pt, MAX_BUFFER_SIZE, k, iv_gcm, ct, tag, aad, 5 + IV_SIZE);
 
 		//printf("PlainText: \n");
 		//BIO_dump_fp(stdout, (const char *)pt, 200);
