@@ -738,12 +738,28 @@ int main(int argc, char* argv[]){
 		}
 		pid = fork();
 		num_bind++;
+
+		//test
+		char parent_message[] = "hello";  // parent process will write this message
+		char child_message[] = "goodbye"; // child process will then write this one
+
+		void* shmem = create_shared_memory(128);
+
+		memcpy(shmem, parent_message, sizeof(parent_message));
+
+
 		if(pid==-1){
 			printf("Fork Error\n");
 			exit(1);		
 		}	
 		if(pid==0){ // child process
-			
+
+			printf("Child read: %s\n",(char*) shmem);
+			memcpy(shmem, child_message, sizeof(child_message));
+			printf("Child wrote: %s\n",(char*) shmem);
+			sleep(2);
+			printf("Child read: %s\n",(char*) shmem);
+		
 			//sleep(5);	
 			int sd_child = socket_creation();	
 		
@@ -752,6 +768,11 @@ int main(int argc, char* argv[]){
             close(sd_child);
 			exit(0);
 		}
+
+		printf("Parent read: %s\n",(char*) shmem);
+		sleep(1);
+		printf("After 1s, parent read: %s\n",(char*) shmem);
+		memcpy(shmem, parent_message, sizeof(parent_message));
 
 		//sleep(7);
 	}
