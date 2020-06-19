@@ -469,16 +469,19 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);
 			int cl_port = aux->my_listen_port;
 			sprintf(buffer,"%d,%s,%d,%d,", aux->my_id, str, cl_port, cs); //costante magica
+			char key[SIM_KEY_LEN] = "";
 			for(int i=0; i<32; i++){
 				char tempC[5];
 				sprintf(tempC,"%02x", digest[i]);
-				strcat(buffer,tempC);
+				strcat(buffer, tempC);
+				strcat(key, tempC);
 			}
 			append_row(filename, buffer);
-            //struct message m = pack_ack(aux->my_id);
-
-				//struct message m = pack_ack(aux->my_id, 0);
-            	//send_message(&m, cl_addr, sd, FALSE);
+			writeKey(aux->my_id, key);
+            
+			char temp_key[SIM_KEY_LEN];
+			readKey(aux->my_id, temp_key);
+			printf("After 1s, parent read: %s\n", temp_key);
 
 			break;
 		case LIST_OPCODE:
@@ -726,6 +729,8 @@ int main(int argc, char* argv[]){
 	printf("BIND SERVER ");
 	printf("\033[0m"); 
 	printf("PADRE alla porta %d: %d\n",ntohs(my_addr.sin_port), ret);
+
+	createKeyArray();
 	while(1){		
 
 		pid_t pid;
@@ -740,12 +745,8 @@ int main(int argc, char* argv[]){
 		num_bind++;
 
 		//test
-		char parent_message[] = "hello";  // parent process will write this message
-		char child_message[] = "goodbye"; // child process will then write this one
 
-		void* shmem = create_shared_memory(128);
-
-		memcpy(shmem, parent_message, sizeof(parent_message));
+		//memcpy(shmem, parent_message, sizeof(parent_message));
 
 
 		if(pid==-1){
@@ -754,11 +755,7 @@ int main(int argc, char* argv[]){
 		}	
 		if(pid==0){ // child process
 
-			printf("Child read: %s\n",(char*) shmem);
-			memcpy(shmem, child_message, sizeof(child_message));
-			printf("Child wrote: %s\n",(char*) shmem);
-			sleep(2);
-			printf("Child read: %s\n",(char*) shmem);
+			//writeKey(1,"1234567890123456789012345678901234567890123456789012345678901234");
 		
 			//sleep(5);	
 			int sd_child = socket_creation();	
@@ -768,11 +765,10 @@ int main(int argc, char* argv[]){
             close(sd_child);
 			exit(0);
 		}
-
-		printf("Parent read: %s\n",(char*) shmem);
-		sleep(1);
-		printf("After 1s, parent read: %s\n",(char*) shmem);
-		memcpy(shmem, parent_message, sizeof(parent_message));
+		
+		//char key[SIM_KEY_LEN];
+		//readKey(1, key);
+		//printf("After 1s, parent read: %s\n", key);
 
 		//sleep(7);
 	}

@@ -28,6 +28,7 @@
 #define DIGEST_SIZE 32
 #define SIGN_SIZE 64
 #define IV_SIZE 32
+#define SIM_KEY_LEN 65
 
 #define TIMEOUT_TIME 60
 
