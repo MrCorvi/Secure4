@@ -35,7 +35,7 @@ struct sockaddr_in my_addr, listen_addr;
 int num_bind =0;
 int sv_port;
 int sd_listen; //each process use one to answer a request
-unsigned char symKey[300];
+unsigned char symKey[SIM_KEY_LEN];
 uint32_t cs;
 
 int socket_creation(){
@@ -355,6 +355,7 @@ void  ALARMhandler(int sig){
 		return;
 	}
 	shutdown(sd_listen, SHUT_RDWR);
+	clearKey(waitingId);
 	signal(SIGALRM, ALARMhandler);     /* reinstall the handler    */
 }
 
@@ -513,7 +514,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				struct message m = pack_err(aux->my_id, nonce_stored + 2);
 				printf("				---		---		nonce:  %d\n", m.nonce);
 				//set symmetric key to talk with reciver
-				get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 5, (char*)symKey);
+				//get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 5, (char*)symKey);
+				readKey((int)aux->my_id, (char*)symKey);
             	send_message(&m, cl_addr, sd, TRUE);
 				close(sd_listen);
 				break;
@@ -556,7 +558,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 
 
 			//set symmetric key to talk with reciver
-			get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 5, (char*)symKey);
+			//get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 5, (char*)symKey);
+			readKey((int)aux->dest_id, (char*)symKey);
             send_message(aux, &listen_addr, sd_listen, TRUE);
 
 			
@@ -617,7 +620,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				printf("Public key:      \n%s\n", pk_dest);
 				
 				//set symmetric key to talk with reciver
-				get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 5, (char*)symKey);
+				//get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 5, (char*)symKey);
+				readKey((int)aux->dest_id, (char*)symKey);
 				send_message(&risp, &listen_addr, sd_listen, TRUE);
 
 				//free(pk_dest);
@@ -649,7 +653,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			printf("Public key:      \n%s\n", pk);
 			
 			//set symmetric key to talk with reciver
-			get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 5, (char*)symKey);
+			//get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 5, (char*)symKey);
+			readKey((int)aux->my_id, (char*)symKey);
 			send_message(&rispSender, cl_addr, sd, TRUE);
 
 			//free(pk);
@@ -679,6 +684,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			printf("Riga rimossa!\n");
 			struct message ackLogout = pack_ack(aux->my_id, aux->nonce + 1);
             send_message(&ackLogout, cl_addr, sd, TRUE);
+			clearKey(aux->my_id);
 			break;
 		default:
 			break;

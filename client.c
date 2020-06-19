@@ -44,7 +44,7 @@ int sd, secondSd;
 uint32_t cu;
 uint32_t nonce = 100;
 sem_t *mutex_active_process, *mutex_secondary_port;
-unsigned char symKey[300];
+unsigned char symKey[SIM_KEY_LEN];
 char* client_pkey;
 
 void print_help(){

@@ -21,3 +21,5 @@ void createKeyArray();
 void writeKey(int id, char *key);
 
 void readKey(int id, char* key);
+
+void clearKey(int id);

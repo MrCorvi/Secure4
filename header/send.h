@@ -20,7 +20,7 @@
 
 #include "../header/symEncript.h"
 
-extern unsigned char symKey[300];
+extern unsigned char symKey[SIM_KEY_LEN];
 
 
 void setMyId(uint32_t setId);

@@ -48,3 +48,11 @@ void readKey(int id, char* key){
     //memcpy(shmem, parent_message, sizeof(parent_message));
     sem_post(mutex_keys);
 }
+
+void clearKey(int id){
+    char temp_key[SIM_KEY_LEN];
+    for(int i; i<SIM_KEY_LEN; i++){
+        temp_key[i] = '\0';
+    }
+	readKey(id, temp_key);
+}

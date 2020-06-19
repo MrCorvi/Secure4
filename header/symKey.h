@@ -1,2 +1,2 @@
 
-extern unsigned char symKey[300];
+extern unsigned char symKey[SIM_KEY_LEN];
