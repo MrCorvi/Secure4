@@ -3,7 +3,7 @@ CFLAGS = -Wall
 
 
 server: server.o receive.o send.o utilityFile.o symEncript.o keyStore.o
-	$(CC) $(CFLAGS) $^ -o server -lcrypto -lm
+	$(CC) $(CFLAGS) $^ -o server -pthread -lcrypto -lm
 	rm *.o
 
 server.o: server.c

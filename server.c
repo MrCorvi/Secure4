@@ -35,8 +35,13 @@ struct sockaddr_in my_addr, listen_addr;
 int num_bind =0;
 int sv_port;
 int sd_listen; //each process use one to answer a request
-unsigned char symKey[300];
+unsigned char symKey[SIM_KEY_LEN];
 uint32_t nonce_cs;
+
+
+
+
+
 
 int socket_creation(){
 	struct sockaddr_in my_addr;
@@ -367,6 +372,7 @@ void  ALARMhandler(int sig){
 		return;
 	}
 	shutdown(sd_listen, SHUT_RDWR);
+	clearKey(waitingId);
 	signal(SIGALRM, ALARMhandler);     /* reinstall the handler    */
 }
 
@@ -480,17 +486,20 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			char buffer[MAX_BUFFER_SIZE];
 			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);
 			int cl_port = aux->my_listen_port;
-			sprintf(buffer,"%d,%s,%d,%d,%d,", aux->my_id, str, cl_port, nonce_cs, m_response.nonce ); //costante magica
+			sprintf(buffer,"%d,%s,%d,%d,%d,", aux->my_id, str, cl_port, nonce_cs, m_response.nonce );
+			char key[SIM_KEY_LEN] = "";
 			for(int i=0; i<32; i++){
 				char tempC[5];
 				sprintf(tempC,"%02x", digest[i]);
-				strcat(buffer,tempC);
+				strcat(buffer, tempC);
+				strcat(key, tempC);
 			}
 			append_row(filename, buffer);
-            //struct message m = pack_ack(aux->my_id);
-
-				//struct message m = pack_ack(aux->my_id, 0);
-            	//send_message(&m, cl_addr, sd, FALSE);
+			writeKey(aux->my_id, key);
+            
+			char temp_key[SIM_KEY_LEN];
+			readKey(aux->my_id, temp_key);
+			printf("After 1s, parent read: %s\n", temp_key);
 
 			break;
 		case LIST_OPCODE:
@@ -522,7 +531,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				struct message m = pack_err(aux->my_id, nonce_stored + 1);
 				printf("				---		---		nonce:  %d\n", m.nonce);
 				//set symmetric key to talk with reciver
-				get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 6, (char*)symKey);
+				//get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 6, (char*)symKey);
+				readKey((int)aux->my_id, (char*)symKey);
             	send_message(&m, cl_addr, sd, TRUE);
 				close(sd_listen);
 				break;
@@ -566,10 +576,10 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			inet_pton(AF_INET, dest_ip , &listen_addr.sin_addr);
 
 			//set symmetric key to talk with reciver
-			get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 6, (char*)symKey);
-            send_message(aux, &listen_addr, sd_listen, TRUE); //invio "sei stato sfidato da"
-			//printf("c\n");
-			//sleep(5);
+			//get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 5, (char*)symKey);
+			readKey((int)aux->dest_id, (char*)symKey);
+            send_message(aux, &listen_addr, sd_listen, TRUE);
+
 			
 			printf("waiting reply\n");
 			dest_ip = (char*)get_column_by_id(filename, aux->dest_id, 2);
@@ -635,7 +645,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				printf("Public key:      \n%s\n", pk_dest);
 				
 				//set symmetric key to talk with reciver
-				get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 6, (char*)symKey);
+				//get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 6, (char*)symKey);
+				readKey((int)aux->dest_id, (char*)symKey);
 				send_message(&risp, &listen_addr, sd_listen, TRUE);
 
 				//free(pk_dest);
@@ -672,7 +683,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			printf("Public key:      \n%s\n", pk);
 			
 			//set symmetric key to talk with reciver
-			get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 6, (char*)symKey);
+			//get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 6, (char*)symKey);
+			readKey((int)aux->my_id, (char*)symKey);
 			send_message(&rispSender, cl_addr, sd, TRUE);
 
 			//free(pk);
@@ -700,6 +712,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			printf("rimuovo riga %d \n", ret);
 			remove_row(filename, ret);
 			printf("Riga rimossa!\n");
+			clearKey(aux->my_id);
 			break;
 		default:
 			break;
@@ -750,6 +763,8 @@ int main(int argc, char* argv[]){
 	printf("BIND SERVER ");
 	printf("\033[0m"); 
 	printf("PADRE alla porta %d: %d\n",ntohs(my_addr.sin_port), ret);
+
+	createKeyArray();
 	while(1){		
 
 		pid_t pid;
@@ -764,12 +779,8 @@ int main(int argc, char* argv[]){
 		num_bind++;
 
 		//test
-		char parent_message[] = "hello";  // parent process will write this message
-		char child_message[] = "goodbye"; // child process will then write this one
 
-		void* shmem = create_shared_memory(128);
-
-		memcpy(shmem, parent_message, sizeof(parent_message));
+		//memcpy(shmem, parent_message, sizeof(parent_message));
 
 
 		if(pid==-1){
@@ -777,8 +788,10 @@ int main(int argc, char* argv[]){
 			exit(1);		
 		}	
 		if(pid==0){ // child process
-			
-			//sleep(9);	
+
+			//writeKey(1,"1234567890123456789012345678901234567890123456789012345678901234");
+		
+			//sleep(5);	
 			int sd_child = socket_creation();	
 		
            	ret = handle_request( &m, &cl_addr, sd_child);
@@ -786,9 +799,10 @@ int main(int argc, char* argv[]){
             close(sd_child);
 			exit(0);
 		}
-
-
 		
+		//char key[SIM_KEY_LEN];
+		//readKey(1, key);
+		//printf("After 1s, parent read: %s\n", key);
 
 		//sleep(7);
 	}

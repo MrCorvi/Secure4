@@ -15,8 +15,9 @@
 
 #include "../header/symEncript.h"
 #include "../header/utilityFile.h"
+#include "../header/keyStore.h"
 
-extern unsigned char symKey[300];
+extern unsigned char symKey[SIM_KEY_LEN];
 
 
 void setKeyFilename(char *fn);

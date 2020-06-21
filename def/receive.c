@@ -272,10 +272,11 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 		*/
 
 		//get the sender key
-		unsigned char k[300];
+		unsigned char k[SIM_KEY_LEN];
 		strcpy(k, key_gem_recive);
 		if(isServerRecive == TRUE){
-			get_buf_column_by_id("loggedUser.csv", (int)senderId, 6, k);
+			//get_buf_column_by_id("loggedUser.csv", (int)senderId, 6, k);
+			readKey((int)senderId, k);
 		}
 		//printf("%s\n", k);
 		sprintf(symKey, "%s", k);
