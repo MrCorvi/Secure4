@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS = -Wall
 
 
-server: server.o receive.o send.o utilityFile.o symEncript.o
+server: server.o receive.o send.o utilityFile.o symEncript.o keyStore.o
 	$(CC) $(CFLAGS) $^ -o server -lcrypto -lm
 	rm *.o
 
@@ -11,7 +11,7 @@ server.o: server.c
 
 
 
-client: client.o forza4Engine.o receive.o send.o symEncript.o utilityFile.o
+client: client.o forza4Engine.o receive.o send.o symEncript.o utilityFile.o keyStore.o
 	$(CC) $(CFLAGS) $^ -o client -pthread -lcrypto -lm 
 	rm *.o
 	
