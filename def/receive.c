@@ -30,8 +30,9 @@ int notBufferOverflow = TRUE;
 void incPos(int *pos, int inc){
 	if(notBufferOverflow == FALSE)
 		return;
+
 	
-	if((*pos + inc) > MAX_BUFFER_SIZE){
+	if((*pos + inc) > MAX_BUFFER_SIZE || (inc >= 0 && *pos > (INT_MAX - inc)) || (inc <= 0 && *pos < (INT_MIN - inc))){
 		notBufferOverflow = FALSE;
 		return;
 	}

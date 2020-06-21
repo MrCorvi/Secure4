@@ -757,7 +757,7 @@ int main(int argc, char* argv[]){
 			printf("Child read: %s\n",(char*) shmem);
 			memcpy(shmem, child_message, sizeof(child_message));
 			printf("Child wrote: %s\n",(char*) shmem);
-			sleep(2);
+			//sleep(2);
 			printf("Child read: %s\n",(char*) shmem);
 		
 			//sleep(5);	
@@ -770,7 +770,7 @@ int main(int argc, char* argv[]){
 		}
 
 		printf("Parent read: %s\n",(char*) shmem);
-		sleep(1);
+		//sleep(1);
 		printf("After 1s, parent read: %s\n",(char*) shmem);
 		memcpy(shmem, parent_message, sizeof(parent_message));
 
