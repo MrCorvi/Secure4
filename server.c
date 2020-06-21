@@ -361,6 +361,34 @@ void  ALARMhandler(int sig){
 
 
 
+
+
+void childePingCode(){
+
+	while(TRUE){
+		sleep(5);
+
+		uint16_t dim, IDs[MAX_USERS];
+		get_ID_column(filename, &dim, IDs);
+
+		for(uint16_t i=0; i<dim; i++)
+			printf("ID %u : %u", i, IDs[i]);
+		
+		for(uint16_t i=0; i<dim; i++){
+			char ip[30], port_buf[30], key[SIM_KEY_LEN];
+			get_buf_column_by_id(filename, IDs[i], 2, ip);
+			get_buf_column_by_id(filename, IDs[i], 3, port_buf);
+			readKey(IDs[i], key);
+			uint16_t port = (short)atoi(port_buf);
+			printf("id %u has		ip: %s		port:%u			key:%s\n", IDs[i], ip, port, key);
+
+		}
+	}
+
+}
+
+
+
 int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 
     uint16_t opcode = (uint16_t) aux->opcode;   
@@ -482,7 +510,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
             
 			char temp_key[SIM_KEY_LEN];
 			readKey(aux->my_id, temp_key);
-			printf("After 1s, parent read: %s\n", temp_key);
+			//printf("After 1s, parent read: %s\n", temp_key);
 
 			break;
 		case LIST_OPCODE:
@@ -512,7 +540,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				update_row(filename, aux->my_id, source_ip_err, source_port_err, nonce_stored + 2);
 
 				struct message m = pack_err(aux->my_id, nonce_stored + 2);
-				printf("				---		---		nonce:  %d\n", m.nonce);
+				//printf("				---		---		nonce:  %d\n", m.nonce);
 				//set symmetric key to talk with reciver
 				//get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 5, (char*)symKey);
 				readKey((int)aux->my_id, (char*)symKey);
@@ -737,6 +765,23 @@ int main(int argc, char* argv[]){
 	printf("PADRE alla porta %d: %d\n",ntohs(my_addr.sin_port), ret);
 
 	createKeyArray();
+	//to handel the ping check 
+	pid_t pidPing = fork();
+	num_bind++;
+
+	if(pidPing==-1){
+		printf("Fork Error while creating ping process\n");
+		exit(1);		
+	}	
+	if(pidPing==0){ // child process
+		int sd_child = socket_creation();	
+	
+		printf("Endling Pings\n");
+		childePingCode();
+		close(sd_child);
+		return 0;
+	}
+
 	while(1){		
 
 		pid_t pid;
@@ -750,20 +795,11 @@ int main(int argc, char* argv[]){
 		pid = fork();
 		num_bind++;
 
-		//test
-
-		//memcpy(shmem, parent_message, sizeof(parent_message));
-
-
 		if(pid==-1){
 			printf("Fork Error\n");
 			exit(1);		
 		}	
 		if(pid==0){ // child process
-
-			//writeKey(1,"1234567890123456789012345678901234567890123456789012345678901234");
-		
-			//sleep(5);	
 			int sd_child = socket_creation();	
 		
            	ret = handle_request( &m, &cl_addr, sd_child);
@@ -772,11 +808,6 @@ int main(int argc, char* argv[]){
 			exit(0);
 		}
 		
-		//char key[SIM_KEY_LEN];
-		//readKey(1, key);
-		//printf("After 1s, parent read: %s\n", key);
-
-		//sleep(7);
 	}
     
 

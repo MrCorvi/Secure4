@@ -34,7 +34,7 @@ void writeKey(int id, char *key){
     }
     //sem_wait(mutex_keys);
     memcpy(keyArray + id * SIM_KEY_LEN, key, SIM_KEY_LEN);
-    printf("Child wrote: %s\n",(char*) keyArray + id * SIM_KEY_LEN);
+    //printf("Child wrote: %s\n",(char*) keyArray + id * SIM_KEY_LEN);
     sem_post(mutex_keys);
     
 }
