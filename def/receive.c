@@ -92,7 +92,7 @@ int deserialize_message(unsigned char* buffer, struct message *aux){
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
 			pos += sizeof(aux->my_id);
 			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
-			pos += sizeof(aux->nonce);
+			pos += sizeof(aux->nonce);	
 			break;
 
 		case MATCH_MOVE_OPCODE:
@@ -277,7 +277,7 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 		unsigned char k[300];
 		strcpy(k, key_gem_recive);
 		if(isServerRecive == TRUE){
-			get_buf_column_by_id("loggedUser.csv", (int)senderId, 5, k);
+			get_buf_column_by_id("loggedUser.csv", (int)senderId, 6, k);
 		}
 		//printf("%s\n", k);
 		sprintf(symKey, "%s", k);

@@ -35,7 +35,7 @@ int num_bind =0;
 int sv_port;
 int sd_listen; //each process use one to answer a request
 unsigned char symKey[300];
-uint32_t cs;
+uint32_t nonce_cs;
 
 int socket_creation(){
 	struct sockaddr_in my_addr;
@@ -201,54 +201,65 @@ unsigned char* hash(unsigned char* secret){
 
 struct message pack_ack(uint32_t id, uint32_t nonce){
 
+	printf("pack logout di id %d..\n");
+	uint32_t nonce_client = atoi(get_column_by_id("loggedUser.csv",id,5));
+	printf("nonciss2 %u %d\n", nonce_client, nonce_client);
+
     struct message aux;
     aux.opcode = ACK_OPCODE;
     aux.my_id = id;
-	aux.nonce = nonce;
+	aux.nonce = nonce_client;
     return aux;
 }
 
 struct message pack_challenge(){
 
 	RAND_poll();
-	RAND_bytes((unsigned char *)&cs, sizeof(uint32_t));
+	RAND_bytes((unsigned char *)&nonce_cs, sizeof(uint32_t));
 	//printf("CS: %d\n", cs);
-	//cs = 66; // costante
 
 	struct message aux;
 	aux.opcode = AUTH2_OPCODE;
-	aux.nonce = cs; 
+	aux.nonce = nonce_cs; 
 	return aux;
 }
 
 struct message pack_err(uint32_t id, u_int32_t nonce){
 
+	uint32_t nonce_client = atoi(get_column_by_id("loggedUser.csv",id,5));
+
     struct message aux;
     aux.opcode = ERR_OPCODE;
     aux.my_id = id;
-	aux.nonce = nonce;
+	aux.nonce = nonce_client;
     aux.flag = 2;
     return aux;
 }
 
-struct message pack_list_ack(uint32_t nonce){
-    struct message aux;
+struct message pack_list_ack(uint32_t id, uint32_t nonce){
+    
+	uint32_t nonce_client = atoi(get_column_by_id("loggedUser.csv",id,5));
+
+	struct message aux;
 	uint16_t len;
     aux.opcode = ACK_LIST;
 	get_ID_column("loggedUser.csv", &len, aux.onlinePlayers);
 	aux.nOnlinePlayers = len;
-	aux.nonce = nonce;
+	aux.nonce = nonce_client;
 	return aux;
 }
 
 // mai usata
 struct message pack_reply_message(uint16_t flag, uint32_t cl_id, uint16_t dest_id_aux, uint32_t nonce){
+	
+	uint32_t nonce_client = atoi(get_column_by_id("loggedUser.csv",cl_id,5));
+
 	struct message aux;
     aux.opcode = REPLY_OPCODE;
     aux.my_id = cl_id;
     aux.dest_id = dest_id_aux;
     aux.flag = flag;
-    aux.nonce = nonce;
+    aux.nonce = nonce_client;
     aux.pkey_len = 0;
 
 	return aux;
@@ -326,7 +337,7 @@ int checkNonce(uint32_t id, uint32_t nonce_recived, int inc){
 
 	//check if the nonce received is 1 more of the one stored
 	if((nonce_stored+1) != nonce_recived){
-		printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		printf("Errore: il nonce ricevuto non era quello aspettato!\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		printf("Nonce recived: %d		Nonce stored: %d\n", nonce_recived, nonce_stored);
 		return 0;
 	}
@@ -334,7 +345,7 @@ int checkNonce(uint32_t id, uint32_t nonce_recived, int inc){
 	//update the nonce stored
 	const char *ip   = get_column_by_id(filename, id, 2);
 	uint16_t port = (short)atoi(get_column_by_id(filename, id, 3));
-	update_row(filename, id, ip, port, nonce_stored + inc);
+	update_row(filename, id, ip, port, nonce_stored + inc, 1);
 	return 1;
 }
 
@@ -424,9 +435,9 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			if(!user_pubkey) handleErrors();
 			fclose(fp);
 			
-			int nonce_len_cs = (unsigned int)floor(log10(cs))+1;
+			int nonce_len_cs = (unsigned int)floor(log10(nonce_cs))+1;
     		ch_cs = malloc(nonce_len_cs);
-    		sprintf(ch_cs, "%u", cs);
+    		sprintf(ch_cs, "%u", nonce_cs);
 			//char *test= "66"; //costante magica
 			const EVP_MD* md = EVP_sha256();
 			EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
@@ -468,7 +479,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			char buffer[MAX_BUFFER_SIZE];
 			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);
 			int cl_port = aux->my_listen_port;
-			sprintf(buffer,"%d,%s,%d,%d,", aux->my_id, str, cl_port, cs); //costante magica
+			sprintf(buffer,"%d,%s,%d,%d,%d,", aux->my_id, str, cl_port, nonce_cs, m_response.nonce ); //costante magica
 			for(int i=0; i<32; i++){
 				char tempC[5];
 				sprintf(tempC,"%02x", digest[i]);
@@ -485,10 +496,10 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
             printf("List request from ID: %d\n", aux->my_id);
 
 			//check nonce
-			if(!checkNonce(aux->my_id, aux->nonce, 2))
+			if(!checkNonce(aux->my_id, aux->nonce, 1))
 				break;
 
-            struct message ackList = pack_list_ack(aux->nonce + 1);
+            struct message ackList = pack_list_ack(aux->my_id,aux->nonce + 1);
 			printf("nonce: %d\n", ackList.nonce);
             send_message(&ackList, cl_addr, sd, TRUE);
             break;
@@ -505,22 +516,21 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				char source_ip_err[50];
 				get_buf_column_by_id(filename, aux->my_id, 2, source_ip_err);
 				uint16_t source_port_err = (uint16_t)atoi(get_column_by_id(filename, aux->my_id, 3));
-				update_row(filename, aux->my_id, source_ip_err, source_port_err, nonce_stored + 2);
+				update_row(filename, aux->my_id, source_ip_err, source_port_err, nonce_stored + 1,1);
 
-				struct message m = pack_err(aux->my_id, nonce_stored + 2);
+				struct message m = pack_err(aux->my_id, nonce_stored + 1);
 				printf("				---		---		nonce:  %d\n", m.nonce);
 				//set symmetric key to talk with reciver
-				get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 5, (char*)symKey);
+				get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 6, (char*)symKey);
             	send_message(&m, cl_addr, sd, TRUE);
 				close(sd_listen);
 				break;
 			} 
 
 			dest_port = (short)atoi(get_column_by_id(filename, aux->dest_id, 3));
-
 			//check nonce
-			if(!checkNonce(aux->my_id, nonce_sender, 1))
-				break;
+			//if(!checkNonce(aux->my_id, nonce_sender, 1))
+			//	break;
 
 
 			printf("%d <--> %d \n", aux->dest_id, aux->dest_id);
@@ -530,19 +540,22 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			printf("Nonce recived: %d		Nonce stored: %d\n", nonce_sender, nonce_stored);
 			//check if the nonce received is 1 more of the one stored
 			if((nonce_stored+1) != nonce_sender){
-				printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+				printf("Errore: il nonce ricevuto non era quello aspettato!!\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 				break;
 			}
-
+			//printf("b\n");
+			//sleep(5);
 			//update the nonce stored
 			char    *source_ip   = (char*)get_column_by_id(filename, aux->my_id, 2);
 			uint16_t source_port = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
-			update_row(filename, aux->my_id, source_ip, source_port, nonce_stored + 1);
 
+			update_row(filename, aux->my_id, source_ip, source_port, nonce_stored + 1,1);
+			
 			//set the reciver nonce
-			uint32_t nonce_reciver = atoi(get_column_by_id(filename, aux->dest_id, 4));
-			aux->nonce = nonce_reciver + 1;
-            
+			uint32_t nonce_reciver = atoi(get_column_by_id(filename, aux->dest_id, 5));
+			aux->nonce = nonce_reciver + 1; // xd
+			
+			//set the reciver nonce
 			sd_listen = socket(AF_INET, SOCK_DGRAM, 0);
 
 			//addres creation
@@ -551,11 +564,11 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			listen_addr.sin_port = htons(dest_port);
 			inet_pton(AF_INET, dest_ip , &listen_addr.sin_addr);
 
-
 			//set symmetric key to talk with reciver
-			get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 5, (char*)symKey);
-            send_message(aux, &listen_addr, sd_listen, TRUE);
-
+			get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 6, (char*)symKey);
+            send_message(aux, &listen_addr, sd_listen, TRUE); //invio "sei stato sfidato da"
+			//printf("c\n");
+			//sleep(5);
 			
 			printf("waiting reply\n");
 			dest_ip = (char*)get_column_by_id(filename, aux->dest_id, 2);
@@ -575,7 +588,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			uint32_t n_ab;
 			RAND_poll();
 			RAND_bytes(&n_ab, sizeof(uint32_t));
-
+			//printf("d\n");
+			//sleep(5);
 			if(timeout == 1){
 				timeout = 0;
 
@@ -585,9 +599,10 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				//break;
 			}else{
 				//Check corret nonce
+				nonce_reciver = atoi(get_column_by_id(filename, aux_risp.my_id, 4));
 				printf("Nonce 			recived: %d		Nonce stored: %d\n", aux_risp.nonce, nonce_reciver);
-				if( aux_risp.nonce != (nonce_reciver + 2)){
-					printf("Errore: il nonce ricevuto dal reciver non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+				if( aux_risp.nonce != (nonce_reciver + 1)){
+					printf("Errore: il nonce ricevuto dal reciver non era quello aspettato!!!\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 					break;
 				}
 
@@ -598,16 +613,18 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				unsigned char pk_dest[5000];
 				uint16_t pkSize = getPublicKey(pk_dest, aux->my_id);
 
-				printf("Public key:      %s\n", pk_dest);
+				printf("Public key::      %s\n", pk_dest);
 				source_ip   = (char*)get_column_by_id(filename, aux->my_id, 2);
 				source_port = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
+				//lo informo di ip e porta dell'altro, ma con il suo nonce
+				nonce_sender = atoi(get_column_by_id(filename, aux->dest_id, 5)); 
 
 				struct message risp;
 				risp.opcode = REPLY_OPCODE;
 				risp.dest_ip = (uint32_t)*source_ip;
 				risp.dest_port = source_port;
 				risp.flag = aux_risp.flag;
-				risp.nonce = nonce_reciver + 3;
+				risp.nonce = nonce_sender+2;
 				risp.pkey_len = pkSize;
 				risp.pubKey = pk_dest;
 				risp.shared_nonce = n_ab;
@@ -617,16 +634,18 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				printf("Public key:      \n%s\n", pk_dest);
 				
 				//set symmetric key to talk with reciver
-				get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 5, (char*)symKey);
+				get_buf_column_by_id("loggedUser.csv", (int)aux->dest_id, 6, (char*)symKey);
 				send_message(&risp, &listen_addr, sd_listen, TRUE);
 
 				//free(pk_dest);
 
 				dest_ip = (char*)get_column_by_id(filename, aux->dest_id, 2);
-				update_row(filename, aux->dest_id, dest_ip, dest_port, nonce_reciver + 3);
+				update_row(filename, aux->dest_id, dest_ip, dest_port, nonce_reciver+2,2);
+				//update_row(filename, aux->dest_id, dest_ip, dest_port, nonce_reciver + 2);
 				printf("												DEST IP: %s\n", dest_ip);
 			}
-
+			//printf("e\n");
+			//sleep(5);
 
 			//send responce to the sender
 			printf("sending to %d public key of %d\n", aux->my_id, aux->dest_id);
@@ -634,13 +653,15 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			uint16_t pkSizeSender = getPublicKey(pk, aux->dest_id);
 
     		//printf("Public key:      %s\n", pk);
+			nonce_sender = atoi(get_column_by_id(filename, aux->my_id, 5));
 
 			struct message rispSender;
 			rispSender.opcode = REPLY_OPCODE;
 			rispSender.dest_ip = (uint32_t)*dest_ip;
 			rispSender.dest_port = dest_port;
 			rispSender.flag = aux_risp.flag;
-			rispSender.nonce = nonce_stored + 2;
+			printf("invio nonce_sender2 %d", nonce_sender);
+			rispSender.nonce = nonce_sender;
 			rispSender.pkey_len = pkSizeSender;
 			rispSender.pubKey = pk;
 			rispSender.shared_nonce = n_ab;
@@ -650,22 +671,20 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			printf("Public key:      \n%s\n", pk);
 			
 			//set symmetric key to talk with reciver
-			get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 5, (char*)symKey);
+			get_buf_column_by_id("loggedUser.csv", (int)aux->my_id, 6, (char*)symKey);
 			send_message(&rispSender, cl_addr, sd, TRUE);
 
 			//free(pk);
 
-
-
 			source_ip   = (char*)get_column_by_id(filename, aux->my_id, 2);
 			source_port = (short)atoi(get_column_by_id(filename, aux->my_id, 3));
-			update_row(filename, aux->my_id, source_ip, source_port, nonce_stored + 2);
+			//update_row(filename, aux->my_id, source_ip, source_port, nonce_stored + 2);
 
 			break;
 			
 		case LOGOUT_OPCODE:
 			//check nonce
-			if(!checkNonce(aux->my_id, aux->nonce, 2))
+			if(!checkNonce(aux->my_id, aux->nonce, 1))
 				break;
 
 			//look at .csv if correct id
@@ -675,11 +694,11 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				printf("ID non presente!\n");
 				return -1;
 			}
+			struct message ackLogout = pack_ack(aux->my_id, aux->nonce + 1);
+            send_message(&ackLogout, cl_addr, sd, TRUE);
 			printf("rimuovo riga %d \n", ret);
 			remove_row(filename, ret);
 			printf("Riga rimossa!\n");
-			struct message ackLogout = pack_ack(aux->my_id, aux->nonce + 1);
-            send_message(&ackLogout, cl_addr, sd, TRUE);
 			break;
 		default:
 			break;
@@ -748,7 +767,7 @@ int main(int argc, char* argv[]){
 		}	
 		if(pid==0){ // child process
 			
-			//sleep(5);	
+			//sleep(9);	
 			int sd_child = socket_creation();	
 		
            	ret = handle_request( &m, &cl_addr, sd_child);

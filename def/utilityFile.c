@@ -172,7 +172,7 @@ const char* get_column_by_id(char* filename, int id,int col){
     char snum[5];
 
     sprintf(snum, "%d", id);
-    printf("SNUM: %s ID:%d\n", snum, id);
+    //printf("SNUM: %s ID:%d\n", snum, id);
 
     while(fgets(buffer, 1024, file1)){
         char* tmp = strdup(buffer);
@@ -193,7 +193,7 @@ void get_buf_column_by_id(char* filename, int id,int col, char* retBuffer){
     char snum[5];
 
     sprintf(snum, "%d", id);
-    printf("SNUM: %s ID:%d\n", snum, id);
+    //printf("SNUM: %s ID:%d\n", snum, id);
 
     while(fgets(buffer, 1024, file1)){
         char* tmp = strdup(buffer);
@@ -222,13 +222,14 @@ int remove_row_by_id(char* filename, uint32_t id){
 }
 
 
-int update_row(char* filename, uint32_t my_id, const char ip[], uint16_t cl_port, uint32_t nonce){
+int update_row(char* filename, uint32_t my_id, const char ip[], uint16_t cl_port, uint32_t nonce, int inc_client){
     char buffer[1024], key[300];
     int row_num, ret = 1;
 
     //get key
-    sprintf(key, "%s", get_column_by_id(filename, my_id, 5));
-    
+    sprintf(key, "%s", get_column_by_id(filename, my_id, 6));
+    uint32_t nonce_client = atoi(get_column_by_id(filename, my_id, 5));
+
     //remove old row version
     row_num = get_row_by_id(filename, my_id);
     //if not pack err
@@ -238,10 +239,10 @@ int update_row(char* filename, uint32_t my_id, const char ip[], uint16_t cl_port
     }
     printf("rimuovo riga %d \n", row_num);
     remove_row(filename, row_num);
-
+    printf("riga rimossa e buffer %s\n", buffer);
 
     //append new row version
-    sprintf(buffer,"%d,%s,%d,%d,%s", my_id, ip, cl_port, nonce, key);
+    sprintf(buffer,"%d,%s,%d,%d,%d,%s", my_id, ip, cl_port, nonce, nonce_client+inc_client, key);
     printf("                %s\n",buffer);
     append_row(filename, buffer);
     return ret;

@@ -81,6 +81,7 @@ int serialize_message(void* buffer, struct message *msg){
 			pos+=sizeof(aux.my_id);
 			memcpy(buffer+pos, &aux.nonce, sizeof(aux.nonce));
 			pos+=sizeof(aux.nonce);
+			//printf("nonciss %d %u", aux.nonce, aux.nonce);
 			break;
 		case LOGOUT_OPCODE:
 			memcpy(buffer+pos, &aux.my_id, sizeof(aux.my_id));

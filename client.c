@@ -40,8 +40,8 @@ struct sockaddr_in cl_address, cl_listen_addr, sv_addr;
 char *sv_ip;
 int sv_port, cl_id, cl2_id, cl_main_port, cl_secondary_port;
 int sd, secondSd;
-uint32_t cu;
-uint32_t nonce = 100;
+uint32_t nonce_cu;
+uint32_t nonce_server = 100;
 sem_t *mutex_active_process, *mutex_secondary_port;
 unsigned char symKey[300];
 char* client_pkey;
@@ -165,14 +165,14 @@ void pack_list_message(struct message* aux, uint32_t id){
 	
     aux->opcode = LIST_OPCODE;
     aux->my_id = id;
-    aux->nonce = nonce;
+    aux->nonce = nonce_server;
 }
 
 void pack_logout_message(struct message* aux){
 
 	aux->opcode = LOGOUT_OPCODE;
     aux->my_id = cl_id;
-    aux->nonce = nonce;
+    aux->nonce = nonce_server;
 }
 
 void pack_match_move_message(struct message* aux, uint8_t column){
@@ -200,7 +200,7 @@ void pack_reply_message(struct message* aux, uint16_t flag, uint16_t dest_id_aux
     aux->my_id = cl_id;
     aux->dest_id = dest_id_aux;
     aux->flag = flag;
-    aux->nonce = nonce;
+    aux->nonce = nonce_server;
     aux->pkey_len = 0;
 }
 
@@ -208,7 +208,7 @@ void pack_match_message(struct message* aux){
 
     aux->opcode = MATCH_OPCODE;
     aux->my_id = cl_id;
-    aux->nonce = nonce;
+    aux->nonce = nonce_server;
     aux->dest_id = dest_id;
     //printf("Dest id pack match: %u, %u\n", dest_id, aux->dest_id);
 
@@ -219,7 +219,9 @@ void pack_response_message(struct message* aux, uint32_t cs){
     int sign_len ;
 
     RAND_poll();
-    RAND_bytes((unsigned char*)&cu, sizeof(uint32_t));
+    RAND_bytes(&nonce_cu, sizeof(uint32_t));
+    //nonce_cu = 100;
+    //printf("nonciss %d %u\n", nonce_cu, nonce_cu);
     int nonce_len = (unsigned int)(floor(log10(cs)))+1;
     //printf("Cu %u lungo %d", cu, nonce_len);
     //printf("Cs %u lungo %d", cs, nonce_len);
@@ -228,7 +230,7 @@ void pack_response_message(struct message* aux, uint32_t cs){
 	unsigned char* signed_resp = sign((unsigned char*)ch_cs, &sign_len, nonce_len);
 
     aux->opcode = AUTH3_OPCODE;
-    aux->nonce = cu;
+    aux->nonce = nonce_cu;
     aux->sign = signed_resp;
     aux->sign_len = sign_len;
 
@@ -258,19 +260,29 @@ int setupSocket(int port){
 int nonceCheck(uint32_t nonceReceived, int incNonce, pid_t pid){
     //Nonce check
     //printf("\nNonce rec: %d       stored:%d\n", nonceReceived, nonce);
-    if((nonce + 1) != nonceReceived){
-        printf("Errore: recived nonce %d insted of %d\n", nonceReceived, nonce+1);//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    if((nonce_cu+1) != nonceReceived){
+        printf("Errore: recived nonce %d insted of %d\n", nonceReceived, nonce_cu);//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         return 0;
     }
-    nonce+=incNonce;
+    nonce_cu+=incNonce;
     
-    kill(pid, SIGUSR1); //update other branch nonce
+    //printf("noncecheck\n");
+    //kill(pid, SIGUSR1); //update other branch nonce
     return 1;
 }
 
 void nonceInc(pid_t pid){
-    nonce++;
+    //printf("nonceInc\n");
+    nonce_server++;
+    //nonce_cu++;
     kill(pid, SIGUSR1);
+}
+
+// (SIGUSR1) in order to increase the other process nonce
+void updateNonce(){
+    nonce_server += 1;
+    nonce_cu +=1;
+    printf("nonce cu ora e' %u del pid %d\n", nonce_cu, getpid());
 }
 
 void battleRequest(){
@@ -287,10 +299,6 @@ void secondaryPortRequest(){
 
     sem_wait(mutex_secondary_port);
     secondSd = setupSocket(cl_secondary_port);
-}
-
-void updateNonce(){
-    nonce += 1;
 }
 
 unsigned char* hash(unsigned char* secret){
@@ -468,9 +476,10 @@ void childCode(){
     secondSd = setupSocket(cl_secondary_port);
     while(1){
 
-        recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen, FALSE, nonce);
+        recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen, FALSE, nonce_server);
 
         //nonce check
+        //nonceInc(getppid()); //xd
         if(nonceCheck(match_m.nonce, 1, getppid()) == 0)
             continue;
 
@@ -492,7 +501,7 @@ void childCode(){
             sem_post(mutex_active_process);
 
             //Rispondo se ho accettato la richista o meno
-            nonceInc(getppid());
+            nonceInc(getppid()); //xd
             if(command == 'y'){
                 printf("Hai accettato\n");
                 pack_reply_message(&reply_m, 1, match_m.my_id);
@@ -508,10 +517,12 @@ void childCode(){
             if(command == 'y'){
                 //Waiting from server the public key of who hasked for the match
                 struct message pubKey_m;
-                recv_message(secondSd, &pubKey_m, (struct sockaddr*)&sv_addr_listen, FALSE, nonce);
+                recv_message(secondSd, &pubKey_m, (struct sockaddr*)&sv_addr_listen, FALSE, nonce_server);
                 //nonce check
+                //nonceInc(getppid()); // xd
                 if(nonceCheck(pubKey_m.nonce, 1, getppid()) == 0)
                     continue;
+                nonceInc(getppid()); // xd
 
                 //get sender public key
                 //printf("Public key of who asked for the match:\n%s\n", pubKey_m.pubKey);
@@ -709,7 +720,7 @@ int main(int argc, char* argv[]){
 
     struct message ack_login_m;
     //printf("Waiting ACK...\n");
-    recv_message(sd, &ack_login_m, (struct sockaddr*)&sv_addr, FALSE, nonce);
+    recv_message(sd, &ack_login_m, (struct sockaddr*)&sv_addr, FALSE, nonce_server);
 
     if(ack_login_m.opcode != AUTH2_OPCODE){
         printf("Login Opcode Error %d\n\033[0;31mThis user is already online\033[0m\n", ack_login_m.opcode);
@@ -720,7 +731,7 @@ int main(int argc, char* argv[]){
     //printf("Cs = %u\n", ack_login_m.nonce);
 
     struct message m_response;
-    nonce = ack_login_m.nonce;
+    nonce_server = ack_login_m.nonce;
     pack_response_message(&m_response, ack_login_m.nonce);
     send_message(&m_response, &sv_addr, sd, FALSE);
     //printf("INVIATO PER CERT M\n");
@@ -742,9 +753,9 @@ int main(int argc, char* argv[]){
     EVP_PKEY* server_pkey = verifyCertificate(ack_cert_m);
 
     // verifica
-    int nonce_len = (unsigned int)floor(log10(cu))+1;
+    int nonce_len = (unsigned int)floor(log10(nonce_cu))+1;
     char ch_cu[nonce_len];
-    sprintf(ch_cu, "%u", cu);
+    sprintf(ch_cu, "%u", nonce_cu);
 	int ret;
     const EVP_MD* md = EVP_sha256();
 	EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
@@ -781,7 +792,7 @@ int main(int argc, char* argv[]){
     printf("\033[1;32mWelcome to Forza4\033[0m: Enjoy it with your friends! ");
     print_help();
 
-    //to increse the other porcess nonce
+    //to increse the other process nonce
     signal(SIGUSR1, updateNonce);
 
     //Creo processo figlio per gestire le richieste di partita
@@ -864,7 +875,7 @@ int main(int argc, char* argv[]){
                 //Waiting request replay
                 struct message ack_match_m;
                 //printf("Waiting Match ACK....\n");
-                recv_message(sd, &ack_match_m, (struct sockaddr*)&sv_addr, FALSE, nonce);
+                recv_message(sd, &ack_match_m, (struct sockaddr*)&sv_addr, FALSE, nonce_server);
 
                 //nonce check
                 if(nonceCheck(ack_match_m.nonce, 1, pid) == 0)
@@ -923,7 +934,7 @@ int main(int argc, char* argv[]){
 
                     printf("Waiting for other player...\n");
                     struct sockaddr* opponent_addr2;
-                    recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr2, FALSE, nonce);
+                    recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr2, FALSE, nonce_server);
 
                     forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, TRUE,  ack_match_m.shared_nonce);
                     close(secondSd);
@@ -960,7 +971,9 @@ int main(int argc, char* argv[]){
 
                 //printf("Waiting Logout ACK....\n");
                 struct message ack_logout_m;
-                recv_message(sd, &ack_logout_m, (struct sockaddr*)&sv_addr, FALSE, nonce);
+                printf("attesa logout\n");
+                recv_message(sd, &ack_logout_m, (struct sockaddr*)&sv_addr, FALSE, nonce_server);
+                printf("messaggio logout ricevuto attesa...\n");
                 if(ack_logout_m.opcode != ACK_OPCODE){
                     printf("Logout Opcode Error: %d\n", ack_logout_m.opcode);
                     exit(1);
