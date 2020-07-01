@@ -7,7 +7,9 @@
 //create key
 unsigned char key_gem_recive[]= "123456789012345678901234567890123456789012345678901234567890123456";
 int isServerRecive = FALSE;
+int isAlarmFree = FALSE;
 char filenameReciver[200];
+int sd;
 
 void setKeyFilename(char *fn){
 	sprintf(filenameReciver, "../%s", fn);
@@ -19,9 +21,13 @@ void chaneKeyReciver(unsigned char *newKey, int size){
     BIO_dump_fp(stdout, (const char *)key_gem_recive, 17);
 }
 
+void setIsAlarmFree(int flag){
+	isAlarmFree = flag;
+}
 
 void setIsServerReciver(){
 	isServerRecive = TRUE;
+
 	//printf("dknwndwndbwndnwlkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk\n");
 }
 
@@ -43,8 +49,30 @@ void toHost(struct message* msg){
 	msg->pkey_len = (msg->pkey_len)?ntohs(msg->pkey_len):0;
 	msg->ptLen = (msg->ptLen)?ntohl(msg->ptLen):0;
 }
+int getEncMode(uint16_t opcode){
 
-int deserialize_message(unsigned char* buffer, struct message *aux){
+  if(opcode<1 || opcode>15) return -1;
+  switch(opcode){
+    case LOGIN_OPCODE: return 0;
+    case AUTH2_OPCODE: return 0;
+    case AUTH3_OPCODE: return 0;
+    case AUTH4_OPCODE: return 0;
+    case KEY_OPCODE: return 0;
+    default:
+      return 1;
+  }
+}
+
+int timeout = 0;
+void  ALARMhandler(int sig){
+  signal(SIGALRM, SIG_IGN);          // ignore this signal       
+  timeout=1;
+  close(sd);
+  exit(1);
+  //signal(SIGALRM, ALARMhandler);     // reinstall the handler    
+}
+
+int deserialize_message(unsigned char* buffer, struct message *aux, uint8_t isEncr){
 
 	uint16_t opcodex, *temp;
 	int pos =0;
@@ -54,6 +82,8 @@ int deserialize_message(unsigned char* buffer, struct message *aux){
 	aux->opcode = opcodex;
 	pos+=sizeof(opcodex);
 	//printf("aux opcode %d\n", aux->opcode);
+	printf("get mode %d %d %d\n",ntohs(aux->opcode),getEncMode(ntohs(aux->opcode)), isEncr );
+	if(getEncMode(ntohs(aux->opcode))!=isEncr) return -1;  
 	switch(ntohs(aux->opcode)){
 
         case LOGIN_OPCODE:
@@ -219,88 +249,97 @@ int deserialize_message(unsigned char* buffer, struct message *aux){
 }
 
 int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr, int dec, uint32_t nonce){
-  	int ret;
+  	int ret=-1;
 	uint32_t senderId;
   	void *buffer = malloc(1 + sizeof(senderId) + MAX_BUFFER_SIZE + TAG_SIZE + 12);
   	int buffersize = 1 + MAX_BUFFER_SIZE + TAG_SIZE + 12;
 	socklen_t addrlen = sizeof(struct sockaddr_in);
+	sd = socket;
 
-
-	//printf("Waiting new message\n");
-  	ret = recvfrom(socket, buffer, buffersize, 0, (struct sockaddr*)mitt_addr, &addrlen);
-	//printf("New message!!!\n");
-
-   	//BIO_dump_fp(stdout, (const char *)buffer, 64);
-	
-	u_int8_t isEncr;
-	memcpy(&isEncr, buffer, 1);
-
-
-	if(isEncr != FALSE){
-
-		//unsigned char iv_gcm[] = "123456789012" ;
-		unsigned char iv_gcm[12];
-		unsigned char *ct, *tag, pt[MAX_BUFFER_SIZE];
-		int pos = 1;
-		
-		//sprintf(iv_gcm, "%-12d", nonce);
-		//printf("									iv: |%s|", iv_gcm);
-
-		//printf("Buffer : \n");
-   		//BIO_dump_fp(stdout, (const char *)buffer, MAX_BUFFER_SIZE + TAG_SIZE + 12);
-
-		memcpy(&senderId, buffer+pos, sizeof(senderId));
-		pos += sizeof(senderId);
-		printf("Id ricevuto :%d\n", senderId);
-
-		memcpy(iv_gcm, buffer+pos, 12);
-		pos += 12;
-
-		ct = (unsigned char*)malloc(MAX_BUFFER_SIZE);
-		memcpy(ct, buffer+pos, MAX_BUFFER_SIZE);
-		pos += MAX_BUFFER_SIZE;
-
-		tag  = (unsigned char*)malloc(TAG_SIZE);
-		memcpy(tag, buffer+pos, TAG_SIZE);
-		pos += TAG_SIZE;
-
-		/*
-		printf("CypherText: \n");
-		BIO_dump_fp(stdout, (const char *)ct, MAX_BUFFER_SIZE);
-		printf("Tag: \n");
-		BIO_dump_fp(stdout, (const char *)ct, TAG_SIZE);
-		*/
-
-		//get the sender key
-		unsigned char k[300];
-		strcpy(k, key_gem_recive);
-		if(isServerRecive == TRUE){
-			printf("Sono in un server !!!!!!!!!!\n");
-			get_buf_column_by_id("loggedUser.csv", (int)senderId, 5, k);
-			printf("R-----------------------------------------------------------------------------------------\n");
+	signal(SIGALRM, ALARMhandler);
+	while(ret==-1){
+		if(!isAlarmFree){
+			printf("Dai dai dai!\n");
+			alarm(TIMEOUT_TIME);
 		}
-		printf("%s\n", k);
-		sprintf(symKey, "%s", k);
+		//printf("Waiting new message\n");
+		printf("whileee\n");
+		ret = recvfrom(socket, buffer, buffersize, 0, (struct sockaddr*)mitt_addr, &addrlen);
+		//printf("New message!!!\n");
 
-		symDecrypt(pt, MAX_BUFFER_SIZE, k, iv_gcm, ct, tag);
+		//BIO_dump_fp(stdout, (const char *)buffer, 64);
+		
+		u_int8_t isEncr;
+		memcpy(&isEncr, buffer, 1);
 
-		//printf("PlainText: \n");
-		//BIO_dump_fp(stdout, (const char *)pt, 200);
+		if(isEncr != FALSE){
 
-		memcpy(buffer, pt, MAX_BUFFER_SIZE);
+			//unsigned char iv_gcm[] = "123456789012" ;
+			unsigned char iv_gcm[12];
+			unsigned char *ct, *tag, pt[MAX_BUFFER_SIZE];
+			int pos = 1;
+			
+			//sprintf(iv_gcm, "%-12d", nonce);
+			//printf("									iv: |%s|", iv_gcm);
 
-		free(ct);
-		free(tag);
+			//printf("Buffer : \n");
+			//BIO_dump_fp(stdout, (const char *)buffer, MAX_BUFFER_SIZE + TAG_SIZE + 12);
+
+			memcpy(&senderId, buffer+pos, sizeof(senderId));
+			pos += sizeof(senderId);
+			printf("Id ricevuto :%d\n", senderId);
+
+			memcpy(iv_gcm, buffer+pos, 12);
+			pos += 12;
+
+			ct = (unsigned char*)malloc(MAX_BUFFER_SIZE);
+			memcpy(ct, buffer+pos, MAX_BUFFER_SIZE);
+			pos += MAX_BUFFER_SIZE;
+
+			tag  = (unsigned char*)malloc(TAG_SIZE);
+			memcpy(tag, buffer+pos, TAG_SIZE);
+			pos += TAG_SIZE;
+
+			/*
+			printf("CypherText: \n");
+			BIO_dump_fp(stdout, (const char *)ct, MAX_BUFFER_SIZE);
+			printf("Tag: \n");
+			BIO_dump_fp(stdout, (const char *)ct, TAG_SIZE);
+			*/
+
+			//get the sender key
+			unsigned char k[300];
+			strcpy(k, key_gem_recive);
+			if(isServerRecive == TRUE){
+				printf("Sono in un server !!!!!!!!!!\n");
+				get_buf_column_by_id("loggedUser.csv", (int)senderId, 5, k);
+				printf("R-----------------------------------------------------------------------------------------\n");
+			}
+			printf("%s\n", k);
+			sprintf(symKey, "%s", k);
+
+			symDecrypt(pt, MAX_BUFFER_SIZE, k, iv_gcm, ct, tag);
+
+			//printf("PlainText: \n");
+			//BIO_dump_fp(stdout, (const char *)pt, 200);
+
+			memcpy(buffer, pt, MAX_BUFFER_SIZE);
+
+			free(ct);
+			free(tag);
+		}
+		
+		
+		if(ret<0){
+			perror("ERRORE recvfrom\n");
+			exit(1);		
+		}
+
+		// decifra buf (magari con flag)
+
+		ret = deserialize_message(buffer, message, isEncr);
 	}
-	
-	
-	if(ret<0){
-		perror("ERRORE recvfrom\n");
-		exit(1);		
-	}
-
-	// decifra buf (magari con flag)
-
-	ret = deserialize_message(buffer, message);
+	signal(SIGALRM, SIG_IGN);          // ignore this signal    
 	return ret;
 }
+

@@ -529,6 +529,7 @@ void childCode(){
     nice(0); 
 
     secondSd = setupSocket(cl_secondary_port);
+    setIsAlarmFree(TRUE);
     while(1){
 
         recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen, FALSE, nonce);
@@ -571,6 +572,7 @@ void childCode(){
             //Richiesta accettata
             if(command == 'y'){
                 //Waiting from server the public key of who hasked for the match
+                setIsAlarmFree(FALSE);
                 struct message pubKey_m;
                 recv_message(secondSd, &pubKey_m, (struct sockaddr*)&sv_addr_listen, FALSE, nonce);
 
