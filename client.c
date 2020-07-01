@@ -46,6 +46,7 @@ uint32_t nonce = 100;
 sem_t *mutex_active_process, *mutex_secondary_port;
 unsigned char symKey[SIM_KEY_LEN];
 char* client_pkey;
+int isClinetSecondProcess = FALSE;
 
 void print_help(){
 
@@ -174,6 +175,16 @@ void pack_logout_message(struct message* aux){
 	aux->opcode = LOGOUT_OPCODE;
     aux->my_id = cl_id;
     aux->nonce = nonce;
+}
+
+//ACK for ping
+struct message pack_ack(uint32_t id, uint32_t nonce){
+
+    struct message aux;
+    aux.opcode = ACK_OPCODE;
+    aux.my_id = id;
+	aux.nonce = nonce;
+    return aux;
 }
 
 void pack_match_move_message(struct message* aux, uint8_t column){
@@ -459,6 +470,25 @@ void makeSymKey(unsigned char *key, unsigned char *digest){
     //printf("%s\n", key);
 }
 
+
+//Code handling the pings from the server
+void pingHandler(struct message m_ping, struct sockaddr *addr){
+
+    //nonce check
+    if(nonceCheck(m_ping.nonce, 1, getppid()) == 0){
+        printf("Invalid ping\n");
+        return;
+    }
+    struct message m_ack = pack_ack(cl_id, nonce);
+
+
+
+    nonceInc(getppid());
+    send_message(&m_ack, (struct sockaddr_in *)addr, secondSd, TRUE);
+
+}
+
+
 //Codice del processo figlio
 //Si occupa di stare in ascolto sul socket secondario di richieste di sfida che arrivano dal Server
 void childCode(){
@@ -466,6 +496,8 @@ void childCode(){
     struct message match_m, m;
     char command;
     nice(0); 
+
+    isClinetSecondProcess = TRUE;
 
     secondSd = setupSocket(cl_secondary_port);
     while(1){

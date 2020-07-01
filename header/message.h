@@ -16,6 +16,7 @@
 #define AUTH2_OPCODE 13
 #define AUTH3_OPCODE 14
 #define AUTH4_OPCODE 15
+#define PING_OPCODE 16
 
 #define MAX_USERS 2000
 

@@ -18,6 +18,9 @@
 #include "../header/keyStore.h"
 
 extern unsigned char symKey[SIM_KEY_LEN];
+extern int isClinetSecondProcess;
+
+extern void pingHandler(struct message m_ping, struct sockaddr *addr);
 
 
 void setKeyFilename(char *fn);

@@ -115,6 +115,10 @@ int serialize_message(void* buffer, struct message *msg){
 			memcpy(buffer+pos, &aux.nonce, sizeof(aux.nonce));
 			pos+=sizeof(aux.nonce);
 			break;
+		case PING_OPCODE:
+			memcpy(buffer+pos, &aux.nonce, sizeof(aux.nonce));
+			pos+=sizeof(aux.nonce);
+			break;
 		case REPLY_OPCODE:
 		
 			memcpy(buffer+pos, &aux.my_id, sizeof(aux.my_id));

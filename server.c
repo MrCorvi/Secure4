@@ -23,7 +23,6 @@
     #include "header/send.h"
     #include "header/receive.h"
 #endif
-#include "header/receive.h"
 #include "header/utilityFile.h"
 #include "header/keyStore.h"
 
@@ -33,10 +32,11 @@ char* pwd;
 char* filename = "loggedUser.csv";
 struct sockaddr_in my_addr, listen_addr;
 int num_bind =0;
-int sv_port;
+int sv_port, ping_port;
 int sd_listen; //each process use one to answer a request
 unsigned char symKey[SIM_KEY_LEN];
 uint32_t cs;
+int isClinetSecondProcess = FALSE;
 
 int socket_creation(){
 	struct sockaddr_in my_addr;
@@ -232,6 +232,14 @@ struct message pack_err(uint32_t id, u_int32_t nonce){
     return aux;
 }
 
+struct message pack_ping(u_int32_t nonce){
+
+    struct message aux;
+    aux.opcode = PING_OPCODE;
+	aux.nonce = nonce;
+    return aux;
+}
+
 struct message pack_list_ack(uint32_t nonce){
     struct message aux;
 	uint16_t len;
@@ -361,9 +369,27 @@ void  ALARMhandler(int sig){
 
 
 
-
+void pingHandler(struct message m_ping, struct sockaddr *addr){}
 
 void childePingCode(){
+	int sdPing;
+	struct sockaddr_in ping_addr_cl, ping_addr_sv;
+
+	// address creation
+	
+	memset(&ping_addr_sv,0, sizeof(ping_addr_sv)); // cleaning
+	ping_addr_sv.sin_family= AF_INET;
+	ping_addr_sv.sin_addr.s_addr = INADDR_ANY;
+	ping_addr_sv.sin_port = htons(ping_port); // host to net
+
+	// main socket creation
+	sdPing = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
+	int ret = bind(sdPing, (struct sockaddr*)&ping_addr_sv, sizeof(ping_addr_sv));
+	if(ret!=0){
+			perror("Binding Error\n");			
+			exit(1);			
+	}
+	
 
 	while(TRUE){
 		sleep(5);
@@ -375,13 +401,35 @@ void childePingCode(){
 			printf("ID %u : %u", i, IDs[i]);
 		
 		for(uint16_t i=0; i<dim; i++){
-			char ip[30], port_buf[30], key[SIM_KEY_LEN];
+			char ip[30], port_buf[30], key[SIM_KEY_LEN], nonce_buf[10];
+			int nonce;
 			get_buf_column_by_id(filename, IDs[i], 2, ip);
 			get_buf_column_by_id(filename, IDs[i], 3, port_buf);
+			get_buf_column_by_id(filename, IDs[i], 4, nonce_buf);
+			nonce = atoi(nonce_buf);
 			readKey(IDs[i], key);
 			uint16_t port = (short)atoi(port_buf);
 			printf("id %u has		ip: %s		port:%u			key:%s\n", IDs[i], ip, port, key);
 
+			struct message m_ping = pack_challenge();
+			struct message m_ack;
+
+			//addres creation
+			memset(&ping_addr_cl,0, sizeof(ping_addr_cl)); //pulizia
+			ping_addr_cl.sin_family= AF_INET;
+			ping_addr_cl.sin_port = htons(port);
+			inet_pton(AF_INET, ip , &ping_addr_cl.sin_addr);
+
+			m_ping = pack_ping(nonce+1);
+
+			readKey(IDs[i], (char*)symKey);
+			send_message(&m_ping, &ping_addr_cl , sdPing, TRUE);
+
+			recv_message(sdPing, &m_ack, (struct sockaddr*)&ping_addr_cl, TRUE, 0); 
+			printf("recived Ping !!!\n");
+
+			//Update nonce
+			update_row(filename, IDs[i], ip, port, nonce + 2);
 		}
 	}
 
@@ -743,7 +791,8 @@ int main(int argc, char* argv[]){
 		printf("./server listen_server_port file_pwd\n");
 		exit(0);
 	}
-	sv_port = atoi(argv[1]); 
+	sv_port = atoi(argv[1]);
+	ping_port = sv_port+100;
 	pwd = argv[2];
 
 	// address creation

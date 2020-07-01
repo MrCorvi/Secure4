@@ -22,7 +22,6 @@
 
 extern unsigned char symKey[SIM_KEY_LEN];
 
-
 void setMyId(uint32_t setId);
 
 void setIsServerSend();
