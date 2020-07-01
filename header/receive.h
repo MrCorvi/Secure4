@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <signal.h>
 
 #ifndef MESSAGE_H
     #define MESSAGE_H
@@ -27,8 +28,10 @@ void setKeyFilename(char *fn);
 
 void setIsServerReciver();
 
+void setIsAlarmfree(int flag);
+
 void chaneKeyReciver(unsigned char *newKey, int size);
 
-int deserialize_message(unsigned char* buffer, struct message *aux);
+int deserialize_message(unsigned char* buffer, struct message *aux, uint8_t isEncr);
 
 int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr, int dec, uint32_t nonce);

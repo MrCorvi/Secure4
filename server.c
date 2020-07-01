@@ -349,10 +349,10 @@ int checkNonce(uint32_t id, uint32_t nonce_recived, int inc){
 
 
 
-
+/* timerino
 int timeout = 0, waitingId;
 void  ALARMhandler(int sig){
-	signal(SIGALRM, SIG_IGN);          /* ignore this signal       */
+	signal(SIGALRM, SIG_IGN);          // ignore this signal       
 	printf("TIME OUT: 1 minute of no responce from the user\nThe user is now delited\n");
 	timeout = 1;
 	int ret = remove_row_by_id(filename, waitingId);
@@ -364,9 +364,9 @@ void  ALARMhandler(int sig){
 	}
 	shutdown(sd_listen, SHUT_RDWR);
 	clearKey(waitingId);
-	signal(SIGALRM, ALARMhandler);     /* reinstall the handler    */
+	signal(SIGALRM, ALARMhandler);     // reinstall the handler    
 }
-
+*/
 
 
 void pingHandler(struct message m_ping, struct sockaddr *addr){}
@@ -450,7 +450,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 	setIsServerReciver();
 	setIsServerSend();
 
-	signal(SIGALRM, ALARMhandler);
+	//signal(SIGALRM, ALARMhandler); timerino
 
 	printf("opcode: %d\n", opcode);
 
@@ -644,8 +644,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			dest_port = (short)atoi(get_column_by_id(filename, aux->dest_id, 3));
 
 			struct message aux_risp;
-			alarm(TIMEOUT_TIME);
-			waitingId = aux->dest_id;
+			/*alarm(TIMEOUT_TIME); timerino
+			waitingId = aux->dest_id;*/
 			int req = recv_message(sd_listen, &aux_risp, (struct sockaddr*)&listen_addr, FALSE, 0); //3000 receive port and then pass message to others
 			
 			if(req!=1){
@@ -654,14 +654,14 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				exit(1);
 			}
 
-			if(timeout == 1){
+			/*if(timeout == 1){
 				timeout = 0;
 
 				//struct message resp = pack_reply_message(0, aux->dest_id, aux->my_id, nonce_stored + 2);
 				printf("[0;31mClosing the comunication[0m\n");
 				aux_risp.flag = 0;
 				//break;
-			}else{
+			}else{*/
 				//Check corret nonce
 				printf("Nonce 			recived: %d		Nonce stored: %d\n", aux_risp.nonce, nonce_reciver);
 				if( aux_risp.nonce != (nonce_reciver + 2)){
@@ -705,7 +705,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				dest_ip = (char*)get_column_by_id(filename, aux->dest_id, 2);
 				update_row(filename, aux->dest_id, dest_ip, dest_port, nonce_reciver + 3);
 				printf("												DEST IP: %s\n", dest_ip);
-			}
+			//}
 
 
 			//send responce to the sender
@@ -781,6 +781,7 @@ int main(int argc, char* argv[]){
 	struct sockaddr_in cl_addr;
 	struct message m;	
 
+	setIsAlarmfree(TRUE);
 	setIsServerReciver();
 	setIsServerSend();
 	setKeyFilename(filename);

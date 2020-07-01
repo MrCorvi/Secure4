@@ -31,7 +31,7 @@
 #define IV_SIZE 32
 #define SIM_KEY_LEN 65
 
-#define TIMEOUT_TIME 60
+#define TIMEOUT_TIME 10
 
 struct message{
 	uint16_t opcode;

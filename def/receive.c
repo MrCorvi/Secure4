@@ -8,6 +8,8 @@
 unsigned char key_gem_recive[]= "123456789012345678901234567890123456789012345678901234567890123456";
 int isServerRecive = FALSE;
 char filenameReciver[200];
+int isAlarmFree = FALSE;
+int sd;
 
 void setKeyFilename(char *fn){
 	sprintf(filenameReciver, "../%s", fn);
@@ -19,12 +21,38 @@ void chaneKeyReciver(unsigned char *newKey, int size){
     //BIO_dump_fp(stdout, (const char *)key_gem_recive, 17);
 }
 
+int getEncMode(uint16_t opcode){
+
+  //if(opcode<1 || opcode>16) return -1;
+  switch(opcode){
+    case LOGIN_OPCODE: return 0;
+    case AUTH2_OPCODE: return 0;
+    case AUTH3_OPCODE: return 0;
+    case AUTH4_OPCODE: return 0;
+    case KEY_OPCODE: return 0;
+    default:
+      return 1;
+  }
+}
+
+int timeout = 0;
+void  ALARMhandler(int sig){
+  signal(SIGALRM, SIG_IGN);          // ignore this signal       
+  timeout=1;  
+  close(sd);
+  printf("ciaooone e chiuso sd !\n");
+  exit(1);
+  //signal(SIGALRM, ALARMhandler);     // reinstall the handler  
+}
 
 void setIsServerReciver(){
 	isServerRecive = TRUE;
 	//printf("dknwndwndbwndnwlkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk\n");
 }
 
+void setIsAlarmfree(int flag){
+	isAlarmFree = flag;
+}
 
 int notBufferOverflow = TRUE;
 void incPos(int *pos, int inc){
@@ -58,7 +86,7 @@ void toHost(struct message* msg){
 	msg->ptLen = (msg->ptLen)?ntohl(msg->ptLen):0;
 }
 
-int deserialize_message(unsigned char* buffer, struct message *aux){
+int deserialize_message(unsigned char* buffer, struct message *aux, uint8_t isEncr){
 
 	uint16_t opcodex, *temp;
 	int pos =0;
@@ -67,6 +95,8 @@ int deserialize_message(unsigned char* buffer, struct message *aux){
 	//printf("opcode: %d\n", opcodex);
 	aux->opcode = opcodex;
 	pos+=sizeof(opcodex);
+	printf("get mode %d %d %d\n",ntohs(aux->opcode),getEncMode(ntohs(aux->opcode)),isEncr);
+	if(getEncMode(ntohs(aux->opcode))!=isEncr) return -1;
 	//printf("aux opcode %d\n", aux->opcode);
 	switch(ntohs(aux->opcode)){
 
@@ -215,13 +245,19 @@ int deserialize_message(unsigned char* buffer, struct message *aux){
 }
 
 int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr, int dec, uint32_t nonce){
-  	int ret;
+  	int ret=-1;
 	uint32_t senderId;
   	void *buffer = malloc(1 + sizeof(senderId) + MAX_BUFFER_SIZE + TAG_SIZE + IV_SIZE);
   	int buffersize = 1 + MAX_BUFFER_SIZE + TAG_SIZE + IV_SIZE;
 	socklen_t addrlen = sizeof(struct sockaddr_in);
+	sd = socket;
 
+	signal(SIGALRM, ALARMhandler);
 	do{
+		if(!isAlarmFree){
+			printf("Start alarm\n");
+			alarm(10);
+		}
 		//printf("Waiting new message\n");
 		ret = recvfrom(socket, buffer, buffersize, 0, (struct sockaddr*)mitt_addr, &addrlen);
 		//printf("New message!!!\n");
@@ -299,11 +335,12 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 
 		// decifra buf (magari con flag)
 
-		ret = deserialize_message(buffer, message);
+		ret = deserialize_message(buffer, message, isEncr);
 
 		if(message->opcode == PING_OPCODE){
 			pingHandler(*message, mitt_addr);
 		}
-	}while(isClinetSecondProcess && message->opcode == PING_OPCODE);
+	}while(ret==-1 || (isClinetSecondProcess && message->opcode == PING_OPCODE));
+	alarm(0);
 	return ret;
 }
