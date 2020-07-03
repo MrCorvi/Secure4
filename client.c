@@ -501,6 +501,7 @@ void childCode(){
 
     secondSd = setupSocket(cl_secondary_port);
     setIsAlarmfree(TRUE); //lm
+    setPrimarySocket(sd);
     while(1){
 
         recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen, FALSE, nonce);
@@ -937,10 +938,12 @@ int main(int argc, char* argv[]){
                     //printf("Sending to port: %d\n", ack_match_m.dest_port);
                     opponent_addr = setupAddress("127.0.0.1", (int)ack_match_m.dest_port);
 
-                    pack_match_move_message(&m, 0);
-                    send_message(&m, &opponent_addr, secondSd, TRUE);
-                    free(m.cphtBuffer);
-                    free(m.tagBuffer);
+                    //pack_match_move_message(&m, 0);
+                    pack_login_message(&m);
+                    //send_message(&m, &opponent_addr, secondSd, TRUE);
+                    send_message(&m, &opponent_addr, secondSd, FALSE);
+                    //free(m.cphtBuffer);
+                    //free(m.tagBuffer);
 
                     ////
                     // Negoziazione

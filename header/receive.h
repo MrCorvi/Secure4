@@ -30,6 +30,8 @@ void setIsServerReciver();
 
 void setIsAlarmfree(int flag);
 
+void setPrimarySocket(int sd_tmp);
+
 void chaneKeyReciver(unsigned char *newKey, int size);
 
 int deserialize_message(unsigned char* buffer, struct message *aux, uint8_t isEncr);

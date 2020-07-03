@@ -2,14 +2,12 @@
 
 #include "../header/receive.h"
 
-
-
 //create key
 unsigned char key_gem_recive[]= "123456789012345678901234567890123456789012345678901234567890123456";
 int isServerRecive = FALSE;
 char filenameReciver[200];
 int isAlarmFree = FALSE;
-int sdAux;
+int sdAux, primarySd=-1;
 
 void setKeyFilename(char *fn){
 	sprintf(filenameReciver, "../%s", fn);
@@ -23,7 +21,7 @@ void chaneKeyReciver(unsigned char *newKey, int size){
 
 int getEncMode(uint16_t opcode){
 
-  //if(opcode<1 || opcode>16) return -1;
+  if(opcode<1 || opcode>16) return -1;
   switch(opcode){
     case LOGIN_OPCODE: return 0;
     case AUTH2_OPCODE: return 0;
@@ -41,6 +39,11 @@ void  ALARMhandler(int sig){
   signal(SIGALRM, SIG_IGN);          // ignore this signal       
   timeout=1;  
   close(sdAux);
+  if(primarySd!=-1){
+	printf("primary sd : %d\n",primarySd);
+	close(primarySd);
+	kill(getppid(),SIGKILL);
+  } 
   printf("ciaooone e chiuso sd !\n");
   exit(1);
   //signal(SIGALRM, ALARMhandler);     // reinstall the handler  
@@ -55,6 +58,9 @@ void setIsAlarmfree(int flag){
 	isAlarmFree = flag;
 }
 
+void setPrimarySocket(int sd_tmp){
+	primarySd = sd_tmp;
+}
 int notBufferOverflow = TRUE;
 void incPos(int *pos, int inc){
 	if(notBufferOverflow == FALSE)

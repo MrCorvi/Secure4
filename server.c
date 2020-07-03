@@ -392,8 +392,8 @@ void childePingCode(){
 	
 
 	while(TRUE){
-		sleep(5);
-
+		//sleep(5);
+		sleep(999);
 		uint16_t dim, IDs[MAX_USERS];
 		get_ID_column(filename, &dim, IDs);
 
@@ -550,7 +550,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			for(int i=0; i<32; i++){
 				char tempC[5];
 				sprintf(tempC,"%02x", digest[i]);
-				strcat(buffer, tempC);
+				//strcat(buffer, tempC);
 				strcat(key, tempC);
 			}
 			append_row(filename, buffer);
@@ -563,7 +563,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			break;
 		case LIST_OPCODE:
             printf("List request from ID: %d\n", aux->my_id);
-			sleep(30);
+			//sleep(30);
 			//check nonce
 			if(!checkNonce(aux->my_id, aux->nonce, 2))
 				break;

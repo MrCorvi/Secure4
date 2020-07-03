@@ -224,11 +224,12 @@ int remove_row_by_id(char* filename, uint32_t id){
 
 
 int update_row(char* filename, uint32_t my_id, const char ip[], uint16_t cl_port, uint32_t nonce){
-    char buffer[1024], key[300];
+    char buffer[1024];
+    //char key[300];
     int row_num, ret = 1;
 
     //get key
-    sprintf(key, "%s", get_column_by_id(filename, my_id, 5));
+    //sprintf(key, "%s", get_column_by_id(filename, my_id, 5));
     
     //remove old row version
     row_num = get_row_by_id(filename, my_id);
@@ -241,7 +242,8 @@ int update_row(char* filename, uint32_t my_id, const char ip[], uint16_t cl_port
     remove_row(filename, row_num);
 
     //append new row version
-    sprintf(buffer,"%d,%s,%d,%d,%s", my_id, ip, cl_port, nonce, key);
+    //sprintf(buffer,"%d,%s,%d,%d,%s", my_id, ip, cl_port, nonce, key);
+    sprintf(buffer,"%d,%s,%d,%d", my_id, ip, cl_port, nonce);
     printf("                %s\n",buffer);
     append_row(filename, buffer);
     return ret;
