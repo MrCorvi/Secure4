@@ -172,7 +172,7 @@ const char* get_column_by_id(char* filename, int id,int col){
     char snum[5];
 
     sprintf(snum, "%d", id);
-    printf("SNUM: %s ID:%d\n", snum, id);
+    //printf("SNUM: %s ID:%d\n", snum, id);
 
     while(fgets(buffer, 1024, file1)){
         char* tmp = strdup(buffer);
@@ -193,7 +193,7 @@ void get_buf_column_by_id(char* filename, int id,int col, char* retBuffer){
     char snum[5];
 
     sprintf(snum, "%d", id);
-    printf("SNUM: %s ID:%d\n", snum, id);
+    //printf("SNUM: %s ID:%d\n", snum, id);
 
     while(fgets(buffer, 1024, file1)){
         char* tmp = strdup(buffer);
@@ -218,17 +218,17 @@ int remove_row_by_id(char* filename, uint32_t id){
         printf("ID non presente!\n");
         return 0;
     }
-    printf("rimuovo riga %d \n", row_num);
+    printf("rimuovo riga %d da csv\n", row_num);
     remove_row(filename, row_num);
 }
 
 
 int update_row(char* filename, uint32_t my_id, const char ip[], uint16_t cl_port, uint32_t nonce){
-    char buffer[1024], key[300];
+    char buffer[1024], noncePing[80];
     int row_num, ret = 1;
 
-    //get key
-    sprintf(key, "%s", get_column_by_id(filename, my_id, 5));
+    //get ping nonce
+    get_buf_column_by_id("loggedUser.csv", (int)my_id, 5, (char*)noncePing);
     
     //remove old row version
     row_num = get_row_by_id(filename, my_id);
@@ -241,9 +241,35 @@ int update_row(char* filename, uint32_t my_id, const char ip[], uint16_t cl_port
     remove_row(filename, row_num);
 
     //append new row version
-    sprintf(buffer,"%d,%s,%d,%d,%s", my_id, ip, cl_port, nonce, key);
-    printf("                %s\n",buffer);
+    sprintf(buffer,"%d,%s,%d,%d,%s", my_id, ip, cl_port, nonce, noncePing);
+    printf("%s\n",buffer);
     append_row(filename, buffer);
     return ret;
 }
 
+
+int update_nonce_ping(char* filename, uint32_t my_id, uint32_t noncePing){
+    char buffer[1024], nonce[80], ip[80], cl_port[80];
+    int row_num, ret = 1;
+
+    //get ping nonce
+    get_buf_column_by_id("loggedUser.csv", (int)my_id, 2, (char*)ip);
+    get_buf_column_by_id("loggedUser.csv", (int)my_id, 3, (char*)cl_port);
+    get_buf_column_by_id("loggedUser.csv", (int)my_id, 4, (char*)nonce);
+    
+    //remove old row version
+    row_num = get_row_by_id(filename, my_id);
+    //if not pack err
+    if(row_num==-1){
+        printf("ID non presente!\n");
+        ret = 0;
+    }
+    printf("rimuovo riga %d \n", row_num);
+    remove_row(filename, row_num);
+
+    //append new row version
+    sprintf(buffer,"%d,%s,%s,%s,%d", my_id, ip, cl_port, nonce, noncePing);
+    printf("%s\n",buffer);
+    append_row(filename, buffer);
+    return ret;
+}

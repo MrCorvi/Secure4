@@ -9,6 +9,7 @@ unsigned char key_gem_recive[]= "12345678901234567890123456789012345678901234567
 int isServerRecive = FALSE;
 char filenameReciver[200];
 int isAlarmFree = FALSE;
+int exitOnError = TRUE;
 int sdAux;
 
 void setKeyFilename(char *fn){
@@ -38,12 +39,15 @@ int getEncMode(uint16_t opcode){
 
 int timeout = 0;
 void  ALARMhandler(int sig){
-  signal(SIGALRM, SIG_IGN);          // ignore this signal       
-  timeout=1;  
-  close(sdAux);
-  printf("ciaooone e chiuso sd !\n");
-  exit(1);
-  //signal(SIGALRM, ALARMhandler);     // reinstall the handler  
+	signal(SIGALRM, SIG_IGN);          // ignore this signal       
+	timeout=1;  
+	printf("ciaooone e chiuso sd !\n");
+	close(sdAux);
+	signal(SIGALRM, ALARMhandler);
+	if(exitOnError){
+		perror("TIMOUT EXIT\n");
+		exit(1);		
+	}
 }
 
 void setIsServerReciver(){
@@ -53,6 +57,10 @@ void setIsServerReciver(){
 
 void setIsAlarmfree(int flag){
 	isAlarmFree = flag;
+}
+
+void setExitOnError(int flag){
+	exitOnError = flag;
 }
 
 int notBufferOverflow = TRUE;
@@ -96,7 +104,7 @@ int deserialize_message(unsigned char* buffer, struct message *aux, uint8_t isEn
 	//printf("opcode: %d\n", opcodex);
 	aux->opcode = opcodex;
 	pos+=sizeof(opcodex);
-	printf("get mode %d %d %d\n",ntohs(aux->opcode),getEncMode(ntohs(aux->opcode)),isEncr);
+	//printf("get mode %d %d %d\n",ntohs(aux->opcode),getEncMode(ntohs(aux->opcode)),isEncr);
 	if(getEncMode(ntohs(aux->opcode))!=isEncr) return -1;
 	//printf("aux opcode %d\n", aux->opcode);
 	switch(ntohs(aux->opcode)){
@@ -257,17 +265,24 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 	do{
 		if(!isAlarmFree){
 			printf("Start alarm\n");
-			alarm(10);
+			timeout = 0;
+			alarm(5);
 		}
 		//printf("Waiting new message\n");
 		ret = recvfrom(socket, buffer, buffersize, 0, (struct sockaddr*)mitt_addr, &addrlen);
 		//printf("New message!!!\n");
 
+		//printf("exit:%d    Time:%d \n", exitOnError, timeout);
+		if(exitOnError == FALSE && timeout == 1){
+			timeout = 0;
+			perror("TIMEOUT recivefrom\n");
+			return -1;
+		}
+
 		//BIO_dump_fp(stdout, (const char *)buffer, 64);
 		
 		u_int8_t isEncr;
 		memcpy(&isEncr, buffer, 1);
-
 
 		if(isEncr != FALSE){
 
@@ -328,10 +343,9 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 			free(tag);
 		}
 		
-		
 		if(ret<0){
 			perror("ERRORE recvfrom\n");
-			exit(1);		
+			exit(1);
 		}
 
 		// decifra buf (magari con flag)

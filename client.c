@@ -42,7 +42,7 @@ char *sv_ip;
 int sv_port, cl_id, cl2_id, cl_main_port, cl_secondary_port;
 int sd, secondSd;
 uint32_t cu;
-uint32_t nonce = 100;
+uint32_t nonce = 100, noncePing = 100;
 sem_t *mutex_active_process, *mutex_secondary_port;
 unsigned char symKey[SIM_KEY_LEN];
 char* client_pkey;
@@ -285,6 +285,28 @@ void nonceInc(pid_t pid){
     kill(pid, SIGUSR1);
 }
 
+
+// Same nonce operations but for ping
+int noncePingCheck(uint32_t noncePingReceived, int incNoncePing, pid_t pid){
+    //NoncePing check
+    //printf("\nNoncePing rec: %d       stored:%d\n", noncePingReceived, noncePing);
+    if((noncePing + 1) != noncePingReceived){
+        printf("\n\033[1;31mPing Errore:\033[0m recived noncePing %d insted of %d\n", noncePingReceived, noncePing+1);//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        return 0;
+    }
+    noncePing+=incNoncePing;
+    //printf("\nNoncePing: %d",noncePing);
+    
+    kill(pid, SIGWINCH); //update other branch noncePing
+    return 1;
+}
+
+void noncePingInc(pid_t pid){
+    noncePing++;
+    kill(pid, SIGWINCH);
+}
+
+
 void battleRequest(){
     sem_wait(mutex_active_process);
 }
@@ -303,6 +325,10 @@ void secondaryPortRequest(){
 
 void updateNonce(){
     nonce += 1;
+}
+
+void updateNoncePing(){
+    noncePing += 1;
 }
 
 unsigned char* hash(unsigned char* secret){
@@ -475,15 +501,13 @@ void makeSymKey(unsigned char *key, unsigned char *digest){
 void pingHandler(struct message m_ping, struct sockaddr *addr){
 
     //nonce check
-    if(nonceCheck(m_ping.nonce, 1, getppid()) == 0){
-        printf("Invalid ping\n");
+    if(noncePingCheck(m_ping.nonce, 1, getppid()) == 0){
+        printf("\033[1;31mPing:\033[0m Invalid ping\n");
         return;
     }
-    struct message m_ack = pack_ack(cl_id, nonce);
 
-
-
-    nonceInc(getppid());
+    noncePingInc(getppid());
+    struct message m_ack = pack_ack(cl_id, noncePing);
     send_message(&m_ack, (struct sockaddr_in *)addr, secondSd, TRUE);
 
 }
@@ -755,6 +779,7 @@ int main(int argc, char* argv[]){
 
     struct message m_response;
     nonce = ack_login_m.nonce;
+    noncePing = ack_login_m.nonce;
     pack_response_message(&m_response, ack_login_m.nonce);
     send_message(&m_response, &sv_addr, sd, FALSE);
     //printf("INVIATO PER CERT M\n");
@@ -815,8 +840,9 @@ int main(int argc, char* argv[]){
     printf("\033[1;32mWelcome to Forza4\033[0m: Enjoy it with your friends! ");
     print_help();
 
-    //to increse the other porcess nonce
+    //to increse the other porcess nonce 
     signal(SIGUSR1, updateNonce);
+    signal(SIGWINCH, updateNoncePing);
 
     //Creo processo figlio per gestire le richieste di partita
     pid_t pid;
@@ -865,6 +891,7 @@ int main(int argc, char* argv[]){
 
                 //nonce setup
                 nonceInc(pid);
+                printf("                %d %d\n", nonce, noncePing);
                 pack_list_message(&m, cl_id);
     
                 //printf("Getting list of online users from the server \n");

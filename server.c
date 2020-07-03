@@ -347,6 +347,22 @@ int checkNonce(uint32_t id, uint32_t nonce_recived, int inc){
 }
 
 
+int checkNoncePing(uint32_t id, uint32_t nonce_recived, int inc){
+	uint32_t nonce_stored = atoi(get_column_by_id(filename, id , 5));
+
+	//check if the nonce received is 1 more of the one stored
+	if((nonce_stored+inc) != nonce_recived){
+		printf("\033[1;31mPing Errore:\033[0m il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		printf("\033[1;31mPing Errore:\033[0m Nonce recived: %d		Nonce expected: %d\n", nonce_recived, nonce_stored+inc);
+		return 0;
+	}
+
+	//update the nonce stored
+	update_nonce_ping(filename, id, nonce_stored + inc);
+	return 1;
+}
+
+
 
 
 /* timerino
@@ -370,14 +386,12 @@ void  ALARMhandler(int sig){
 
 
 void pingHandler(struct message m_ping, struct sockaddr *addr){}
-
-void childePingCode(){
+int setupPingSocket(){
 	int sdPing;
-	struct sockaddr_in ping_addr_cl, ping_addr_sv;
+	struct sockaddr_in ping_addr_sv;
 
-	// address creation
-	
-	memset(&ping_addr_sv,0, sizeof(ping_addr_sv)); // cleaning
+    //addres creation
+    memset(&ping_addr_sv,0, sizeof(ping_addr_sv)); // cleaning
 	ping_addr_sv.sin_family= AF_INET;
 	ping_addr_sv.sin_addr.s_addr = INADDR_ANY;
 	ping_addr_sv.sin_port = htons(ping_port); // host to net
@@ -386,9 +400,24 @@ void childePingCode(){
 	sdPing = socket(AF_INET, SOCK_DGRAM, 0); //not yet IP & port
 	int ret = bind(sdPing, (struct sockaddr*)&ping_addr_sv, sizeof(ping_addr_sv));
 	if(ret!=0){
-			perror("Binding Error\n");			
-			exit(1);			
+		perror("Binding Error\n");			
+		exit(1);			
 	}
+
+    return sdPing;
+}
+
+void childePingCode(){
+	int sdPing, ret;
+	struct sockaddr_in ping_addr_cl;
+
+	// address creation
+	
+	sdPing = setupPingSocket();
+
+
+	setIsAlarmfree(FALSE);
+	setExitOnError(FALSE);
 	
 
 	while(TRUE){
@@ -398,18 +427,18 @@ void childePingCode(){
 		get_ID_column(filename, &dim, IDs);
 
 		for(uint16_t i=0; i<dim; i++)
-			printf("ID %u : %u", i, IDs[i]);
+			printf("\033[1;31mPing:\033[0m ID %u : %u\n", i, IDs[i]);
 		
 		for(uint16_t i=0; i<dim; i++){
 			char ip[80], port_buf[80], key[SIM_KEY_LEN], nonce_buf[10];
 			int nonce;
 			get_buf_column_by_id(filename, IDs[i], 2, ip);
 			get_buf_column_by_id(filename, IDs[i], 3, port_buf);
-			get_buf_column_by_id(filename, IDs[i], 4, nonce_buf);
+			get_buf_column_by_id(filename, IDs[i], 5, nonce_buf);
 			nonce = atoi(nonce_buf);
 			readKey(IDs[i], key);
 			uint16_t port = (short)atoi(port_buf);
-			printf("id %u has		ip: %s		port:%u			key:%s\n", IDs[i], ip, port, key);
+			printf("\033[1;31mPing:\033[0m id %u has ip: %s	port:%u	key:%s\n", IDs[i], ip, port, key);
 
 			struct message m_ping = pack_challenge();
 			struct message m_ack;
@@ -424,12 +453,36 @@ void childePingCode(){
 
 			readKey(IDs[i], (char*)symKey);
 			send_message(&m_ping, &ping_addr_cl , sdPing, TRUE);
+	
+			ret = recv_message(sdPing, &m_ack, (struct sockaddr*)&ping_addr_cl, TRUE, 0); 
 
-			recv_message(sdPing, &m_ack, (struct sockaddr*)&ping_addr_cl, TRUE, 0); 
-			printf("recived Ping !!!\n");
+			if(ret == -1){
+				printf("\033[1;31mPing:\033[0m The user %d is not active!!! it will be removed\n", IDs[i]);
 
-			//Update nonce
-			update_row(filename, IDs[i], ip, port, nonce + 2);
+				//look at .csv if correct id
+				ret = get_row_by_id(filename, IDs[i]);
+				//if not pack err
+				if(ret==-1){
+					printf("\033[1;31mPing:\033[0m ID not in the csv, it already did the logout\n");
+					continue;
+				}
+				printf("\033[1;31mPing:\033[0m rimuovo riga %d \n", ret);
+				remove_row(filename, ret);
+				printf("\033[1;31mPing:\033[0m Riga rimossa!\n");
+				clearKey(IDs[i]);
+
+				//restablish socket
+				sdPing = setupPingSocket();
+				continue;
+			}
+
+			printf("\033[1;31mPing:\033[0m recived Ping !!!\n");
+
+			// check and update nonce
+			if(!checkNoncePing(IDs[i], m_ack.nonce, 2)){
+				printf("\033[1;31mPing:\033[0m Ping del utente %d non fresco !!!", IDs[i]);
+				continue;
+			}
 		}
 	}
 
@@ -545,7 +598,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			char buffer[MAX_BUFFER_SIZE];
 			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);
 			int cl_port = aux->my_listen_port;
-			sprintf(buffer,"%d,%s,%d,%d,", aux->my_id, str, cl_port, cs); //costante magica
+			sprintf(buffer,"%d,%s,%d,%d,%d,", aux->my_id, str, cl_port, cs, cs); //costante magica
 			char key[SIM_KEY_LEN] = "";
 			for(int i=0; i<32; i++){
 				char tempC[5];
@@ -563,7 +616,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			break;
 		case LIST_OPCODE:
             printf("List request from ID: %d\n", aux->my_id);
-			sleep(30);
+			//sleep(30);
 			//check nonce
 			if(!checkNonce(aux->my_id, aux->nonce, 2))
 				break;

@@ -14,3 +14,4 @@ const char* get_column_by_id(char* filename, int id,int col);
 int remove_row_by_id(char* filename, uint32_t id);
 void get_buf_column_by_id(char* filename, int id,int col, char* buffer);
 int update_row(char* filename, uint32_t my_id, const char ip[], uint16_t cl_port, uint32_t nonce);
+int update_nonce_ping(char* filename, uint32_t my_id, uint32_t noncePing);
