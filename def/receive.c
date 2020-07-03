@@ -6,6 +6,7 @@
 
 //create key
 unsigned char key_gem_recive[]= "123456789012345678901234567890123456789012345678901234567890123456";
+unsigned char key_client[]= "123456789012345678901234567890123456789012345678901234567890123456";
 int isServerRecive = FALSE;
 char filenameReciver[200];
 int isAlarmFree = FALSE;
@@ -18,8 +19,10 @@ void setKeyFilename(char *fn){
 
 void chaneKeyReciver(unsigned char *newKey, int size){
 	memcpy(key_gem_recive, newKey, size);
-	//printf("New key seted up: \n");
-    //BIO_dump_fp(stdout, (const char *)key_gem_recive, 17);
+}
+
+void changeKeyClientReciver(unsigned char *newKey, int size){
+	memcpy(key_client, newKey, size);
 }
 
 int getEncMode(uint16_t opcode){
@@ -266,7 +269,7 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 		if(!isAlarmFree){
 			printf("Start alarm\n");
 			timeout = 0;
-			alarm(5);
+			alarm(waitTime);
 		}
 		//printf("Waiting new message\n");
 		ret = recvfrom(socket, buffer, buffersize, 0, (struct sockaddr*)mitt_addr, &addrlen);
@@ -291,12 +294,6 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 			unsigned char *ct, *tag, pt[MAX_BUFFER_SIZE], aad[5 + IV_SIZE];
 			int pos = 1;
 			
-			//sprintf(iv_gcm, "%-12d", nonce);
-			//printf("									iv: |%s|", iv_gcm);
-
-			//printf("Buffmemcpy(buf + pos, &id, sizeof(id));
-			//pos+= sizeof(id);er : \n");
-			//BIO_dump_fp(stdout, (const char *)buffer, MAX_BUFFER_SIZE + TAG_SIZE + IV_SIZE);
 
 			memcpy(&senderId, buffer+pos, sizeof(senderId));
 			pos += sizeof(senderId);
@@ -322,11 +319,16 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 
 			//get the sender key
 			unsigned char k[SIM_KEY_LEN];
-			strcpy(k, key_gem_recive);
+			if(senderId == (MAX_USERS+1)){
+				strcpy(k, key_gem_recive);
+			}else{
+				strcpy(k, key_client);
+			}
 			if(isServerRecive == TRUE){
 				//get_buf_column_by_id("loggedUser.csv", (int)senderId, 5, k);
 				readKey((int)senderId, k);
 			}
+	
 			//printf("%s\n", k);
 			sprintf(symKey, "%s", k);
 

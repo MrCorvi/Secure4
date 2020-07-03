@@ -37,6 +37,7 @@ int sd_listen; //each process use one to answer a request
 unsigned char symKey[SIM_KEY_LEN];
 uint32_t cs;
 int isClinetSecondProcess = FALSE;
+int waitTime = 10;
 
 int socket_creation(){
 	struct sockaddr_in my_addr;
@@ -415,13 +416,14 @@ void childePingCode(){
 	
 	sdPing = setupPingSocket();
 
+	waitTime = 3;
 
 	setIsAlarmfree(FALSE);
 	setExitOnError(FALSE);
 	
 
 	while(TRUE){
-		sleep(5);
+		sleep(3);
 
 		uint16_t dim, IDs[MAX_USERS];
 		get_ID_column(filename, &dim, IDs);
@@ -598,12 +600,12 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			char buffer[MAX_BUFFER_SIZE];
 			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);
 			int cl_port = aux->my_listen_port;
-			sprintf(buffer,"%d,%s,%d,%d,%d,", aux->my_id, str, cl_port, cs, cs); //costante magica
+			sprintf(buffer,"%d,%s,%d,%d,%d", aux->my_id, str, cl_port, cs, cs); //costante magica
 			char key[SIM_KEY_LEN] = "";
 			for(int i=0; i<32; i++){
 				char tempC[5];
 				sprintf(tempC,"%02x", digest[i]);
-				strcat(buffer, tempC);
+				//strcat(buffer, tempC);
 				strcat(key, tempC);
 			}
 			append_row(filename, buffer);

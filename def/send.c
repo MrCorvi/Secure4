@@ -241,7 +241,11 @@ void send_message(struct message *m, struct sockaddr_in * dest_addr,int socket, 
 		pos+= 1;
 
 		//set sender id
-		//printf("Set up id: %d\n", id);
+		if(isServer == TRUE){
+			//get_buf_column_by_id("loggedUser.csv", (int)senderId, 5, k);
+			id = MAX_USERS + 1;
+		}
+		//printf("\n		SEND id %d\n",id);
 		memcpy(buf + pos, &id, sizeof(id));
 		pos+= sizeof(id);
 

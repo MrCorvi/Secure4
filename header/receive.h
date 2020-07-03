@@ -20,6 +20,7 @@
 
 extern unsigned char symKey[SIM_KEY_LEN];
 extern int isClinetSecondProcess;
+extern int waitTime;
 
 extern void pingHandler(struct message m_ping, struct sockaddr *addr);
 
@@ -33,6 +34,8 @@ void setIsAlarmfree(int flag);
 void setExitOnError(int flag);
 
 void chaneKeyReciver(unsigned char *newKey, int size);
+
+void changeKeyClientReciver(unsigned char *newKey, int size);
 
 int deserialize_message(unsigned char* buffer, struct message *aux, uint8_t isEncr);
 

@@ -47,6 +47,7 @@ sem_t *mutex_active_process, *mutex_secondary_port;
 unsigned char symKey[SIM_KEY_LEN];
 char* client_pkey;
 int isClinetSecondProcess = FALSE;
+int waitTime = 10;
 
 void print_help(){
 
@@ -614,7 +615,13 @@ void childCode(){
                 //printf("\nAdversary port: %d\n", ntohs(opponent_addr.sin_port));
                 
                 kill(getppid(), SIGUSR2);
+
+                //disable the timeout on the recive
+                setIsAlarmfree(TRUE); 
+
                 forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, FALSE, 100);
+
+                setIsAlarmfree(FALSE); 
 
                 //reset key to talk with server
                 strcpy((char*)symKey, (char*)servKey);
@@ -985,13 +992,18 @@ int main(int argc, char* argv[]){
                     strcpy((char*)servKey, (char*)symKey);
                     makeSymKey(symKey, digestCtoC);
                     chaneKeySend(symKey, 65);
-                    chaneKeyReciver(symKey, 65);
+                    changeKeyClientReciver(symKey, 65);
 
                     printf("Waiting for other player...\n");
                     struct sockaddr* opponent_addr2;
                     recv_message(secondSd, &m, (struct sockaddr*)&opponent_addr2, FALSE, nonce);
 
+                    //disable the timeout on the recive
+                    setIsAlarmfree(TRUE); 
+
                     forza4Engine("127.0.0.1", ntohs(opponent_addr.sin_port), secondSd, secondSd, TRUE, 100);
+                    setIsAlarmfree(FALSE);
+
                     close(secondSd);
                     sem_post(mutex_secondary_port);
 
