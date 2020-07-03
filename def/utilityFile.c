@@ -224,10 +224,12 @@ int remove_row_by_id(char* filename, uint32_t id){
 
 
 int update_row(char* filename, uint32_t my_id, const char ip[], uint16_t cl_port, uint32_t nonce){
-    char buffer[1024], noncePing[80];
+    char buffer[1024], noncePing[80], ip2[80], cl_port2[80];
     int row_num, ret = 1;
 
     //get ping nonce
+    get_buf_column_by_id("loggedUser.csv", (int)my_id, 2, (char*)ip2);
+    get_buf_column_by_id("loggedUser.csv", (int)my_id, 3, (char*)cl_port2);
     get_buf_column_by_id("loggedUser.csv", (int)my_id, 5, (char*)noncePing);
     
     //remove old row version
@@ -241,8 +243,8 @@ int update_row(char* filename, uint32_t my_id, const char ip[], uint16_t cl_port
     remove_row(filename, row_num);
 
     //append new row version
-    sprintf(buffer,"%d,%s,%d,%d,%s", my_id, ip, cl_port, nonce, noncePing);
-    printf("%s\n",buffer);
+    sprintf(buffer,"%d,%s,%s,%d,%s", my_id, ip2, cl_port2, nonce, noncePing);
+    printf("    hhhhhhhhhhhhhhhhhh   %s\n",buffer);
     append_row(filename, buffer);
     return ret;
 }

@@ -637,10 +637,11 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			if(dest_ip==NULL){
 				printf("The id %u is not online\n", aux->dest_id);
 				//update nonce
-				char source_ip_err[50];
+				char source_ip_err[80];
 				get_buf_column_by_id(filename, aux->my_id, 2, source_ip_err);
 				uint16_t source_port_err = (uint16_t)atoi(get_column_by_id(filename, aux->my_id, 3));
 				update_row(filename, aux->my_id, source_ip_err, source_port_err, nonce_stored + 2);
+				return 0;
 
 				struct message m = pack_err(aux->my_id, nonce_stored + 2);
 				//printf("				---		---		nonce:  %d\n", m.nonce);

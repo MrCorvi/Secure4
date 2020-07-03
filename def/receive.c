@@ -321,9 +321,11 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 			unsigned char k[SIM_KEY_LEN];
 			if(senderId == (MAX_USERS+1)){
 				strcpy(k, key_gem_recive);
+				printf("client key: %s \n",k);
 			}else{
 				strcpy(k, key_client);
 			}
+
 			if(isServerRecive == TRUE){
 				//get_buf_column_by_id("loggedUser.csv", (int)senderId, 5, k);
 				readKey((int)senderId, k);
