@@ -500,7 +500,7 @@ void childCode(){
     isClinetSecondProcess = TRUE;
 
     secondSd = setupSocket(cl_secondary_port);
-    setIsAlarmfree(TRUE);
+    setIsAlarmfree(TRUE); //lm
     while(1){
 
         recv_message(secondSd, &match_m, (struct sockaddr*)&sv_addr_listen, FALSE, nonce);
@@ -542,7 +542,7 @@ void childCode(){
             //Richiesta accettata
             if(command == 'y'){
                 //Waiting from server the public key of who hasked for the match
-                setIsAlarmfree(FALSE);
+                setIsAlarmfree(FALSE); //lm
                 struct message pubKey_m;
                 recv_message(secondSd, &pubKey_m, (struct sockaddr*)&sv_addr_listen, FALSE, nonce);
 
@@ -598,14 +598,11 @@ void childCode(){
                 chaneKeyReciver(symKey, 65);
                 
                 printf("Press Enter to return to the main console ...\n");
-                setIsAlarmfree(TRUE);
+                setIsAlarmfree(TRUE); // lm
                 sem_post(mutex_active_process);
             }
-        }else if(match_m.opcode == DENY_OPCODE){
-            printf("You denied to join the match\n");
-            printf("Press Enter to return to the main console ...\n");
         }else{
-            printf("Errore OPCODE da gestire\n");
+            printf("You denied to join the match\n");
             printf("Press Enter to return to the main console ...\n");
         }
     }

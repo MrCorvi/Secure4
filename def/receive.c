@@ -9,7 +9,7 @@ unsigned char key_gem_recive[]= "12345678901234567890123456789012345678901234567
 int isServerRecive = FALSE;
 char filenameReciver[200];
 int isAlarmFree = FALSE;
-int sd;
+int sdAux;
 
 void setKeyFilename(char *fn){
 	sprintf(filenameReciver, "../%s", fn);
@@ -35,11 +35,12 @@ int getEncMode(uint16_t opcode){
   }
 }
 
+
 int timeout = 0;
 void  ALARMhandler(int sig){
   signal(SIGALRM, SIG_IGN);          // ignore this signal       
   timeout=1;  
-  close(sd);
+  close(sdAux);
   printf("ciaooone e chiuso sd !\n");
   exit(1);
   //signal(SIGALRM, ALARMhandler);     // reinstall the handler  
@@ -250,7 +251,7 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
   	void *buffer = malloc(1 + sizeof(senderId) + MAX_BUFFER_SIZE + TAG_SIZE + IV_SIZE);
   	int buffersize = 1 + MAX_BUFFER_SIZE + TAG_SIZE + IV_SIZE;
 	socklen_t addrlen = sizeof(struct sockaddr_in);
-	sd = socket;
+	sdAux = socket;
 
 	signal(SIGALRM, ALARMhandler);
 	do{

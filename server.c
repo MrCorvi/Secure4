@@ -401,7 +401,7 @@ void childePingCode(){
 			printf("ID %u : %u", i, IDs[i]);
 		
 		for(uint16_t i=0; i<dim; i++){
-			char ip[30], port_buf[30], key[SIM_KEY_LEN], nonce_buf[10];
+			char ip[80], port_buf[80], key[SIM_KEY_LEN], nonce_buf[10];
 			int nonce;
 			get_buf_column_by_id(filename, IDs[i], 2, ip);
 			get_buf_column_by_id(filename, IDs[i], 3, port_buf);
@@ -563,7 +563,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			break;
 		case LIST_OPCODE:
             printf("List request from ID: %d\n", aux->my_id);
-
+			sleep(30);
 			//check nonce
 			if(!checkNonce(aux->my_id, aux->nonce, 2))
 				break;

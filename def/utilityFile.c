@@ -197,6 +197,7 @@ void get_buf_column_by_id(char* filename, int id,int col, char* retBuffer){
 
     while(fgets(buffer, 1024, file1)){
         char* tmp = strdup(buffer);
+        //printf("Ehiii tmp %s get_field a col %d: %s \n",tmp,col,get_field(tmp,col));
         if(strcmp(get_field(tmp,1),snum)==0){
             strcpy(retBuffer, get_field(buffer,col));
             return;
@@ -238,7 +239,6 @@ int update_row(char* filename, uint32_t my_id, const char ip[], uint16_t cl_port
     }
     printf("rimuovo riga %d \n", row_num);
     remove_row(filename, row_num);
-
 
     //append new row version
     sprintf(buffer,"%d,%s,%d,%d,%s", my_id, ip, cl_port, nonce, key);
