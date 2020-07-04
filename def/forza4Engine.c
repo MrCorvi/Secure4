@@ -185,7 +185,8 @@ int waitMove(){
 void sendMove(uint8_t column){
     struct sockaddr_in opponentAddr = setupDestAddress(destIp, destPort);
     struct message m;
-
+    
+    printf("invio nonceCl_to_Cl %d", nonceCl_to_Cl);
     nonceCl_to_Cl++;
     pack_match_move_message_local(&m, column, 5);
     send_message(&m, &opponentAddr, sendSd, TRUE);
@@ -281,7 +282,6 @@ void forza4Engine(char *_destIp, int _destPort , int _sendSd, int _reciveSd, int
     sendSd = _sendSd;
     reciveSd = _reciveSd;
     nonceCl_to_Cl = nonceCtoc;
-
 
     int firstTurn = first;
     //printf("\n%s\n", destIp);

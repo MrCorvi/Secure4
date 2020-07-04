@@ -85,6 +85,7 @@ void toHost(struct message* msg){
 	msg->opcode = (msg->opcode!=0)?ntohs(msg->opcode):0;
 	msg->my_id = (msg->my_id!=0)?ntohl(msg->my_id):0;
 	msg->my_listen_port = (msg->my_listen_port!=0)?ntohs(msg->my_listen_port):0;
+	msg->third_port = (msg->third_port!=0)?ntohs(msg->third_port):0;
 	msg->nOnlinePlayers = (msg->nOnlinePlayers!=0)?ntohs(msg->nOnlinePlayers):0; 
 	msg->dest_id = (msg->dest_id!=0)?ntohl(msg->dest_id):0;
 	msg->dest_ip = (msg->dest_ip!=0)?ntohl(msg->dest_ip):0;
@@ -117,6 +118,8 @@ int deserialize_message(unsigned char* buffer, struct message *aux, uint8_t isEn
 			incPos(&pos, sizeof(aux->my_id));
 			memcpy(&aux->my_listen_port, buffer+pos, sizeof(aux->my_listen_port));
 			incPos(&pos, sizeof(aux->my_listen_port));
+			memcpy(&aux->third_port, buffer+pos, sizeof(aux->third_port));
+			incPos(&pos, sizeof(aux->third_port));
             break;
 		case ACK_OPCODE:
 			memcpy(&aux->my_id, buffer+pos, sizeof(aux->my_id));
@@ -356,9 +359,9 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 
 		ret = deserialize_message(buffer, message, isEncr);
 
-		if(message->opcode == PING_OPCODE){
+		/*if(message->opcode == PING_OPCODE){
 			pingHandler(*message, mitt_addr);
-		}
+		}*/
 	}while(ret==-1 || (isClinetSecondProcess && message->opcode == PING_OPCODE));
 	alarm(0);
 	return ret;

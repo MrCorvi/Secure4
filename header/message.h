@@ -44,6 +44,7 @@ struct message{
     uint16_t addColumn;//Used in game to specifie, in game, the Column where to add the disk
     uint32_t dest_ip;
     uint16_t my_listen_port;
+    uint16_t third_port;
     uint16_t dest_port;
     uint16_t column; 
     uint16_t flag; // 1 accept 0 deny

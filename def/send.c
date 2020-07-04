@@ -32,6 +32,7 @@ struct message toNet(struct message* msg){
 	aux.dest_id = htonl(msg->dest_id);
 	aux.dest_ip = htonl(msg->dest_ip);
 	aux.my_listen_port = htons(msg->my_listen_port);
+	aux.third_port = htons(msg->third_port);
 	aux.dest_port = htons(msg->dest_port);
 	aux.flag = htons(msg->flag);
 	aux.addColumn = htons(msg->addColumn);
@@ -66,6 +67,8 @@ int serialize_message(void* buffer, struct message *msg){
 			pos+=sizeof(aux.my_id);
 			memcpy(buffer+pos, &aux.my_listen_port, sizeof(aux.my_listen_port));
             pos += sizeof(aux.my_listen_port);
+			memcpy(buffer+pos, &aux.third_port, sizeof(aux.third_port));
+            pos += sizeof(aux.third_port);
 			//printf("login, buffer contienete: %d, %d e poi %d\n", aux.opcode, aux.my_id, aux.my_listen_port);
 			break;
 		case ACK_OPCODE:

@@ -39,8 +39,8 @@
 uint16_t dest_id;
 struct sockaddr_in cl_address, cl_listen_addr, sv_addr;
 char *sv_ip;
-int sv_port, cl_id, cl2_id, cl_main_port, cl_secondary_port;
-int sd, secondSd;
+int sv_port, cl_id, cl2_id, cl_main_port, cl_secondary_port, cl_third_port;
+int sd, secondSd, thirdSd;
 uint32_t cu;
 uint32_t nonce = 100, noncePing = 100;
 sem_t *mutex_active_process, *mutex_secondary_port;
@@ -162,6 +162,7 @@ void pack_login_message(struct message* aux){
     aux->opcode = LOGIN_OPCODE;
     aux->my_id = cl_id;
     aux->my_listen_port = cl_secondary_port;
+    aux->third_port = cl_third_port;
 }
 
 void pack_list_message(struct message* aux, uint32_t id){
@@ -509,7 +510,8 @@ void pingHandler(struct message m_ping, struct sockaddr *addr){
 
     noncePingInc(getppid());
     struct message m_ack = pack_ack(cl_id, noncePing);
-    send_message(&m_ack, (struct sockaddr_in *)addr, secondSd, TRUE);
+    sleep(2);
+    send_message(&m_ack, (struct sockaddr_in *)addr, thirdSd, TRUE);
 
 }
 
@@ -743,6 +745,7 @@ int main(int argc, char* argv[]){
     cl_id = atoi(argv[3]);
     cl_main_port = atoi(argv[4]);    
     cl_secondary_port = (argc>=6)? atoi(argv[5]): cl_main_port+100;
+    cl_third_port = cl_main_port+200;
 
     //set up the id to identifie with the server
     setMyId((uint32_t)cl_id);
@@ -849,7 +852,7 @@ int main(int argc, char* argv[]){
 
     //to increse the other porcess nonce 
     signal(SIGUSR1, updateNonce);
-    signal(SIGWINCH, updateNoncePing);
+    //signal(SIGWINCH, updateNoncePing);
 
     //Creo processo figlio per gestire le richieste di partita
     pid_t pid;
@@ -858,8 +861,6 @@ int main(int argc, char* argv[]){
 		perror("Fork Error\n");
 		exit(1);		
 	}	
-
-
     //Child process
 	if(pid==0){
         //Setup signals to interupt the child process
@@ -869,6 +870,25 @@ int main(int argc, char* argv[]){
         childCode();        
         return 0;
 	}
+
+    pid_t pid_ping = fork();
+    if(pid_ping==-1){
+		perror("Fork Error\n");
+		exit(1);		
+	}	
+    if(pid_ping==0){
+        // crea porta terziaria
+        thirdSd = setupSocket(cl_third_port);
+        while(TRUE){
+            // receive    
+            struct message m_ping;
+            recv_message(thirdSd, &m_ping, (struct sockaddr*)&sv_addr, TRUE, 0);
+            // handle ping
+            pingHandler(m_ping, (struct sockaddr*)&sv_addr);
+        }
+        printf("exit while\n");
+	}
+
 
     //sleep(10);
     //readKey(1);
@@ -1052,6 +1072,9 @@ int main(int argc, char* argv[]){
 
                 close(sd);
                 close(secondSd);
+                close(thirdSd);
+                kill(pid, SIGKILL);
+                kill(pid_ping, SIGKILL);
                 exit(0);
         }   
     }

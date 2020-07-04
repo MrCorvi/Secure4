@@ -416,7 +416,7 @@ void childePingCode(){
 	
 	sdPing = setupPingSocket();
 
-	waitTime = 3;
+	waitTime = 5;
 
 	setIsAlarmfree(FALSE);
 	setExitOnError(FALSE);
@@ -435,7 +435,7 @@ void childePingCode(){
 			char ip[80], port_buf[80], key[SIM_KEY_LEN], nonce_buf[10];
 			int nonce;
 			get_buf_column_by_id(filename, IDs[i], 2, ip);
-			get_buf_column_by_id(filename, IDs[i], 3, port_buf);
+			get_buf_column_by_id(filename, IDs[i], 6, port_buf);
 			get_buf_column_by_id(filename, IDs[i], 5, nonce_buf);
 			nonce = atoi(nonce_buf);
 			readKey(IDs[i], key);
@@ -600,7 +600,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			char buffer[MAX_BUFFER_SIZE];
 			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);
 			int cl_port = aux->my_listen_port;
-			sprintf(buffer,"%d,%s,%d,%d,%d", aux->my_id, str, cl_port, cs, cs); //costante magica
+			int third_port = aux->third_port;
+			sprintf(buffer,"%d,%s,%d,%d,%d,%d", aux->my_id, str, cl_port, cs, cs, third_port); //costante magica
 			char key[SIM_KEY_LEN] = "";
 			for(int i=0; i<32; i++){
 				char tempC[5];
@@ -849,7 +850,7 @@ int main(int argc, char* argv[]){
 		exit(0);
 	}
 	sv_port = atoi(argv[1]);
-	ping_port = sv_port+100;
+	ping_port = sv_port+200;
 	pwd = argv[2];
 
 	// address creation
