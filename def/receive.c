@@ -27,7 +27,7 @@ void changeKeyClientReciver(unsigned char *newKey, int size){
 
 int getEncMode(uint16_t opcode){
 
-  //if(opcode<1 || opcode>16) return -1;
+  if(opcode<1 || opcode>16) return -1;
   switch(opcode){
     case LOGIN_OPCODE: return 0;
     case AUTH2_OPCODE: return 0;
