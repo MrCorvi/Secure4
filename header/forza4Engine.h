@@ -5,8 +5,11 @@
     #define MESSAGE_H
     #include"../header/message.h"
 #endif
-#include "../header/send.h"
-#include "../header/receive.h"
+#ifndef COMUNICATION_H
+    #define COMUNICATION_H
+    #include "../header/send.h"
+    #include "../header/receive.h"
+#endif
 #include "../header/symEncript.h"
 
 #define TRUE 1

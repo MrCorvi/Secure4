@@ -16,6 +16,7 @@
 #define AUTH2_OPCODE 13
 #define AUTH3_OPCODE 14
 #define AUTH4_OPCODE 15
+#define PING_OPCODE 16
 
 #define MAX_USERS 2000
 
@@ -24,6 +25,13 @@
 
 #define MAX_BUFFER_SIZE 4096
 #define TAG_SIZE 16
+#define SECRET_SIZE 64
+#define DIGEST_SIZE 32
+#define SIGN_SIZE 64
+#define IV_SIZE 32
+#define SIM_KEY_LEN 65
+
+#define TIMEOUT_TIME 999
 
 struct message{
 	uint16_t opcode;
@@ -36,6 +44,7 @@ struct message{
     uint16_t addColumn;//Used in game to specifie, in game, the Column where to add the disk
     uint32_t dest_ip;
     uint16_t my_listen_port;
+    uint16_t third_port;
     uint16_t dest_port;
     uint16_t column; 
     uint16_t flag; // 1 accept 0 deny
