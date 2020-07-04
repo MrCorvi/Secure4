@@ -606,6 +606,7 @@ void childCode(){
                 strcpy((char*)servKey, (char*)symKey);
                 makeSymKey(symKey, digestCtoCRec);
                 chaneKeySend(symKey, 65);
+                changeKeyClientReciver(symKey, 65);
                 chaneKeyReciver(symKey, 65);
 
                 pack_match_move_message(&m, 0);
@@ -1012,6 +1013,7 @@ int main(int argc, char* argv[]){
                     strcpy((char*)servKey, (char*)symKey);
                     makeSymKey(symKey, digestCtoC);
                     chaneKeySend(symKey, 65);
+                    chaneKeyReciver(symKey, 65);
                     changeKeyClientReciver(symKey, 65);
 
                     printf("Waiting for other player...\n");
