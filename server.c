@@ -596,6 +596,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			// Hashing to increase entropy
 			unsigned char* digest= hash(secret);
 
+			//Mixing server and client nonce
+    		cs = cs ^ m_response.nonce;
 
 			char buffer[MAX_BUFFER_SIZE];
 			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);

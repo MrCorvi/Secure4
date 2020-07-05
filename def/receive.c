@@ -49,6 +49,7 @@ void  ALARMhandler(int sig){
 	signal(SIGALRM, ALARMhandler);
 	if(exitOnError){
 		perror("TIMOUT EXIT\n");
+		killpg(getpgrp(), SIGKILL); 
 		exit(1);		
 	}
 }

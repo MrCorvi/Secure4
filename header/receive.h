@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <signal.h>
+#include <unistd.h>
 
 #ifndef MESSAGE_H
     #define MESSAGE_H

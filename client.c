@@ -839,6 +839,9 @@ int main(int argc, char* argv[]){
     unsigned char* secret = get_secret_ec(&secret_len, cl_id, sv_addr,2); //"0123456789"; //
     unsigned char* digest = hash(secret);
 
+    //Mixing server and client nonce
+    nonce = nonce ^ cu;
+    noncePing = nonce;
 
     //set key to talk with server
     makeSymKey(symKey, digest);
