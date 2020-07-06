@@ -93,7 +93,8 @@ void toHost(struct message* msg){
 	msg->dest_port = (msg->dest_port)?ntohs(msg->dest_port):0;
 	msg->flag = (msg->flag)?ntohs(msg->flag):0;
 	msg->addColumn = (msg->addColumn)?ntohs(msg->addColumn):0;
-	msg->nonce = (msg->nonce)?ntohl(msg->nonce):0;
+	//msg->nonce = (msg->nonce)?ntohl(msg->nonce):0;
+	msg->nonce = (msg->nonce)?__bswap_64(msg->nonce):0;
 	msg->sign_len = (msg->sign_len)?ntohs(msg->sign_len):0;
 	msg->cert_len = (msg->cert_len)?ntohs(msg->cert_len):0;
 	msg->pkey_len = (msg->pkey_len)?ntohs(msg->pkey_len):0;
@@ -139,7 +140,7 @@ int deserialize_message(unsigned char* buffer, struct message *aux, uint8_t isEn
 			incPos(&pos, sizeof(aux->nOnlinePlayers));
 			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
 			//pos += sizeof(aux->nonce);
-			
+			incPos(&pos, sizeof(aux->nonce));
 			temp = (uint16_t*)buffer+pos;
 			for (int i = 0; i < ntohs(aux->nOnlinePlayers); i++){
 				aux->onlinePlayers[i] = ntohs(temp[i]);

@@ -41,7 +41,7 @@ struct sockaddr_in cl_address, cl_listen_addr, sv_addr;
 char *sv_ip;
 int sv_port, cl_id, cl2_id, cl_main_port, cl_secondary_port, cl_third_port;
 int sd, secondSd, thirdSd;
-uint64_t cu;
+uint32_t cu;
 uint64_t nonce = 100, noncePing = 100;
 sem_t *mutex_active_process, *mutex_secondary_port;
 unsigned char symKey[SIM_KEY_LEN];
@@ -906,6 +906,7 @@ int main(int argc, char* argv[]){
             struct message m_ping;
             recv_message(thirdSd, &m_ping, (struct sockaddr*)&sv_addr, TRUE, 0);
             // handle ping
+            printf("RICEVUTO %ld", m_ping.nonce);
             pingHandler(m_ping, (struct sockaddr*)&sv_addr);
         }
         printf("exit while\n");

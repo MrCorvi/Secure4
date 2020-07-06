@@ -61,6 +61,13 @@ int socket_creation(){
 	return sd;
 }
 
+uint64_t S64(char *s) {
+	
+	uint64_t a;
+	sscanf(s, "%lld", &a);
+  	return a;
+}
+
 int handleErrors(){
     printf("An error occourred \n");
     exit(1);
@@ -331,7 +338,9 @@ unsigned char* sign(char* message, int* signature_len, int msg_len){
 
 
 int checkNonce(uint32_t id, uint64_t nonce_recived, int inc){
-	uint64_t nonce_stored = atoi(get_column_by_id(filename, id , 4));
+	//uint64_t nonce_stored = atoi(get_column_by_id(filename, id , 4)); xyz
+	uint64_t nonce_stored = S64(get_column_by_id(filename, id , 4));
+
 
 	//check if the nonce received is 1 more of the one stored
 	if((nonce_stored+1) != nonce_recived){
@@ -349,7 +358,8 @@ int checkNonce(uint32_t id, uint64_t nonce_recived, int inc){
 
 
 int checkNoncePing(uint32_t id, uint64_t nonce_recived, int inc){
-	uint64_t nonce_stored = atoi(get_column_by_id(filename, id , 5));
+	//uint64_t nonce_stored = atoi(get_column_by_id(filename, id , 5));
+	uint64_t nonce_stored = S64(get_column_by_id(filename, id , 5));
 
 	//check if the nonce received is 1 more of the one stored
 	if((nonce_stored+inc) != nonce_recived){
@@ -433,11 +443,13 @@ void childePingCode(){
 		
 		for(uint16_t i=0; i<dim; i++){
 			char ip[80], port_buf[80], key[SIM_KEY_LEN], nonce_buf[10];
-			int nonce;
+			uint64_t nonce;
 			get_buf_column_by_id(filename, IDs[i], 2, ip);
 			get_buf_column_by_id(filename, IDs[i], 6, port_buf);
 			get_buf_column_by_id(filename, IDs[i], 5, nonce_buf);
-			nonce = atoi(nonce_buf);
+			//nonce = atoi(nonce_buf);
+			nonce = S64(nonce_buf);
+			printf("nonce s64 %lld su nonce_buf %s\n", nonce, nonce_buf);
 			readKey(IDs[i], key);
 			uint16_t port = (short)atoi(port_buf);
 			printf("\033[1;31mPing:\033[0m id %u has ip: %s	port:%u	key:%s\n", IDs[i], ip, port, key);
@@ -518,11 +530,11 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			int ret = get_row_by_id(filename, aux->my_id);
 			printf("row : %d\n", ret);
 			if(ret!=-1){
-				printf("ERRORE GIA' LOGGATO, da gestire con Err pack");
+				printf("ERRORE GIA' LOGGATO");
 				// per ora inserisce comunque per agevolare testing
-				struct message m = pack_err(aux->my_id, aux->nonce+1);
+				/*struct message m = pack_err(aux->my_id, aux->nonce+1);
             	send_message(&m, cl_addr, sd, FALSE);
-				close(sd_listen);
+				close(sd_listen);*/
 				break;
 			}
 
@@ -633,7 +645,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 		case MATCH_OPCODE:
 
 			dest_ip = (char*)get_column_by_id(filename, aux->dest_id, 2);
-			uint64_t nonce_stored = atoi(get_column_by_id(filename, aux->my_id , 4));
+			//uint64_t nonce_stored = atoi(get_column_by_id(filename, aux->my_id , 4));
+			uint64_t nonce_stored = S64(get_column_by_id(filename, aux->my_id , 4));
 			uint64_t nonce_sender = aux->nonce;
 
 			//check if the id required is online
@@ -680,7 +693,8 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			update_row(filename, aux->my_id, source_ip, source_port, nonce_stored + 1);
 
 			//set the reciver nonce
-			uint64_t nonce_reciver = atoi(get_column_by_id(filename, aux->dest_id, 4));
+			//uint64_t nonce_reciver = atoi(get_column_by_id(filename, aux->dest_id, 4));
+			uint64_t nonce_reciver = S64(get_column_by_id(filename, aux->dest_id, 4));
 			aux->nonce = nonce_reciver + 1;
             
 			sd_listen = socket(AF_INET, SOCK_DGRAM, 0);

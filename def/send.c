@@ -36,7 +36,8 @@ struct message toNet(struct message* msg){
 	aux.dest_port = htons(msg->dest_port);
 	aux.flag = htons(msg->flag);
 	aux.addColumn = htons(msg->addColumn);
-	aux.nonce = htonl(msg->nonce);
+	//aux.nonce = htonl(msg->nonce);
+	aux.nonce = __bswap_64(msg->nonce);
 	aux.peerkey = msg->peerkey;
 	aux.pkey_len = htons(msg->pkey_len); //da rivedere
 	aux.cert = msg->cert;
@@ -94,7 +95,6 @@ int serialize_message(void* buffer, struct message *msg){
 			pos+=sizeof(aux.nOnlinePlayers);
 			memcpy(buffer+pos, &aux.nonce, sizeof(aux.nonce));
 			pos+=sizeof(aux.nonce);
-
 			for (int i = 0; i < msg->nOnlinePlayers; i++){
 				temp = htons(msg->onlinePlayers[i]);
 				memcpy(buffer+pos, &temp, sizeof(temp));
