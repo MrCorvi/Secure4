@@ -45,7 +45,7 @@ uint64_t cu;
 uint64_t nonce = 100, noncePing = 100;
 sem_t *mutex_active_process, *mutex_secondary_port;
 unsigned char symKey[SIM_KEY_LEN];
-char* client_pkey;
+EVP_PKEY* client_pkey;
 int isClinetSecondProcess = FALSE;
 int waitTime = 10;
 
@@ -422,6 +422,12 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
     aux.opcode = KEY_OPCODE;    
     aux.peerkey = pem;
     aux.pkey_len = size;
+    aux.sign_len = 0;
+    if(flag_order!=2){
+        int sign_len;
+        aux.sign = sign((unsigned char*)pem, &sign_len, size);
+        aux.sign_len = sign_len;
+    }
 
     struct message ack;
     if(flag_order==1){
@@ -450,10 +456,22 @@ unsigned char *get_secret_ec(size_t *secret_len, int cl_id, struct sockaddr_in p
         return NULL;
 
     if(flag_order!=2){
-        if(strcmp(ack.peerkey,client_pkey)!=0){
-            printf("Matching error nella chiave\n%sm\n%s\n", ack.peerkey, client_pkey);
-            //exit(1);
+        /*printf("ack peer key %s, ack pley len %d\n ack sign %s ack sign len %d",
+            ack.peerkey, ack.pkey_len, ack.sign, ack.sign_len);*/
+        const EVP_MD* md = EVP_sha256();
+        EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
+        if(!md_ctx) handleErrors();
+        int ret = EVP_VerifyInit(md_ctx, md);
+        if(ret==0){ printf("Error verify init\n"); handleErrors();}
+        ret = EVP_VerifyUpdate(md_ctx, ack.peerkey, ack.pkey_len);
+        if(ret==0){ printf("Error verify update\n"); handleErrors();}
+        ret = EVP_VerifyFinal(md_ctx, ack.sign, ack.sign_len, client_pkey);
+        if(ret!=1){ 
+            printf("Error verify final con size_lennn %d\n", ack.sign_len);
+            handleErrors();
         }
+        EVP_PKEY_free(client_pkey);
+        EVP_MD_CTX_free(md_ctx);
     }
     BIO_write(bio2, ack.peerkey, ack.pkey_len);
     PEM_read_bio_PUBKEY(bio2, &peerkey, NULL, NULL);
