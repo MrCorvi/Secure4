@@ -63,7 +63,7 @@ int socket_creation(){
 
 uint64_t S64(char *s) {
 	
-	uint64_t a;
+	uint64_t a; 
 	sscanf(s, "%lld", &a);
   	return a;
 }
