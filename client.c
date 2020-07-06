@@ -832,7 +832,7 @@ int main(int argc, char* argv[]){
     // verifica
     int nonce_len = (unsigned int)floor(log10(cu))+1;
     char ch_cu[nonce_len];
-    sprintf(ch_cu, "%lu", cu);
+    sprintf(ch_cu, "%u", cu);
 	int ret;
     const EVP_MD* md = EVP_sha256();
 	EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();

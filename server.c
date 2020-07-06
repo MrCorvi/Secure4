@@ -633,7 +633,6 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			break;
 		case LIST_OPCODE:
             printf("List request from ID: %d\n", aux->my_id);
-			//sleep(30);
 			//check nonce
 			if(!checkNonce(aux->my_id, aux->nonce, 2))
 				break;

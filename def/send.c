@@ -96,11 +96,14 @@ int serialize_message(void* buffer, struct message *msg){
 			memcpy(buffer+pos, &aux.nonce, sizeof(aux.nonce));
 			pos+=sizeof(aux.nonce);
 			for (int i = 0; i < msg->nOnlinePlayers; i++){
-				temp = htons(msg->onlinePlayers[i]);
+				temp = msg->onlinePlayers[i];
 				memcpy(buffer+pos, &temp, sizeof(temp));
+				//printf("- %d     %x  %d\n", temp, *((uint16_t*)(buffer+pos)), pos);
 				pos+= sizeof(temp);
-				printf("- %d \n", msg->onlinePlayers[i]);
 			}
+
+			printf("LIST: \n");
+			BIO_dump_fp(stdout, (const char *)buffer, 30);
 			break;
 		case MATCH_MOVE_OPCODE:
 			memcpy(buffer+pos, &aux.my_id, sizeof(aux.my_id));

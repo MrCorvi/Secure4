@@ -141,11 +141,14 @@ int deserialize_message(unsigned char* buffer, struct message *aux, uint8_t isEn
 			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));
 			//pos += sizeof(aux->nonce);
 			incPos(&pos, sizeof(aux->nonce));
-			temp = (uint16_t*)buffer+pos;
+			//temp = (uint16_t*)buffer+pos;
 			for (int i = 0; i < ntohs(aux->nOnlinePlayers); i++){
-				aux->onlinePlayers[i] = ntohs(temp[i]);
-				incPos(&pos, sizeof(uint16_t));
+				aux->onlinePlayers[i] = *((uint16_t*)(buffer+pos));
+				//printf("+ %x     %d\n", temp[i], pos);
+				incPos(&pos, sizeof(aux->onlinePlayers[i]));
 			}
+			printf("LIST: \n");
+			BIO_dump_fp(stdout, (const char *)buffer, 30);
 			//printf("\n");
 			break;
 		case LOGOUT_OPCODE:
@@ -280,7 +283,7 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 	signal(SIGALRM, ALARMhandler);
 	do{
 		if(!isAlarmFree){
-			printf("Start alarm\n");
+			//printf("Start alarm\n");
 			timeout = 0;
 			alarm(waitTime);
 		}
@@ -334,7 +337,7 @@ int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr
 			unsigned char k[SIM_KEY_LEN];
 			if(senderId == (MAX_USERS+1)){
 				strcpy(k, key_gem_recive);
-				printf("client key: %s \n",k);
+				//printf("client key: %s \n",k);
 			}else{
 				strcpy(k, key_client);
 			}
