@@ -260,7 +260,7 @@ int deserialize_message(unsigned char* buffer, struct message *aux, uint8_t isEn
 	return notBufferOverflow;
 }
 
-int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr, int dec, uint32_t nonce){
+int recv_message(int socket, struct message* message, struct sockaddr* mitt_addr, int dec, uint64_t nonce){
   	int ret=-1;
 	uint32_t senderId;
   	void *buffer = malloc(1 + sizeof(senderId) + MAX_BUFFER_SIZE + TAG_SIZE + IV_SIZE);

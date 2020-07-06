@@ -35,7 +35,7 @@ int num_bind =0;
 int sv_port, ping_port;
 int sd_listen; //each process use one to answer a request
 unsigned char symKey[SIM_KEY_LEN];
-uint32_t cs;
+uint64_t cs;
 int isClinetSecondProcess = FALSE;
 int waitTime = 10;
 
@@ -201,7 +201,7 @@ unsigned char* hash(unsigned char* secret){
 	return dig;
 }
 
-struct message pack_ack(uint32_t id, uint32_t nonce){
+struct message pack_ack(uint32_t id, uint64_t nonce){
 
     struct message aux;
     aux.opcode = ACK_OPCODE;
@@ -223,7 +223,7 @@ struct message pack_challenge(){
 	return aux;
 }
 
-struct message pack_err(uint32_t id, u_int32_t nonce){
+struct message pack_err(uint32_t id, uint64_t nonce){
 
     struct message aux;
     aux.opcode = REPLY_OPCODE;
@@ -233,7 +233,7 @@ struct message pack_err(uint32_t id, u_int32_t nonce){
     return aux;
 }
 
-struct message pack_ping(u_int32_t nonce){
+struct message pack_ping(uint64_t nonce){
 
     struct message aux;
     aux.opcode = PING_OPCODE;
@@ -241,7 +241,7 @@ struct message pack_ping(u_int32_t nonce){
     return aux;
 }
 
-struct message pack_list_ack(uint32_t nonce){
+struct message pack_list_ack(uint64_t nonce){
     struct message aux;
 	uint16_t len;
     aux.opcode = ACK_LIST;
@@ -251,7 +251,7 @@ struct message pack_list_ack(uint32_t nonce){
 	return aux;
 }
 
-struct message pack_reply_message(uint16_t flag, uint32_t cl_id, uint16_t dest_id_aux, uint32_t nonce){
+struct message pack_reply_message(uint16_t flag, uint32_t cl_id, uint16_t dest_id_aux, uint64_t nonce){
 	struct message aux;
     aux.opcode = REPLY_OPCODE;
     aux.my_id = cl_id;
@@ -330,8 +330,8 @@ unsigned char* sign(char* message, int* signature_len, int msg_len){
 
 
 
-int checkNonce(uint32_t id, uint32_t nonce_recived, int inc){
-	uint32_t nonce_stored = atoi(get_column_by_id(filename, id , 4));
+int checkNonce(uint32_t id, uint64_t nonce_recived, int inc){
+	uint64_t nonce_stored = atoi(get_column_by_id(filename, id , 4));
 
 	//check if the nonce received is 1 more of the one stored
 	if((nonce_stored+1) != nonce_recived){
@@ -348,8 +348,8 @@ int checkNonce(uint32_t id, uint32_t nonce_recived, int inc){
 }
 
 
-int checkNoncePing(uint32_t id, uint32_t nonce_recived, int inc){
-	uint32_t nonce_stored = atoi(get_column_by_id(filename, id , 5));
+int checkNoncePing(uint32_t id, uint64_t nonce_recived, int inc){
+	uint64_t nonce_stored = atoi(get_column_by_id(filename, id , 5));
 
 	//check if the nonce received is 1 more of the one stored
 	if((nonce_stored+inc) != nonce_recived){
@@ -558,7 +558,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			
 			int nonce_len_cs = (unsigned int)floor(log10(cs))+1;
     		ch_cs = malloc(nonce_len_cs);
-    		sprintf(ch_cs, "%u", cs);
+    		sprintf(ch_cs, "%lu", cs);
 			//char *test= "66"; //costante magica
 			const EVP_MD* md = EVP_sha256();
 			EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
@@ -577,7 +577,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			printf("Nonce\n");
 			int nonce_len_ca = (unsigned int)floor(log10(m_response.nonce))+1;
 			ch_ca = malloc(nonce_len_ca);
-    		sprintf(ch_ca, "%u", m_response.nonce );
+    		sprintf(ch_ca, "%lu", m_response.nonce );
 			//for(int i=0; i<nonce_len_ca;i++)
 			//	printf("%c", ch_ca[i]);
 			int sign_len;
@@ -597,13 +597,13 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			unsigned char* digest= hash(secret);
 
 			//Mixing server and client nonce
-    		cs = cs ^ m_response.nonce;
+    		cs = 0.5*(cs + m_response.nonce)*(cs + m_response.nonce + 1) + m_response.nonce;//cs ^ m_response.nonce;
 
 			char buffer[MAX_BUFFER_SIZE];
 			inet_ntop(AF_INET, &(cl_addr->sin_addr), str, INET_ADDRSTRLEN);
 			int cl_port = aux->my_listen_port;
 			int third_port = aux->third_port;
-			sprintf(buffer,"%d,%s,%d,%d,%d,%d", aux->my_id, str, cl_port, cs, cs, third_port); //costante magica
+			sprintf(buffer,"%d,%s,%d,%ld,%ld,%d", aux->my_id, str, cl_port, cs, cs, third_port); //costante magica
 			char key[SIM_KEY_LEN] = "";
 			for(int i=0; i<32; i++){
 				char tempC[5];
@@ -627,14 +627,14 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				break;
 
             struct message ackList = pack_list_ack(aux->nonce + 1);
-			printf("nonce: %d\n", ackList.nonce);
+			printf("nonce: %ld\n", ackList.nonce);
             send_message(&ackList, cl_addr, sd, TRUE);
             break;
 		case MATCH_OPCODE:
 
 			dest_ip = (char*)get_column_by_id(filename, aux->dest_id, 2);
-			uint32_t nonce_stored = atoi(get_column_by_id(filename, aux->my_id , 4));
-			uint32_t nonce_sender = aux->nonce;
+			uint64_t nonce_stored = atoi(get_column_by_id(filename, aux->my_id , 4));
+			uint64_t nonce_sender = aux->nonce;
 
 			//check if the id required is online
 			if(dest_ip==NULL){
@@ -667,7 +667,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			printf("DEST IP: %s\n", dest_ip);
 			printf("DEST PORT; %u\n", dest_port);
 
-			printf("Nonce recived: %d		Nonce stored: %d\n", nonce_sender, nonce_stored);
+			printf("Nonce recived: %ld		Nonce stored: %ld\n", nonce_sender, nonce_stored);
 			//check if the nonce received is 1 more of the one stored
 			if((nonce_stored+1) != nonce_sender){
 				printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -680,7 +680,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			update_row(filename, aux->my_id, source_ip, source_port, nonce_stored + 1);
 
 			//set the reciver nonce
-			uint32_t nonce_reciver = atoi(get_column_by_id(filename, aux->dest_id, 4));
+			uint64_t nonce_reciver = atoi(get_column_by_id(filename, aux->dest_id, 4));
 			aux->nonce = nonce_reciver + 1;
             
 			sd_listen = socket(AF_INET, SOCK_DGRAM, 0);

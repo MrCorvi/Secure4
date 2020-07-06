@@ -6,7 +6,7 @@ int map [MAP_WIDTH][MAP_HEIGHT];
 char *destIp;
 int destPort ;
 int sendSd, reciveSd;
-uint32_t nonceCl_to_Cl;
+uint64_t nonceCl_to_Cl;
 
 void setup(){
     for(int i=0; i<MAP_HEIGHT; i++){
