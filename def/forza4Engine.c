@@ -172,7 +172,7 @@ int waitMove(){
 
     //Is the nonce correct ?
      //Nonce check
-    printf("\nNonce rec: %d       stored:%d\n", m.nonce, nonceCl_to_Cl);
+    printf("\nNonce rec: %ld       stored:%ld\n", m.nonce, nonceCl_to_Cl);
     if((nonceCl_to_Cl + 1) != m.nonce){
         printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         return 0;
@@ -186,7 +186,7 @@ void sendMove(uint8_t column){
     struct sockaddr_in opponentAddr = setupDestAddress(destIp, destPort);
     struct message m;
     
-    printf("invio nonceCl_to_Cl %d", nonceCl_to_Cl);
+    printf("invio nonceCl_to_Cl %ld", nonceCl_to_Cl);
     nonceCl_to_Cl++;
     pack_match_move_message_local(&m, column, 5);
     send_message(&m, &opponentAddr, sendSd, TRUE);

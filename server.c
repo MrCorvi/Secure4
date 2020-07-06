@@ -61,10 +61,10 @@ int socket_creation(){
 	return sd;
 }
 
-uint64_t S64(char *s) {
+uint64_t S64( const char *s) {
 	
 	uint64_t a;
-	sscanf(s, "%lld", &a);
+	sscanf(s, "%ld", &a);
   	return a;
 }
 
@@ -345,7 +345,7 @@ int checkNonce(uint32_t id, uint64_t nonce_recived, int inc){
 	//check if the nonce received is 1 more of the one stored
 	if((nonce_stored+1) != nonce_recived){
 		printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		printf("Nonce recived: %d		Nonce stored: %d\n", nonce_recived, nonce_stored);
+		printf("Nonce recived: %ld		Nonce stored: %ld\n", nonce_recived, nonce_stored);
 		return 0;
 	}
 
@@ -364,7 +364,7 @@ int checkNoncePing(uint32_t id, uint64_t nonce_recived, int inc){
 	//check if the nonce received is 1 more of the one stored
 	if((nonce_stored+inc) != nonce_recived){
 		printf("\033[1;31mPing Errore:\033[0m il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		printf("\033[1;31mPing Errore:\033[0m Nonce recived: %d		Nonce expected: %d\n", nonce_recived, nonce_stored+inc);
+		printf("\033[1;31mPing Errore:\033[0m Nonce recived: %ld		Nonce expected: %ld\n", nonce_recived, nonce_stored+inc);
 		return 0;
 	}
 
@@ -449,7 +449,7 @@ void childePingCode(){
 			get_buf_column_by_id(filename, IDs[i], 5, nonce_buf);
 			//nonce = atoi(nonce_buf);
 			nonce = S64(nonce_buf);
-			printf("nonce s64 %lld su nonce_buf %s\n", nonce, nonce_buf);
+			printf("nonce s64 %ld su nonce_buf %s\n", nonce, nonce_buf);
 			readKey(IDs[i], key);
 			uint16_t port = (short)atoi(port_buf);
 			printf("\033[1;31mPing:\033[0m id %u has ip: %s	port:%u	key:%s\n", IDs[i], ip, port, key);
@@ -735,7 +735,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 				//break;
 			}else{*/
 				//Check corret nonce
-				printf("Nonce 			recived: %d		Nonce stored: %d\n", aux_risp.nonce, nonce_reciver);
+				printf("Nonce 			recived: %ld		Nonce stored: %ld\n", aux_risp.nonce, nonce_reciver);
 				if( aux_risp.nonce != (nonce_reciver + 2)){
 					printf("Errore: il nonce ricevuto dal reciver non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 					break;
