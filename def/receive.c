@@ -147,8 +147,8 @@ int deserialize_message(unsigned char* buffer, struct message *aux, uint8_t isEn
 				//printf("+ %x     %d\n", temp[i], pos);
 				incPos(&pos, sizeof(aux->onlinePlayers[i]));
 			}
-			printf("LIST: \n");
-			BIO_dump_fp(stdout, (const char *)buffer, 30);
+			//printf("LIST: \n");
+			//BIO_dump_fp(stdout, (const char *)buffer, 30);
 			//printf("\n");
 			break;
 		case LOGOUT_OPCODE:
