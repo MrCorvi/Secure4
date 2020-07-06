@@ -118,7 +118,7 @@ int symDecrypt(unsigned char *dec_buf, int pt_len, unsigned char *key_gem, unsig
 int getPublicKey(unsigned char *pk, uint32_t id){
     // verifica
     char client_file_name[50];
-    sprintf(client_file_name,"./pubkeys/ec_pubkey%d.pem", id);
+    sprintf(client_file_name,"./keys/rsa_pubkey%d.pem", id);
     printf("File: %s\n", client_file_name);
     FILE* fp = fopen(client_file_name, "r");
     if(!fp) { 
@@ -145,7 +145,7 @@ int getPublicKey(unsigned char *pk, uint32_t id){
 int getPublicKeySize(uint32_t id){
     // verifica
     char client_file_name[50];
-    sprintf(client_file_name,"./pubkeys/ec_pubkey%d.pem", id);
+    sprintf(client_file_name,"./keys/rsa_pubkey%d.pem", id);
     printf("File: %s\n", client_file_name);
     FILE* fp = fopen(client_file_name, "r");
     if(!fp) { 

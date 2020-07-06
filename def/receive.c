@@ -215,6 +215,14 @@ int deserialize_message(unsigned char* buffer, struct message *aux, uint8_t isEn
 				//printf("%d,%c,%c", i, *(buffer+pos),aux->peerkey[i]);
 				incPos(&pos, sizeof(char));
 			}
+			memcpy(&aux->sign_len, buffer+pos, sizeof(aux->sign_len));
+			incPos(&pos, sizeof(aux->sign_len));
+			aux->sign = malloc(ntohs(aux->sign_len)+1);
+			for (uint64_t i = 0; i < ntohs(aux->sign_len); i++){
+				aux->sign[i] = (unsigned char)*(buffer+pos);
+				incPos(&pos, sizeof(char));
+				//printf("%u", aux->sign[i]);
+			}
 			break;
 		case AUTH2_OPCODE:
 			memcpy(&aux->nonce, buffer+pos, sizeof(aux->nonce));

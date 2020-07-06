@@ -160,6 +160,12 @@ int serialize_message(void* buffer, struct message *msg){
 				//printf("%i, %c, %c\n",i, temp1, bufchar);
 				pos+= sizeof(temp1);
 			}
+			memcpy(buffer+pos, &aux.sign_len, sizeof(aux.sign_len));
+			pos+=sizeof(aux.sign_len);
+			for(int i = 0; i < msg->sign_len; i++){
+				memcpy(buffer+pos, &aux.sign[i], sizeof(aux.sign[i]));
+				pos+= 1; //sizeof(temp1);
+			}
 			break;
 		case AUTH2_OPCODE:
 			memcpy(buffer+pos, &aux.nonce, sizeof(aux.nonce));
