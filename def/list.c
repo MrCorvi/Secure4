@@ -1,6 +1,6 @@
 #include "../header/list.h"
 
-void pack_list_message(struct message* aux, uint32_t id, uint32_t nonce){
+void pack_list_message(struct message* aux, uint32_t id, uint64_t nonce){
 
 	aux->opcode = LIST_OPCODE;
     //For now, the id is given by an input !!!!!!!!!!!!!!!!!

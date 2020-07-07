@@ -42,7 +42,7 @@ char *sv_ip;
 int sv_port, cl_id, cl2_id, cl_main_port, cl_secondary_port, cl_third_port;
 int sd, secondSd, thirdSd;
 uint32_t cu;
-uint32_t nonce = 100, noncePing = 100;
+uint64_t nonce = 100, noncePing = 100;
 sem_t *mutex_active_process, *mutex_secondary_port;
 unsigned char symKey[SIM_KEY_LEN];
 EVP_PKEY* client_pkey;
@@ -180,7 +180,7 @@ void pack_logout_message(struct message* aux){
 }
 
 //ACK for ping
-struct message pack_ack(uint32_t id, uint32_t nonce){
+struct message pack_ack(uint32_t id, uint64_t nonce){
 
     struct message aux;
     aux.opcode = ACK_OPCODE;
@@ -228,17 +228,17 @@ void pack_match_message(struct message* aux){
 
 }
 
-void pack_response_message(struct message* aux, uint32_t cs){
+void pack_response_message(struct message* aux, uint64_t cs){
 
     int sign_len ;
 
     RAND_poll();
-    RAND_bytes((unsigned char*)&cu, sizeof(uint32_t));
+    RAND_bytes((unsigned char*)&cu, sizeof(uint64_t));
     int nonce_len = (unsigned int)(floor(log10(cs)))+1;
     //printf("Cu %u lungo %d", cu, nonce_len);
     //printf("Cs %u lungo %d", cs, nonce_len);
     char ch_cs[nonce_len];
-    sprintf(ch_cs, "%u", cs);
+    sprintf(ch_cs, "%lu", cs);
 	unsigned char* signed_resp = sign((unsigned char*)ch_cs, &sign_len, nonce_len);
 
     aux->opcode = AUTH3_OPCODE;
@@ -269,11 +269,11 @@ int setupSocket(int port){
     return secondSd;
 }
 
-int nonceCheck(uint32_t nonceReceived, int incNonce, pid_t pid){
+int nonceCheck(uint64_t nonceReceived, int incNonce, pid_t pid){
     //Nonce check
     //printf("\nNonce rec: %d       stored:%d\n", nonceReceived, nonce);
     if((nonce + 1) != nonceReceived){
-        printf("Errore: recived nonce %d insted of %d\n", nonceReceived, nonce+1);//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        printf("Errore: recived nonce %ld insted of %ld\n", nonceReceived, nonce+1);
         return 0;
     }
     nonce+=incNonce;
@@ -289,11 +289,11 @@ void nonceInc(pid_t pid){
 
 
 // Same nonce operations but for ping
-int noncePingCheck(uint32_t noncePingReceived, int incNoncePing, pid_t pid){
+int noncePingCheck(uint64_t noncePingReceived, int incNoncePing, pid_t pid){
     //NoncePing check
     //printf("\nNoncePing rec: %d       stored:%d\n", noncePingReceived, noncePing);
     if((noncePing + 1) != noncePingReceived){
-        printf("\n\033[1;31mPing Errore:\033[0m recived noncePing %d insted of %d\n", noncePingReceived, noncePing+1);//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        printf("\n\033[1;31mPing Errore:\033[0m recived noncePing %ld insted of %ld\n", noncePingReceived, noncePing+1);//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         return 0;
     }
     noncePing+=incNoncePing;
@@ -858,7 +858,7 @@ int main(int argc, char* argv[]){
     unsigned char* digest = hash(secret);
 
     //Mixing server and client nonce
-    nonce = nonce ^ cu;
+    nonce = 0.5*(nonce + cu)*(nonce + cu + 1) + cu;//nonce ^ cu;
     noncePing = nonce;
 
     //set key to talk with server
@@ -869,7 +869,7 @@ int main(int argc, char* argv[]){
 
     /* Use digest of secret instead of secret to increase the entropy */
 
-    printf("\033[1;32mWelcome to Forza4\033[0m: Enjoy it with your friends! ");
+    printf("\n\033[1;32mWelcome to Forza4\033[0m: Enjoy it with your friends! ");
     print_help();
 
     //to increse the other porcess nonce 
@@ -906,6 +906,7 @@ int main(int argc, char* argv[]){
             struct message m_ping;
             recv_message(thirdSd, &m_ping, (struct sockaddr*)&sv_addr, TRUE, 0);
             // handle ping
+            //printf("RICEVUTO %ld", m_ping.nonce);
             pingHandler(m_ping, (struct sockaddr*)&sv_addr);
         }
         printf("exit while\n");
@@ -940,7 +941,7 @@ int main(int argc, char* argv[]){
 
                 //nonce setup
                 nonceInc(pid);
-                printf("                %d %d\n", nonce, noncePing);
+                //printf("                %ld %ld\n", nonce, noncePing);
                 pack_list_message(&m, cl_id);
     
                 //printf("Getting list of online users from the server \n");
@@ -958,7 +959,7 @@ int main(int argc, char* argv[]){
 
                 printf("List of the online users:\n");
                 for (int i = 0; i < ack_list.nOnlinePlayers; i++){
-                    printf("- %d \n", ack_list.onlinePlayers[i]);
+                    printf("   - %d \n", ack_list.onlinePlayers[i]);
                 }
                 break;
             case CMD_MATCH:
