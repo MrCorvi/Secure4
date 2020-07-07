@@ -245,7 +245,7 @@ int update_row(char* filename, uint32_t my_id, const char ip[], uint16_t cl_port
 
     //append new row version
     sprintf(buffer,"%d,%s,%s,%ld,%s,%s", my_id, ip2, cl_port2, nonce, noncePing,cl_port3);
-    printf("    hhhhhhhhhhhhhhhhhh   %s\n",buffer);
+    printf("Row updated in csv: %s\n",buffer);
     append_row(filename, buffer);
     return ret;
 }
@@ -273,7 +273,7 @@ int update_nonce_ping(char* filename, uint32_t my_id, uint64_t noncePing){
 
     //append new row version
     sprintf(buffer,"%d,%s,%s,%s,%ld,%s", my_id, ip, cl_port, nonce, noncePing,cl_port3);
-    printf("%s\n",buffer);
+    printf("Row updated in csv: %s\n",buffer);
     append_row(filename, buffer);
     return ret;
 }

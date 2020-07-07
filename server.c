@@ -776,7 +776,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 
 				dest_ip = (char*)get_column_by_id(filename, aux->dest_id, 2);
 				update_row(filename, aux->dest_id, dest_ip, dest_port, nonce_reciver + 3);
-				printf("												DEST IP: %s\n", dest_ip);
+				printf("DEST IP: %s\n", dest_ip);
 			//}
 
 
