@@ -869,7 +869,7 @@ int main(int argc, char* argv[]){
 
     /* Use digest of secret instead of secret to increase the entropy */
 
-    printf("\033[1;32mWelcome to Forza4\033[0m: Enjoy it with your friends! ");
+    printf("\n\033[1;32mWelcome to Forza4\033[0m: Enjoy it with your friends! ");
     print_help();
 
     //to increse the other porcess nonce 
