@@ -941,7 +941,7 @@ int main(int argc, char* argv[]){
 
                 //nonce setup
                 nonceInc(pid);
-                printf("                %ld %ld\n", nonce, noncePing);
+                //printf("                %ld %ld\n", nonce, noncePing);
                 pack_list_message(&m, cl_id);
     
                 //printf("Getting list of online users from the server \n");
@@ -959,7 +959,7 @@ int main(int argc, char* argv[]){
 
                 printf("List of the online users:\n");
                 for (int i = 0; i < ack_list.nOnlinePlayers; i++){
-                    printf("- %d \n", ack_list.onlinePlayers[i]);
+                    printf("   - %d \n", ack_list.onlinePlayers[i]);
                 }
                 break;
             case CMD_MATCH:

@@ -224,6 +224,10 @@ int serialize_message(void* buffer, struct message *msg){
 			break;
 	}
 
+	if(notBufferOverflowSend == FALSE){
+		perror("\033[0;31mA buffer overflow happened, the extra content was cutted out\n\033[0m");
+	}
+
 	return pos;
 }
 
