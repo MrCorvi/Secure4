@@ -345,7 +345,7 @@ int checkNonce(uint32_t id, uint64_t nonce_recived, int inc){
 	//check if the nonce received is 1 more of the one stored
 	if((nonce_stored+1) != nonce_recived){
 		printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		printf("Nonce recived: %ld		Nonce stored: %ld\n", nonce_recived, nonce_stored);
+		//printf("Nonce recived: %ld		Nonce stored: %ld\n", nonce_recived, nonce_stored);
 		return 0;
 	}
 
@@ -679,7 +679,7 @@ int handle_request(struct message* aux, struct sockaddr_in *cl_addr,int sd){
 			printf("DEST IP: %s\n", dest_ip);
 			printf("DEST PORT; %u\n", dest_port);
 
-			printf("Nonce recived: %ld		Nonce stored: %ld\n", nonce_sender, nonce_stored);
+			//printf("Nonce recived: %ld		Nonce stored: %ld\n", nonce_sender, nonce_stored);
 			//check if the nonce received is 1 more of the one stored
 			if((nonce_stored+1) != nonce_sender){
 				printf("Errore: il nonce ricevuto non era quello aspettato\n");//Da stabilire con edo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
